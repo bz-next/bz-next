@@ -1,0 +1,271 @@
+cmake_minimum_required(VERSION 3.18.4 FATAL_ERROR)
+
+include(CheckSymbolExists)
+include(CheckCXXSymbolExists)
+include(CheckFunctionExists)
+include(CheckTypeSize)
+
+# Add our extra CMake modules
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
+
+include(BZUtils)
+
+# Define the project information
+cmake_policy(SET CMP0048 NEW) # This enables new behavior for VERSION below
+project(BZFlag
+        VERSION 2.4.27
+        DESCRIPTION "Free multi-player 3D tank battle game for Windows, Linux, and macOS"
+	HOMEPAGE_URL "https://www.bzflag.org"
+)
+
+string(TOLOWER ${CMAKE_PROJECT_NAME} PROJECT_NAME_LOWER)
+
+# Require C++11
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+
+set(ENABLE_CLIENT TRUE CACHE BOOL "Enable the graphical client")
+set(ENABLE_ROBOTS TRUE CACHE BOOL "Enable robot players") # Is ths only in the client?
+set(ENABLE_SERVER TRUE CACHE BOOL "Enable the server")
+set(ENABLE_PLUGINS TRUE CACHE BOOL "Enable plugins in the server")
+set(ENABLE_BZADMIN TRUE CACHE BOOL "Enable the text client")
+
+# TODO: Just use ENABLE_PLUGINS in the code? Or just always enable them?
+if (ENABLE_PLUGINS)
+    set(BZ_PLUGINS TRUE)
+else()
+    set(BZ_PLUGINS FALSE)
+endif()
+
+
+math(EXPR VERSION_MINOR_IS_ODD "${CMAKE_PROJECT_VERSION_MINOR} % 2")
+math(EXPR VERSION_PATCH_IS_ODD "${CMAKE_PROJECT_VERSION_PATCH} % 2")
+
+set(BUILD_RC_NUMBER "" CACHE STRING "Define the release candidate number")
+
+if(VERSION_MINOR_IS_ODD OR VERSION_PATCH_IS_ODD)
+    set(BUILD_TYPE "DEVEL" CACHE STRING "Define the build type (DEVEL, RCn, STABLE, or MAINT)" FORCE)
+elseif(NOT VERSION_MINOR_IS_ODD AND NOT VERSION_PATCH_IS_ODD AND BUILD_RC_NUMBER)
+    set(BUILD_TYPE "RC" CACHE STRING "Define the build type (DEVEL, RC, STABLE, or MAINT)" FORCE)
+elseif(CMAKE_PROJECT_VERSION_PATCH EQUAL 0)
+    set(BUILD_TYPE "STABLE" CACHE STRING "Define the build type (DEVEL, RCn, STABLE, or MAINT)" FORCE)
+else()
+    set(BUILD_TYPE "MAINT" CACHE STRING "Define the build type (DEVEL, RCn, STABLE, or MAINT)" FORCE)
+endif()
+
+if(BUILD_TYPE STREQUAL "RC")
+    set(BZ_BUILD_TYPE "RC${BUILD_RC_NUMBER}")
+else()
+    set(BZ_BUILD_TYPE "${BUILD_TYPE}")
+endif()
+
+
+# Needed for everything
+find_package(CURL REQUIRED COMPONENTS HTTP HTTPS SSL IPv6 AsynchDNS libz)
+find_package(c-ares REQUIRED)
+find_package(ZLIB REQUIRED)
+
+# Optional for BZAdmin
+find_package(Curses)
+
+if(ENABLE_CLIENT)
+    # Needed for client
+    find_package(SDL2)
+    set(THREADS_PREFER_PTHREAD_FLAG ON)
+    find_package(Threads)
+    # TODO: Check if this is an okay way to test for pthreads
+    set(HAVE_PTHREADS ${CMAKE_USE_PTHREADS_INIT})
+    find_package(OpenGL)
+    find_package(GLEW)
+
+    # Check if all our dependencies were found, and if not, disable the client
+    if(NOT SDL2_FOUND OR NOT Threads_FOUND OR NOT OPENGL_FOUND OR NOT GLEW_FOUND)
+        set(CLIENT_INCLUDED FALSE)
+        if(NOT SDL2_FOUND)
+            message(WARNING "Client was enabled, but will not be built because SDL2 is missing.")
+        endif(NOT SDL2_FOUND)
+        if(NOT Threads_FOUND)
+            message(WARNING "Client was enabled, but will not be built because threads are missing.")
+        endif(NOT Threads_FOUND)
+        if(NOT OPENGL_FOUND)
+            message(WARNING "Client was enabled, but will not be built because OpenGL is missing.")
+        endif(NOT OPENGL_FOUND)
+        if(NOT GLEW_FOUND)
+            message(WARNING "Client was enabled, but will not be built because GLEW is missing.")
+        endif(NOT GLEW_FOUND)
+    else(NOT SDL2_FOUND OR NOT Threads_FOUND OR NOT OPENGL_FOUND OR NOT GLEW_FOUND)
+        set(CLIENT_INCLUDED TRUE)
+    endif(NOT SDL2_FOUND OR NOT Threads_FOUND OR NOT OPENGL_FOUND OR NOT GLEW_FOUND)
+
+    add_compile_definitions(
+            HAVE_SDL
+            HAVE_SDL2
+    )
+else(CLIENT_ENABLED)
+    set(CLIENT_INCLUDED FALSE)
+endif(ENABLE_CLIENT)
+
+string(TIMESTAMP NOW "%Y-%m-%d")
+set(BUILD_DATE "${NOW}" CACHE STRING "Date of the build. Defaults to the date the build was configured. Useful for reproducable builds.")
+
+# TODO: Set BZFLAG_DATA based on the OS? Need to check if this is used on all platforms
+set(BZFLAG_DATA "/usr/local/share/${PROJECT_NAME_LOWER}" CACHE STRING "Location of installed game data assets.")
+
+#if(LINUX)
+#    set(BZFLAG_BUILD_OS "linux")
+#elseif(WIN32)
+#    if(MSVC)
+#        set(BZFLAG_BUILD_OS "windows-msvc-${MSVC_VERSION}")
+#    else()
+#        set(BZFLAG_BUILD_OS "windows")
+#    endif()
+#elseif(BSD)
+    # Added in CMake 2.25, this value can be one of the following: DragonFlyBSD, FreeBSD, OpenBSD, or NetBSD
+#    set(BZFLAG_BUILD_OS "${BSD}")
+#else()
+#    set(BZFLAG_BUILD_OS "${CMAKE_SYSTEM_NAME}")
+#endif()
+
+# Not cached so it doesn't show up in the list of options
+set(BZFLAG_BUILD_OS "${CMAKE_SYSTEM_NAME}")
+if(CMAKE_CXX_COMPILER_ID)
+    set(BZFLAG_BUILD_OS "${BZFLAG_BUILD_OS}-${CMAKE_CXX_COMPILER_ID}")
+endif()
+if(MSVC)
+    set(BZFLAG_BUILD_OS "${BZFLAG_BUILD_OS}-${MSVC_VERSION}")
+elseif(CMAKE_CXX_COMPILER_VERSION)
+    set(BZFLAG_BUILD_OS "${BZFLAG_BUILD_OS}-${CMAKE_CXX_COMPILER_VERSION}")
+endif()
+if(XCODE)
+    set(BZFLAG_BUILD_OS "${BZFLAG_BUILD_OS}-XCode-${XCODE_VERSION}")
+endif()
+
+
+
+add_compile_definitions(
+    $<$<CONFIG:Debug>:DEBUG>
+    $<$<CONFIG:Debug>:DEBUG_RENDERING>
+    $<$<NOT:$<CONFIG:Debug>>:NDEBUG>
+)
+
+if(APPLE)
+    # FIXME: We don't use this if we are using SDL2, so we could remove this from here and the code
+    add_compile_definitions(HAVE_CGLGETCURRENTCONTEXT )
+endif()
+
+
+
+# Check for some C headers
+list(APPEND C_HEADERS_TO_CHECK
+    limits.h
+    memory.h
+    miniupnpc/miniupnpc.h # TODO: Should this be part of a find_package?
+    ncurses.h
+
+    regex.h
+    SDL2/SDL.h
+    stdlib.h
+    stdint.h
+    stdlib.h
+    strings.h
+    string.h
+    sys/param.h
+    sys/socket.h
+    sys/stat.h
+    sys/types.h
+    unistd.h
+    values.h
+    bstring.h # Only used in SGIMedia.cxx
+    dlfcn.h # Not used in code
+    dsound.h # Not used in code
+    fcntl.h # Not used in code
+)
+foreach(c_header_to_check ${C_HEADERS_TO_CHECK})
+    TO_C_DEFINE(define_name ${c_header_to_check})
+    check_include_file("${c_header_to_check}" "${define_name}")
+endforeach()
+
+# Check for some C++ headers
+list(APPEND CXX_HEADERS_TO_CHECK
+    cmath
+    cstdio
+    cstring
+    cstdlib
+)
+foreach(cxx_header_to_check ${CXX_HEADERS_TO_CHECK})
+    TO_C_DEFINE(define_name ${cxx_header_to_check})
+    check_include_file_cxx("${cxx_header_to_check}" "${define_name}")
+endforeach()
+
+
+# Check for some various math functions
+if(UNIX)
+    set(CMAKE_REQUIRED_LIBRARIES m)
+endif()
+list(APPEND LIBM_FUNCTIONS_TO_CHECK
+    acosf
+    asinf
+    atan2f
+    atanf
+    cosf
+    expf
+    fabsf
+    floorf
+    fmodf
+    hypotf
+    log10f
+    logf
+    powf
+    sinf
+    sqrtf
+    tanf
+)
+foreach(libm_function_to_check ${LIBM_FUNCTIONS_TO_CHECK})
+    TO_C_DEFINE(define_name ${libm_function_to_check})
+    check_symbol_exists("${libm_function_to_check}" "math.h" ${define_name})
+endforeach()
+if(UNIX)
+    set(CMAKE_REQUIRED_LIBRARIES)
+endif()
+
+# Check for some other functions
+check_symbol_exists(Sleep "" HAVE_SLEEP)
+check_symbol_exists(snooze "" HAVE_SNOOZE)
+check_symbol_exists(usleep "" HAVE_USLEEP)
+check_cxx_symbol_exists(vsnprintf "cstdio" HAVE_VSNPRINTF)
+check_symbol_exists(WaitForSingleObject "" HAVE_WAITFORSINGLEOBJECT)
+check_symbol_exists(wglGetCurrentContext "" HAVE_WGLGETCURRENTCONTEXT)
+check_symbol_exists(_stricmp "" HAVE__STRICMP)
+check_symbol_exists(_strnicmp "" HAVE__STRNICMP)
+check_symbol_exists(_vsnprintf "" HAVE__VSNPRINTF)
+
+# Determine the size of various types
+CHECK_TYPE_SIZE("double" SIZEOF_DOUBLE BUILTIN_TYPES_ONLY)
+CHECK_TYPE_SIZE("float" SIZEOF_FLOAT BUILTIN_TYPES_ONLY)
+CHECK_TYPE_SIZE("int" SIZEOF_INT BUILTIN_TYPES_ONLY)
+CHECK_TYPE_SIZE("long double" SIZEOF_LONG_DOUBLE BUILTIN_TYPES_ONLY)
+CHECK_TYPE_SIZE("long int" SIZEOF_LONG_INT BUILTIN_TYPES_ONLY)
+CHECK_TYPE_SIZE("long long" SIZEOF_LONG_LONG_INT BUILTIN_TYPES_ONLY)
+CHECK_TYPE_SIZE("short int" SIZEOF_SHORT_INT BUILTIN_TYPES_ONLY)
+
+# set(SUN_OGL_NO_VERTEX_MACROS TRUE) # For solaris only
+
+# Generate some files
+configure_file(include/config.h.in include/config.h)
+configure_file(include/build_info.h.in include/build_info.h)
+
+# Define the install directory for libraries
+# TODO: Check if this should be platform specific
+add_compile_definitions(INSTALL_LIB_DIR="${CMAKE_INSTALL_PREFIX}/lib")
+
+# Add both our normal include directory and the include directory with our generated headers
+include_directories(BEFORE
+	${CMAKE_SOURCE_DIR}/include
+	${CMAKE_BINARY_DIR}/include
+)
+
+add_subdirectory(src)
+if(BZ_PLUGINS)
+    add_subdirectory(plugins)
+endif()

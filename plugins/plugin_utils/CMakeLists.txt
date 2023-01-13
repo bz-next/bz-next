@@ -1,0 +1,10 @@
+add_library(bzplugin_utils
+    plugin_config.cpp
+    plugin_config.h
+    plugin_files.cpp
+    plugin_files.h
+    plugin_groups.cpp
+    plugin_groups.h
+    plugin_utils.cpp
+    plugin_utils.h
+)

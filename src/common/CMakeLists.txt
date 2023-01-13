@@ -1,0 +1,42 @@
+add_library(bzcommon
+    AccessList.cxx
+    AutoCompleter.cxx
+    Bundle.cxx
+    BundleMgr.cxx
+    BZDBCache.cxx
+    BZDBLocal.cxx
+    bzfio.cxx
+    bzglob.cxx
+    bz_Locale.cxx
+    BzPNG.cxx
+    bzsignal.cxx
+    CMakeLists.txt
+    CommandManager.cxx
+    ConfigFileManager.cxx
+    Country.cxx
+    cURLManager.cxx
+    ErrorHandler.cxx
+    FileManager.cxx
+    Flag.cxx
+    GameTime.cxx
+    global.cxx
+    KeyManager.cxx
+    Language.cxx
+    md5.cxx
+    messages.cxx
+    OSFile.cxx
+    ParseColor.cxx
+    PlayerState.cxx
+    ShotUpdate.cxx
+    StateDatabase.cxx
+    Team.cxx
+    TextChunkManager.cxx
+    TextUtils.cxx
+    TimeKeeper.cxx
+    VotingBooth.cxx
+    WordFilter.cxx
+)
+
+target_link_libraries(bzcommon
+    ${CURL_LIBRARIES}
+)

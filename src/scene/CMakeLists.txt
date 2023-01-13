@@ -1,0 +1,9 @@
+add_library(bzscene
+    BSPSceneDatabase.cxx
+    Occluder.cxx
+    Occluder.h
+    Octree.cxx
+    Octree.h
+    SceneDatabase.cxx
+    ZSceneDatabase.cxx
+)

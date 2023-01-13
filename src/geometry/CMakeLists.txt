@@ -1,0 +1,31 @@
+add_library(bzgeometry
+    AnimatedTreads.cxx
+    BillboardSceneNode.cxx
+    BoltSceneNode.cxx
+    EighthDBaseSceneNode.cxx
+    EighthDBoxSceneNode.cxx
+    EighthDimSceneNode.cxx
+    EighthDimShellNode.cxx
+    EighthDPyrSceneNode.cxx
+    FlagSceneNode.cxx
+    FlagWarpSceneNode.cxx
+    LaserSceneNode.cxx
+    MeshDrawMgr.cxx
+    MeshFragSceneNode.cxx
+    MeshPolySceneNode.cxx
+    MeshRenderNode.cxx
+    MeshRenderNode.h
+    MeshSceneNode.cxx
+    OccluderSceneNode.cxx
+    PolyWallSceneNode.cxx
+    QuadWallSceneNode.cxx
+    SceneNode.cxx
+    SphereSceneNode.cxx
+    TankGeometryMgr.cxx
+    TankSceneNode.cxx
+    TriWallSceneNode.cxx
+    ViewFrustum.cxx
+    WallSceneNode.cxx
+)
+
+add_subdirectory(models/tank)

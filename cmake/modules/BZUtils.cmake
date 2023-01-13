@@ -1,0 +1,5 @@
+macro(TO_C_DEFINE name value)
+    string(MAKE_C_IDENTIFIER "${value}" ${name})
+    string(TOUPPER "${${name}}" ${name})
+    string(PREPEND ${name} "HAVE_")
+endmacro()

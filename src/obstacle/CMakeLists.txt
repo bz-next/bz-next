@@ -1,0 +1,29 @@
+add_library(bzobstacle
+    ArcObstacle.cxx
+    BaseBuilding.cxx
+    BaseSceneNodeGenerator.cxx
+    BoxBuilding.cxx
+    BoxSceneNodeGenerator.cxx
+    ConeObstacle.cxx
+    EmptySceneNodeGenerator.cxx
+    MeshDrawInfo.cxx
+    MeshFace.cxx
+    MeshObstacle.cxx
+    MeshSceneNodeGenerator.cxx
+    MeshUtils.h
+    Obstacle.cxx
+    ObstacleList.cxx
+    ObstacleMgr.cxx
+    ObstacleModifier.cxx
+    ObstacleSceneNodeGenerator.cxx
+    PyramidBuilding.cxx
+    PyramidSceneNodeGenerator.cxx
+    SphereObstacle.cxx
+    Teleporter.cxx
+    TeleporterSceneNodeGenerator.cxx
+    TetraBuilding.cxx
+    Triangulate.cxx
+    Triangulate.h
+    WallObstacle.cxx
+    WallSceneNodeGenerator.cxx
+)

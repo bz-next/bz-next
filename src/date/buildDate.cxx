@@ -12,6 +12,7 @@
 
 #include "common.h"
 #include "version.h"
+#include "build_info.h"
 
 /* system headers */
 #include <sstream>
@@ -40,20 +41,20 @@
 //  Xcode/BZFlag.xcodeproj/project.pbxproj
 //  Xcode/BZFlag-Info.plist
 #ifndef BZ_MAJOR_VERSION
-#  define BZ_MAJOR_VERSION  2
+#error BZ_MAJOR_VERSION not defined by build system
 #endif
 
 #ifndef BZ_MINOR_VERSION
-#  define BZ_MINOR_VERSION  4
+#error BZ_MINOR_VERSION not defined by build system
 #endif
 
 #ifndef BZ_REV
-#  define BZ_REV        27
+#error BZ_REV not defined by build system
 #endif
 
 // DEVEL | RC# | STABLE | MAINT
 #ifndef BZ_BUILD_TYPE
-#  define BZ_BUILD_TYPE     "DEVEL"
+#error BZ_BUILD_TYPE not defined by build system
 #endif
 
 const char *bzfcopyright = "Copyright (c) 1993-2021 Tim Riker";
