@@ -12,7 +12,6 @@
 
 #include "common.h"
 #include "version.h"
-#include "build_info.h"
 
 /* system headers */
 #include <sstream>
