@@ -18,6 +18,9 @@ project(BZFlag
 	HOMEPAGE_URL "https://www.bzflag.org"
 )
 
+# Compiler tests directory
+set(COMPILER_TESTS_DIR "${PROJECT_SOURCE_DIR}/cmake/tests")
+
 string(TOLOWER ${CMAKE_PROJECT_NAME} PROJECT_NAME_LOWER)
 
 # Require C++11
@@ -141,7 +144,7 @@ if(XCODE)
     set(BZFLAG_BUILD_OS "${BZFLAG_BUILD_OS}-XCode-${XCODE_VERSION}")
 endif()
 
-
+message(${BZFLAG_BUILD_OS})
 
 add_compile_definitions(
     $<$<CONFIG:Debug>:DEBUG>
@@ -149,12 +152,35 @@ add_compile_definitions(
     $<$<NOT:$<CONFIG:Debug>>:NDEBUG>
 )
 
-if(APPLE)
-    # FIXME: We don't use this if we are using SDL2, so we could remove this from here and the code
-    add_compile_definitions(HAVE_CGLGETCURRENTCONTEXT )
+# Check for some various math functions
+if(UNIX)
+    set(CMAKE_REQUIRED_LIBRARIES m stdc++)
 endif()
 
+# Define the install directory for libraries
+# TODO: Check if this should be platform specific
+add_compile_definitions(INSTALL_LIB_DIR="${CMAKE_INSTALL_PREFIX}/lib")
 
+# Add both our normal include directory and the include directory with our generated headers
+include_directories(BEFORE
+	${CMAKE_SOURCE_DIR}/include
+	${CMAKE_BINARY_DIR}/include
+)
+
+set(INSTALL_DATA_DIR "${CMAKE_INSTALL_PREFIX}/share/bzflag")
+
+add_compile_definitions(
+    # TODO: Should this be platform specific?
+    INSTALL_DATA_DIR="${INSTALL_DATA_DIR}"
+)
+
+add_subdirectory(src)
+if(BZ_PLUGINS)
+    add_subdirectory(plugins)
+endif()
+
+install(TARGETS bzflag bzadmin bzfs)
+add_subdirectory(data)
 
 # Check for some C headers
 list(APPEND C_HEADERS_TO_CHECK
@@ -176,14 +202,12 @@ list(APPEND C_HEADERS_TO_CHECK
     sys/types.h
     unistd.h
     values.h
-    bstring.h # Only used in SGIMedia.cxx
-    dlfcn.h # Not used in code
-    dsound.h # Not used in code
-    fcntl.h # Not used in code
+    inttypes.h
 )
+
 foreach(c_header_to_check ${C_HEADERS_TO_CHECK})
-    TO_C_DEFINE(define_name ${c_header_to_check})
-    check_include_file("${c_header_to_check}" "${define_name}")
+    TO_C_DEFINE(def "${c_header_to_check}")
+    check_include_file("${c_header_to_check}" "${def}")
 endforeach()
 
 # Check for some C++ headers
@@ -194,15 +218,10 @@ list(APPEND CXX_HEADERS_TO_CHECK
     cstdlib
 )
 foreach(cxx_header_to_check ${CXX_HEADERS_TO_CHECK})
-    TO_C_DEFINE(define_name ${cxx_header_to_check})
-    check_include_file_cxx("${cxx_header_to_check}" "${define_name}")
+    TO_C_DEFINE(def "${cxx_header_to_check}")
+    check_include_file_cxx("${cxx_header_to_check}" ${def})
 endforeach()
 
-
-# Check for some various math functions
-if(UNIX)
-    set(CMAKE_REQUIRED_LIBRARIES m)
-endif()
 list(APPEND LIBM_FUNCTIONS_TO_CHECK
     acosf
     asinf
@@ -221,51 +240,34 @@ list(APPEND LIBM_FUNCTIONS_TO_CHECK
     sqrtf
     tanf
 )
+
 foreach(libm_function_to_check ${LIBM_FUNCTIONS_TO_CHECK})
-    TO_C_DEFINE(define_name ${libm_function_to_check})
-    check_symbol_exists("${libm_function_to_check}" "math.h" ${define_name})
+    TO_C_DEFINE(def ${libm_function_to_check})
+    check_symbol_exists("${libm_function_to_check}" "math.h" ${def})
 endforeach()
-if(UNIX)
-    set(CMAKE_REQUIRED_LIBRARIES)
+
+
+COMPILE_CXX_TEST_PROG(std::isnan)
+if(NOT HAVE_STD__ISNAN)
+    COMPILE_CXX_TEST_PROG(isnan)
 endif()
+
+COMPILE_CXX_TEST_PROG(std::min)
+COMPILE_CXX_TEST_PROG(std::max)
+COMPILE_CXX_TEST_PROG(std::count)
+
+check_symbol_exists("select" "sys/select.h" HAVE_SELECT)
 
 # Check for some other functions
 check_symbol_exists(Sleep "" HAVE_SLEEP)
 check_symbol_exists(snooze "" HAVE_SNOOZE)
-check_symbol_exists(usleep "" HAVE_USLEEP)
+check_symbol_exists(usleep "unistd.h" HAVE_USLEEP)
 check_cxx_symbol_exists(vsnprintf "cstdio" HAVE_VSNPRINTF)
 check_symbol_exists(WaitForSingleObject "" HAVE_WAITFORSINGLEOBJECT)
-check_symbol_exists(wglGetCurrentContext "" HAVE_WGLGETCURRENTCONTEXT)
 check_symbol_exists(_stricmp "" HAVE__STRICMP)
 check_symbol_exists(_strnicmp "" HAVE__STRNICMP)
 check_symbol_exists(_vsnprintf "" HAVE__VSNPRINTF)
 
-# Determine the size of various types
-CHECK_TYPE_SIZE("double" SIZEOF_DOUBLE BUILTIN_TYPES_ONLY)
-CHECK_TYPE_SIZE("float" SIZEOF_FLOAT BUILTIN_TYPES_ONLY)
-CHECK_TYPE_SIZE("int" SIZEOF_INT BUILTIN_TYPES_ONLY)
-CHECK_TYPE_SIZE("long double" SIZEOF_LONG_DOUBLE BUILTIN_TYPES_ONLY)
-CHECK_TYPE_SIZE("long int" SIZEOF_LONG_INT BUILTIN_TYPES_ONLY)
-CHECK_TYPE_SIZE("long long" SIZEOF_LONG_LONG_INT BUILTIN_TYPES_ONLY)
-CHECK_TYPE_SIZE("short int" SIZEOF_SHORT_INT BUILTIN_TYPES_ONLY)
-
-# set(SUN_OGL_NO_VERTEX_MACROS TRUE) # For solaris only
 
 # Generate some files
-configure_file(include/config.h.in include/config.h)
-configure_file(include/build_info.h.in include/build_info.h)
-
-# Define the install directory for libraries
-# TODO: Check if this should be platform specific
-add_compile_definitions(INSTALL_LIB_DIR="${CMAKE_INSTALL_PREFIX}/lib")
-
-# Add both our normal include directory and the include directory with our generated headers
-include_directories(BEFORE
-	${CMAKE_SOURCE_DIR}/include
-	${CMAKE_BINARY_DIR}/include
-)
-
-add_subdirectory(src)
-if(BZ_PLUGINS)
-    add_subdirectory(plugins)
-endif()
+configure_file(include/config-cmake.h.in include/config.h)

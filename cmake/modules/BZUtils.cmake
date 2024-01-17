@@ -1,5 +1,25 @@
+# name, value => name=HAVE_VALUE
+# ex: limits.h => HAVE_LIMITS_H
 macro(TO_C_DEFINE name value)
     string(MAKE_C_IDENTIFIER "${value}" ${name})
     string(TOUPPER "${${name}}" ${name})
     string(PREPEND ${name} "HAVE_")
 endmacro()
+
+function(COMPILE_TEST_PROG fn)
+    string(MAKE_C_IDENTIFIER "${fn}" def)
+    string(TOLOWER ${def} filename)
+    string(TOUPPER ${def} def)
+    string(PREPEND def "HAVE_")
+    try_compile(result ${CMAKE_BINARY_DIR} "${COMPILER_TESTS_DIR}/${filename}.c")
+    set(${def} ${result} PARENT_SCOPE)
+endfunction()
+
+function(COMPILE_CXX_TEST_PROG fn)
+    string(MAKE_C_IDENTIFIER "${fn}" def)
+    string(TOLOWER ${def} filename)
+    string(TOUPPER ${def} def)
+    string(PREPEND def "HAVE_")
+    try_compile(result ${CMAKE_BINARY_DIR} "${COMPILER_TESTS_DIR}/${filename}.cxx")
+    set(${def} ${result} PARENT_SCOPE)
+endfunction()
