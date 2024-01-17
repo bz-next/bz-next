@@ -1,0 +1,202 @@
+#define BZ_MAJOR_VERSION @CMAKE_PROJECT_VERSION_MAJOR@
+#define BZ_MINOR_VERSION @CMAKE_PROJECT_VERSION_MINOR@
+#define BZ_REV @CMAKE_PROJECT_VERSION_PATCH@
+#define BZ_BUILD_TYPE "@BZ_BUILD_TYPE@"
+
+/* Define if building universal (internal helper macro) */
+#cmakedefine AC_APPLE_UNIVERSAL_BUILD
+
+/* BZFlag build date */
+#define BUILD_DATE "@BUILD_DATE@"
+
+/* BZFlag System Environment */
+#define BZ_BUILD_OS "@BZFLAG_BUILD_OS@"
+
+/* Enable plugins */
+#cmakedefine BZ_PLUGINS
+
+/* Debugging enabled */
+#cmakedefine DEBUG
+
+/* Debug Rendering */
+#cmakedefine DEBUG_RENDERING
+
+/* Half rate Audio */
+#cmakedefine HALF_RATE_AUDIO
+
+/* Define if libcares includes ares_library_init. */
+/* NOTE: I am assuming this is an old problem. We will assume c-ares has this function. */
+/* #cmakedefine HAVE_ARES_LIBRARY_INIT */
+#define HAVE_ARES_LIBRARY_INIT 1
+
+/* libm includes asinf */
+#cmakedefine HAVE_ASINF
+
+/* libm includes atan2f */
+#cmakedefine HAVE_ATAN2F
+
+/* libm includes atanf */
+#cmakedefine HAVE_ATANF
+
+/* libm includes cosf */
+#cmakedefine HAVE_COSF
+
+/* Define to 1 if you have the <cstdio> header file. */
+#cmakedefine HAVE_CSTDIO
+
+/* Define to 1 if you have the <cstring> header file. */
+#cmakedefine HAVE_CSTRING
+
+/* libm includes expf */
+#cmakedefine HAVE_EXPF
+
+/* libm includes fabsf */
+#cmakedefine HAVE_FABSF
+
+/* libm includes floorf */
+#cmakedefine HAVE_FLOORF
+
+/* libm includes fmodf */
+#cmakedefine HAVE_FMODF
+
+/* libm includes hypotf */
+#cmakedefine HAVE_HYPOTF
+
+/* Define to 1 if you have the <inttypes.h> header file. */
+#cmakedefine HAVE_INTTYPES_H
+
+/* Define to 1 if `isnan' is available */
+#cmakedefine HAVE_ISNAN
+
+/* Define to 1 if you have the <limits.h> header file. */
+#cmakedefine HAVE_LIMITS_H
+
+/* libm includes log10f */
+#cmakedefine HAVE_LOG10F
+
+/* libm includes logf */
+#cmakedefine HAVE_LOGF
+
+/* Define to 1 if you have the <miniupnpc/miniupnpc.h> header file. */
+#cmakedefine HAVE_MINIUPNPC_MINIUPNPC_H
+
+/* Use the header file ncurses.h */
+#cmakedefine HAVE_NCURSES_H
+
+/* libm includes powf */
+#cmakedefine HAVE_POWF
+
+/* posix-compliant threading is available */
+#cmakedefine HAVE_PTHREADS
+
+/* Define to 1 if you have the '<regex.h>' header file */
+#cmakedefine HAVE_REGEX_H
+
+/* Define to 1 if you have the <SDL2/SDL.h> header file. */
+#cmakedefine HAVE_SDL2_SDL_H
+
+/* Define to 1 if you have the `select' function. */
+#cmakedefine HAVE_SELECT
+
+/* libm includes sinf */
+#cmakedefine HAVE_SINF
+
+/* Define to 1 if you have the `Sleep' function. */
+#cmakedefine HAVE_SLEEP
+
+/* libm includes sqrtf */
+#cmakedefine HAVE_SQRTF
+
+/* Define to 1 if you have the <stdint.h> header file. */
+#cmakedefine HAVE_STDINT_H
+
+/* Define to 1 if you have a conforming std::count, otherwise old version of
+   count template is assumed */
+#cmakedefine HAVE_STD__COUNT
+
+/* Define to 1 if `std::isnan' is available */
+#cmakedefine HAVE_STD__ISNAN
+
+/* Define to 1 if you have a conforming std::max */
+#cmakedefine HAVE_STD__MAX
+
+/* Define to 1 if you have a conforming std::min */
+#cmakedefine HAVE_STD__MIN
+
+/* Define to 1 if you have the <sys/types.h> header file. */
+#cmakedefine HAVE_SYS_TYPES_H
+
+/* libm includes tanf */
+#cmakedefine HAVE_TANF
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#cmakedefine HAVE_UNISTD_H
+
+/* Define to 1 if you have the `usleep' function. */
+#cmakedefine HAVE_USLEEP
+
+/* Define to 1 if you have the `vsnprintf' function. */
+#cmakedefine HAVE_VSNPRINTF
+
+/* Define to 1 if you have the `WaitForSingleObject' function. */
+#cmakedefine HAVE_WAITFORSINGLEOBJECT
+
+/* Define to 1 if you have the `_stricmp' function. */
+#cmakedefine HAVE__STRICMP
+
+/* Define to 1 if you have the `_strnicmp' function. */
+#cmakedefine HAVE__STRNICMP
+
+/* Define to 1 if you have the `_vsnprintf' function. */
+#cmakedefine HAVE__VSNPRINTF
+
+/* Debugging disabled */
+#cmakedefine NDEBUG
+
+/* Name of package */
+#define PACKAGE "@PROJECT_NAME_LOWER@"
+
+/* Define to the address where bug reports for this package should be sent. */
+#define PACKAGE_BUGREPORT "@CMAKE_PROJECT_HOMEPAGE_URL@"
+
+/* Define to the full name of this package. */
+#define PACKAGE_NAME "@CMAKE_PROJECT_NAME@"
+
+/* Define to the full name and version of this package. */
+#define PACKAGE_STRING "@CMAKE_PROJECT_NAME@ @CMAKE_PROJECT_VERSION_MAJOR@.@CMAKE_PROJECT_VERSION_MINOR@.@CMAKE_PROJECT_VERSION_PATCH@"
+
+/* Define to the one symbol short name of this package. */
+#define PACKAGE_TARNAME "@PROJECT_NAME_LOWER@"
+
+/* Define to the home page for this package. */
+#define PACKAGE_URL ""
+
+/* Define to the version of this package. */
+#define PACKAGE_VERSION "@CMAKE_PROJECT_VERSION_MAJOR@.@CMAKE_PROJECT_VERSION_MINOR@.@CMAKE_PROJECT_VERSION_PATCH@"
+
+/* Enabling Robots */
+#cmakedefine ROBOT
+
+/* Version number of package */
+#define VERSION "@CMAKE_PROJECT_VERSION_MAJOR@.@CMAKE_PROJECT_VERSION_MINOR@.@CMAKE_PROJECT_VERSION_PATCH@"
+
+
+/* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
+   significant byte first (like Motorola and SPARC, unlike Intel). */
+#if defined AC_APPLE_UNIVERSAL_BUILD
+# if defined __BIG_ENDIAN__
+#  define WORDS_BIGENDIAN 1
+# endif
+#else
+# ifndef WORDS_BIGENDIAN
+#  undef WORDS_BIGENDIAN
+# endif
+#endif
+
+/* Define curl_free() as free() if our version of curl lacks curl_free. */
+/* TODO: Is this defunct? I am assuming so and disabling it for now. */
+/* #cmakedefine curl_free */
+
+/* type to use in place of socklen_t if not defined */
+/* TODO: Is this defunct? I am assuming so and disabling it for now. */
+/* #cmakedefine socklen_t */
