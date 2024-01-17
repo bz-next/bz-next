@@ -154,7 +154,7 @@ add_compile_definitions(
 
 # Check for some various math functions
 if(UNIX)
-    set(CMAKE_REQUIRED_LIBRARIES m stdc++)
+    set(CMAKE_REQUIRED_LIBRARIES m)
 endif()
 
 # Define the install directory for libraries
@@ -270,4 +270,4 @@ check_symbol_exists(_vsnprintf "" HAVE__VSNPRINTF)
 
 
 # Generate some files
-configure_file(include/config-cmake.h.in include/config.h)
+configure_file(include/config.h.in include/config.h)
