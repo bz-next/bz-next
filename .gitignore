@@ -57,8 +57,6 @@ compile
 configure
 depcomp
 /include/config.h
-/include/config.h.in
-/include/config.h.in~
 /INSTALL
 install-sh
 libtool
