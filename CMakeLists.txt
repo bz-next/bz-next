@@ -18,6 +18,20 @@ project(BZFlag
 	HOMEPAGE_URL "https://www.bzflag.org"
 )
 
+add_subdirectory(corrade EXCLUDE_FROM_ALL)
+set(MAGNUM_WITH_ANYIMAGEIMPORTER ON CACHE BOOL "" FORCE)
+set(MAGNUM_WITH_SDL2APPLICATION ON CACHE BOOL "" FORCE)
+add_subdirectory(magnum EXCLUDE_FROM_ALL)
+
+find_package(Corrade REQUIRED Main)
+find_package(Magnum REQUIRED
+    GL
+    Shaders
+    Trade
+    Sdl2Application)
+#find_package(MagnumExtras REQUIRED Ui)
+
+
 # Compiler tests directory
 set(COMPILER_TESTS_DIR "${PROJECT_SOURCE_DIR}/cmake/tests")
 
