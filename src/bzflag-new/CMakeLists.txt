@@ -31,15 +31,20 @@ cmake_minimum_required(VERSION 3.5)
 
 set_directory_properties(PROPERTIES CORRADE_USE_PEDANTIC_FLAGS ON)
 
-add_executable(bzflag-new WIN32 bzflag-new.cpp)
-target_link_libraries(magnum-triangle PRIVATE
+corrade_add_resource(TexturedQuad_RESOURCES resources.conf)
+
+add_executable(bzflag-new WIN32 bzflag-new.cpp TexturedQuadShader.h ${TexturedQuad_RESOURCES})
+target_link_libraries(bzflag-new PRIVATE
     Corrade::Main
     Magnum::Application
     Magnum::GL
     Magnum::Magnum
-    Magnum::Shaders)
+    Magnum::Shaders
+    Magnum::Trade)
 
-install(TARGETS magnum-triangle DESTINATION ${MAGNUM_BINARY_INSTALL_DIR})
+add_dependencies(bzflag-new Magnum::TgaImporter)
+
+install(TARGETS bzflag-new DESTINATION ${MAGNUM_BINARY_INSTALL_DIR})
 
 # Make the executable a default target to build & run in Visual Studio
-set_property(DIRECTORY ${PROJECT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT magnum-triangle)
+set_property(DIRECTORY ${PROJECT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT bzflag-new)
