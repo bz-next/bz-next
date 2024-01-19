@@ -27,54 +27,19 @@
     CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#include <Corrade/Utility/Resource.h>
-#include <Corrade/Utility/Assert.h>
-#include <Corrade/PluginManager/PluginManager.h>
-#include <Corrade/Containers/Optional.h>
-#include <Corrade/Containers/StringView.h>
-
-
-#include <Magnum/Trade/AbstractImporter.h>
-#include <Magnum/Trade/ImageData.h>
-#include <Magnum/GL/Buffer.h>
-#include <Magnum/GL/Shader.h>
-#include <Magnum/GL/Version.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/GL/Mesh.h>
-#include <Magnum/GL/Texture.h>
-#include <Magnum/GL/TextureFormat.h>
-#include <Magnum/Platform/Sdl2Application.h>
-#include <Magnum/Shaders/VertexColorGL.h>
-#include <Magnum/GL/Texture.h>
-#include <Magnum/GL/TextureFormat.h>
-#include <Magnum/ImageView.h>
+#include <Magnum/GL/Renderer.h>
 #include <Magnum/Math/Color.h>
-
-#include "TexturedQuadShader.h"
+#include <Magnum/Math/Matrix4.h>
+#include <Magnum/MeshTools/Compile.h>
+#include <Magnum/Platform/Sdl2Application.h>
+#include <Magnum/Primitives/Cube.h>
+#include <Magnum/Shaders/PhongGL.h>
+#include <Magnum/Trade/MeshData.h>
 
 using namespace Magnum;
 using namespace Magnum::Math::Literals;
-
-TexturedQuadShader::TexturedQuadShader() {
-    MAGNUM_ASSERT_GL_VERSION_SUPPORTED(GL::Version::GL330);
-
-    const Utility::Resource rs{"texturedquad-data"};
-
-    GL::Shader vert{GL::Version::GL330, GL::Shader::Type::Vertex};
-    GL::Shader frag{GL::Version::GL330, GL::Shader::Type::Fragment};
-
-    vert.addSource(rs.getString("TexturedQuadShader.vert"));
-    frag.addSource(rs.getString("TexturedQuadShader.frag"));
-
-    CORRADE_INTERNAL_ASSERT_OUTPUT(vert.compile() && frag.compile());
-
-    attachShaders({vert, frag});
-
-    CORRADE_INTERNAL_ASSERT_OUTPUT(link());
-
-    _colorUniform = uniformLocation("color");
-    setUniform(uniformLocation("textureData"), TextureUnit);
-}
 
 class BZFlagNew: public Platform::Application {
     public:
@@ -82,10 +47,15 @@ class BZFlagNew: public Platform::Application {
 
     private:
         void drawEvent() override;
+        void mousePressEvent(MouseEvent& e) override;
+        void mouseReleaseEvent(MouseEvent& e) override;
+        void mouseMoveEvent(MouseMoveEvent& e) override;
 
         GL::Mesh _mesh;
-        TexturedQuadShader _shader;
-        GL::Texture2D _texture;
+        Shaders::PhongGL _shader;
+        
+        Matrix4 _transformation, _projection;
+        Color3 _color;
 };
 
 BZFlagNew::BZFlagNew(const Arguments& arguments):
@@ -94,54 +64,52 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
 {
     using namespace Math::Literals;
 
-    struct QuadVertex {
-        Vector2 position;
-        Vector2 textureCoordinates;
-    };
-    const QuadVertex vertices[]{
-        {{ 0.5f, -0.5f}, {1.0f, 0.0f}},
-        {{0.5f, 0.5f}, {1.0f, 1.0f}},
-        {{-0.5f, -0.5f}, {0.0f, 0.0f}},
-        {{-0.5f, 0.5f}, {0.0f, 1.0f}}
-    };
-    const UnsignedInt indices[]{
-        0, 1, 2,
-        2, 1, 3
-    };
+    GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
+    GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
 
-    _mesh.setPrimitive(GL::MeshPrimitive::TriangleStrip)
-        .setCount(Containers::arraySize(indices))
-        .addVertexBuffer(GL::Buffer{vertices}, 0,
-            TexturedQuadShader::Position{},
-            TexturedQuadShader::TextureCoordinates{})
-        .setIndexBuffer(GL::Buffer{indices}, 0,
-            GL::MeshIndexType::UnsignedInt);
-    
-    PluginManager::Manager<Trade::AbstractImporter> manager;
-    Containers::Pointer<Trade::AbstractImporter> importer =
-        manager.loadAndInstantiate("TgaImporter");
-    const Utility::Resource rs{"texturedquad-data"};
-    if (!importer || !importer->openData(rs.getRaw("stone.tga")))
-        std::exit(1);
+    _mesh = MeshTools::compile(Primitives::cubeSolid());
 
-    Containers::Optional<Trade::ImageData2D> image = importer->image2D(0);
-    CORRADE_INTERNAL_ASSERT(image);
-    _texture.setWrapping(GL::SamplerWrapping::ClampToEdge)
-        .setMagnificationFilter(GL::SamplerFilter::Linear)
-        .setMinificationFilter(GL::SamplerFilter::Linear)
-        .setStorage(1, GL::textureFormat(image->format()), image->size())
-        .setSubImage(0, {}, *image);
+    _transformation = Matrix4::rotationX(30.0_degf)*Matrix4::rotationY(40.0_degf);
+    _projection = Matrix4::perspectiveProjection(35.0_degf, Vector2{windowSize()}.aspectRatio(), 0.01f, 100.0f)
+        * Matrix4::translation(Vector3::zAxis(-10.0f));
+    _color = Color3::fromHsv({35.0_degf, 1.0f, 1.0f});
 }
 
 void BZFlagNew::drawEvent() {
-    GL::defaultFramebuffer.clear(GL::FramebufferClear::Color);
+    GL::defaultFramebuffer.clear(GL::FramebufferClear::Color | GL::FramebufferClear::Depth);
 
     _shader
-        .setColor(0xffb2b2_rgbf)
-        .bindTexture(_texture)
+        .setLightPositions({{1.4f, 1.0f, 0.75f, 0.0f}})
+        .setDiffuseColor(_color)
+        .setAmbientColor(Color3::fromHsv({_color.hue(), 1.0f, 0.3f}))
+        .setTransformationMatrix(_transformation)
+        .setNormalMatrix(_transformation.normalMatrix())
+        .setProjectionMatrix(_projection)
         .draw(_mesh);
 
     swapBuffers();
+}
+
+void BZFlagNew::mousePressEvent(MouseEvent& e) {
+    if (e.button() != MouseEvent::Button::Left) return;
+    e.setAccepted();
+}
+
+void BZFlagNew::mouseReleaseEvent(MouseEvent& e) {
+    _color = Color3::fromHsv({_color.hue() + 50.0_degf, 1.0f, 1.0f});
+
+    e.setAccepted();
+    redraw();
+}
+
+void BZFlagNew::mouseMoveEvent(MouseMoveEvent &e) {
+    if (!(e.buttons() & MouseMoveEvent::Button::Left)) return;
+
+    Vector2 delta = 3.0f * Vector2{e.relativePosition()}/Vector2{windowSize()};
+    _transformation =
+        Matrix4::rotationX(Rad{delta.y()}) * _transformation * Matrix4::rotationY(Rad{delta.x()});
+    e.setAccepted();
+    redraw();
 }
 
 MAGNUM_APPLICATION_MAIN(BZFlagNew)

@@ -28,6 +28,8 @@ find_package(Corrade REQUIRED Main)
 find_package(Magnum REQUIRED
     GL
     Shaders
+    Primitives
+    MeshTools
     Trade
     Sdl2Application)
 #find_package(MagnumExtras REQUIRED Ui)

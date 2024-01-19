@@ -40,7 +40,9 @@ target_link_libraries(bzflag-new PRIVATE
     Magnum::GL
     Magnum::Magnum
     Magnum::Shaders
-    Magnum::Trade)
+    Magnum::Trade
+    Magnum::Primitives
+    Magnum::MeshTools)
 
 add_dependencies(bzflag-new Magnum::TgaImporter)
 
