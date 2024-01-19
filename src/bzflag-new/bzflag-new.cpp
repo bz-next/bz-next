@@ -29,21 +29,31 @@
 
 #include <Corrade/Utility/Resource.h>
 #include <Corrade/Utility/Assert.h>
+#include <Corrade/PluginManager/PluginManager.h>
+#include <Corrade/Containers/Optional.h>
+#include <Corrade/Containers/StringView.h>
 
+
+#include <Magnum/Trade/AbstractImporter.h>
+#include <Magnum/Trade/ImageData.h>
 #include <Magnum/GL/Buffer.h>
 #include <Magnum/GL/Shader.h>
 #include <Magnum/GL/Version.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/GL/Mesh.h>
-#include <Magnum/Math/Color.h>
+#include <Magnum/GL/Texture.h>
+#include <Magnum/GL/TextureFormat.h>
 #include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/Shaders/VertexColorGL.h>
 #include <Magnum/GL/Texture.h>
 #include <Magnum/GL/TextureFormat.h>
+#include <Magnum/ImageView.h>
+#include <Magnum/Math/Color.h>
 
 #include "TexturedQuadShader.h"
 
 using namespace Magnum;
+using namespace Magnum::Math::Literals;
 
 TexturedQuadShader::TexturedQuadShader() {
     MAGNUM_ASSERT_GL_VERSION_SUPPORTED(GL::Version::GL330);
@@ -75,6 +85,7 @@ class BZFlagNew: public Platform::Application {
 
         GL::Mesh _mesh;
         TexturedQuadShader _shader;
+        GL::Texture2D _texture;
 };
 
 BZFlagNew::BZFlagNew(const Arguments& arguments):
@@ -83,26 +94,52 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
 {
     using namespace Math::Literals;
 
-    struct TriangleVertex {
+    struct QuadVertex {
         Vector2 position;
-        Color3 color;
+        Vector2 textureCoordinates;
     };
-    const TriangleVertex vertices[]{
-        {{-0.5f, -0.5f}, 0xff0000_rgbf},    /* Left vertex, red color */
-        {{ 0.5f, -0.5f}, 0x00ff00_rgbf},    /* Right vertex, green color */
-        {{ 0.0f,  0.5f}, 0x0000ff_rgbf}     /* Top vertex, blue color */
+    const QuadVertex vertices[]{
+        {{ 0.5f, -0.5f}, {1.0f, 0.0f}},
+        {{0.5f, 0.5f}, {1.0f, 1.0f}},
+        {{-0.5f, -0.5f}, {0.0f, 0.0f}},
+        {{-0.5f, 0.5f}, {0.0f, 1.0f}}
+    };
+    const UnsignedInt indices[]{
+        0, 1, 2,
+        2, 1, 3
     };
 
-    _mesh.setCount(Containers::arraySize(vertices))
-         .addVertexBuffer(GL::Buffer{vertices}, 0,
-            Shaders::VertexColorGL2D::Position{},
-            Shaders::VertexColorGL2D::Color3{});
+    _mesh.setPrimitive(GL::MeshPrimitive::TriangleStrip)
+        .setCount(Containers::arraySize(indices))
+        .addVertexBuffer(GL::Buffer{vertices}, 0,
+            TexturedQuadShader::Position{},
+            TexturedQuadShader::TextureCoordinates{})
+        .setIndexBuffer(GL::Buffer{indices}, 0,
+            GL::MeshIndexType::UnsignedInt);
+    
+    PluginManager::Manager<Trade::AbstractImporter> manager;
+    Containers::Pointer<Trade::AbstractImporter> importer =
+        manager.loadAndInstantiate("TgaImporter");
+    const Utility::Resource rs{"texturedquad-data"};
+    if (!importer || !importer->openData(rs.getRaw("stone.tga")))
+        std::exit(1);
+
+    Containers::Optional<Trade::ImageData2D> image = importer->image2D(0);
+    CORRADE_INTERNAL_ASSERT(image);
+    _texture.setWrapping(GL::SamplerWrapping::ClampToEdge)
+        .setMagnificationFilter(GL::SamplerFilter::Linear)
+        .setMinificationFilter(GL::SamplerFilter::Linear)
+        .setStorage(1, GL::textureFormat(image->format()), image->size())
+        .setSubImage(0, {}, *image);
 }
 
 void BZFlagNew::drawEvent() {
     GL::defaultFramebuffer.clear(GL::FramebufferClear::Color);
 
-    _shader.draw(_mesh);
+    _shader
+        .setColor(0xffb2b2_rgbf)
+        .bindTexture(_texture)
+        .draw(_mesh);
 
     swapBuffers();
 }

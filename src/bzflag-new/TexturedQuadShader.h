@@ -17,7 +17,7 @@ class TexturedQuadShader: public Magnum::GL::AbstractShaderProgram {
             return *this;
         }
 
-        TexturedQuadShader& bindTexture(GL::Texture2D& texture) {
+        TexturedQuadShader& bindTexture(Magnum::GL::Texture2D& texture) {
             texture.bind(TextureUnit);
             return *this;
         }
