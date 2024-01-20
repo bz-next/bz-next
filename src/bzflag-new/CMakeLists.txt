@@ -31,7 +31,7 @@ cmake_minimum_required(VERSION 3.5)
 
 set_directory_properties(PROPERTIES CORRADE_USE_PEDANTIC_FLAGS ON)
 
-corrade_add_resource(TexturedQuad_RESOURCES resources.conf)
+#corrade_add_resource(TexturedQuad_RESOURCES resources.conf)
 
 add_executable(bzflag-new WIN32 bzflag-new.cpp TexturedQuadShader.h ${TexturedQuad_RESOURCES})
 target_link_libraries(bzflag-new PRIVATE
