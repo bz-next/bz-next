@@ -66,6 +66,60 @@ using namespace Magnum::Math::Literals;
 typedef SceneGraph::Object<SceneGraph::MatrixTransformation3D> Object3D;
 typedef SceneGraph::Scene<SceneGraph::MatrixTransformation3D> Scene3D;
 
+class ColoredDrawable : public SceneGraph::Drawable3D {
+    public:
+        explicit ColoredDrawable(Object3D& object, Shaders::PhongGL& shader, GL::Mesh& mesh, const Color4& color, SceneGraph::DrawableGroup3D& group) :
+            SceneGraph::Drawable3D{object, &group},
+            _shader(shader),
+            _mesh(mesh),
+            _color(color)
+        {}
+
+    private:
+        void draw(const Matrix4& transformationMatrix, SceneGraph::Camera3D& camera) override;
+
+        Shaders::PhongGL& _shader;
+        GL::Mesh& _mesh;
+        Color4 _color;
+};
+
+class TexturedDrawable : public SceneGraph::Drawable3D {
+    public:
+        explicit TexturedDrawable(Object3D& object, Shaders::PhongGL& shader, GL::Mesh& mesh, GL::Texture2D& texture, SceneGraph::DrawableGroup3D& group) :
+            SceneGraph::Drawable3D{object, &group},
+            _shader(shader),
+            _mesh(mesh),
+            _texture(texture)
+        {}
+
+    private:
+        void draw(const Matrix4& transformationMatrix, SceneGraph::Camera3D& camera) override;
+
+        Shaders::PhongGL& _shader;
+        GL::Mesh& _mesh;
+        GL::Texture2D &_texture;
+};
+
+void ColoredDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::Camera3D& camera) {
+    _shader
+        .setDiffuseColor(_color)
+        .setLightPositions({{camera.cameraMatrix().transformPoint({-3.0f, 10.0f, 10.0f}), 0.0f}})
+        .setTransformationMatrix(transformationMatrix)
+        .setNormalMatrix(transformationMatrix.normalMatrix())
+        .setProjectionMatrix(camera.projectionMatrix())
+        .draw(_mesh);
+}
+
+void TexturedDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::Camera3D& camera) {
+    _shader
+        .setLightPositions({{camera.cameraMatrix().transformPoint({-3.0f, 10.0f, 10.0f}), 0.0f}})
+        .setTransformationMatrix(transformationMatrix)
+        .setNormalMatrix(transformationMatrix.normalMatrix())
+        .setProjectionMatrix(camera.projectionMatrix())
+        .bindDiffuseTexture(_texture)
+        .draw(_mesh);
+} 
+
 class BZFlagNew: public Platform::Application {
     public:
         explicit BZFlagNew(const Arguments& arguments);
@@ -135,6 +189,8 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
     if (!importer || !importer->openFile(args.value("file")))
         std::exit(1);
 
+    Warning{} << args.value("file");
+
     _textures = Containers::Array<Containers::Optional<GL::Texture2D>>{importer->textureCount()};
     for (UnsignedInt i = 0; i != importer->textureCount(); ++i) {
         Containers::Optional<Trade::TextureData> textureData = importer->texture(i);
@@ -156,68 +212,122 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
             .setStorage(Math::log2(imageData->size().max()) + 1, GL::textureFormat(imageData->format()), imageData->size())
             .setSubImage(0, {}, *imageData)
             .generateMipmap();
+    }
         
-        Containers::Array<Containers::Optional<Trade::PhongMaterialData>> materials{importer->materialCount()};
-        for (UnsignedInt i = 0; i != importer->materialCount(); ++i) {
-            Containers::Optional<Trade::MaterialData> materialData;
-            if (!(materialData = importer->material(i))) {
-                Warning{} << "Cannot load material" << i << importer->materialName(i);
-                continue;
-            }
-            materials[i] = std::move(*materialData).as<Trade::PhongMaterialData>();
+    Containers::Array<Containers::Optional<Trade::PhongMaterialData>> materials{importer->materialCount()};
+    for (UnsignedInt i = 0; i != importer->materialCount(); ++i) {
+        Containers::Optional<Trade::MaterialData> materialData;
+        if (!(materialData = importer->material(i))) {
+            Warning{} << "Cannot load material" << i << importer->materialName(i);
+            continue;
         }
+        materials[i] = std::move(*materialData).as<Trade::PhongMaterialData>();
+    }
 
-        _meshes = Containers::Array<Containers::Optional<GL::Mesh>>{importer->meshCount()};
-        for (UnsignedInt i = 0; i != importer->meshCount(); ++i) {
-            Containers::Optional<Trade::MeshData> meshData;
-            if (!(meshData = importer->mesh(i))) {
-                Warning{} << "Cannot load mesh" << i << importer->meshName(i);
-                continue;
-            }
-            MeshTools::CompileFlags flags;
-            if (meshData->hasAttribute(Trade::MeshAttribute::Normal))
-                flags |= MeshTools::CompileFlag::GenerateFlatNormals;
-            _meshes[i] = MeshTools::compile(*meshData, flags);
+    _meshes = Containers::Array<Containers::Optional<GL::Mesh>>{importer->meshCount()};
+    for (UnsignedInt i = 0; i != importer->meshCount(); ++i) {
+        Containers::Optional<Trade::MeshData> meshData;
+        if (!(meshData = importer->mesh(i))) {
+            Warning{} << "Cannot load mesh" << i << importer->meshName(i);
+            continue;
         }
+        MeshTools::CompileFlags flags;
+        if (meshData->hasAttribute(Trade::MeshAttribute::Normal))
+            flags |= MeshTools::CompileFlag::GenerateFlatNormals;
+        _meshes[i] = MeshTools::compile(*meshData, flags);
+    }
 
+    Warning{} << "Mesh count:" << importer->meshCount();
+
+    // Edge case where the file doesn't have any scene (just a mesh)
+    if (importer->defaultScene() == -1) {
+        if (!_meshes.isEmpty() && _meshes[0])
+            new ColoredDrawable{_manipulator, _coloredShader, *_meshes[0], 0xffffff_rgbf, _drawables};
+        return;
+    }
+
+    Containers::Optional<Trade::SceneData> scene;
+    if (!(scene = importer->scene(importer->defaultScene())) ||
+        !scene->is3D() || !scene->hasField(Trade::SceneField::Parent) || !scene->hasField(Trade::SceneField::Mesh)) {
+        Fatal{} << "Cannot load scene" << importer->defaultScene() << importer->sceneName(importer->defaultScene());
+        }
+    Containers::Array<Object3D*> objects{std::size_t(scene->mappingBound())};
+    Containers::Array<Containers::Pair<UnsignedInt, Int>> parents = scene->parentsAsArray();
+    for (const Containers::Pair<UnsignedInt, Int>& parent: parents) {
+        objects[parent.first()] = new Object3D{};
+    }
+    for (const Containers::Pair<UnsignedInt, Int>& parent: parents) {
+        objects[parent.first()]->setParent(parent.second() == -1 ? &_manipulator : objects[parent.second()]);
+    }
+
+    for (const Containers::Pair<UnsignedInt, Containers::Pair<UnsignedInt, Int>>& meshMaterial: scene->meshesMaterialsAsArray()) {
+        Object3D* object = objects[meshMaterial.first()];
+        Containers::Optional<GL::Mesh>& mesh = _meshes[meshMaterial.second().first()];
+        
+        if (!object || !mesh) continue;
+
+        Int materialId = meshMaterial.second().second();
+
+        if (materialId == -1 || !materials[materialId]) {
+            new ColoredDrawable{*object, _coloredShader, *mesh, 0xfffffff_rgbf, _drawables};
+        } else if (materials[materialId]->hasAttribute(Trade::MaterialAttribute::DiffuseTexture) && _textures[materials[materialId]->diffuseTexture()]) {
+            new TexturedDrawable{*object, _texturedShader, *mesh, *_textures[materials[materialId]->diffuseTexture()], _drawables};
+        } else {
+            new ColoredDrawable{*object, _coloredShader, *mesh, materials[materialId]->diffuseColor(), _drawables};
+        }
+    }
         
 }
 
 void BZFlagNew::drawEvent() {
     GL::defaultFramebuffer.clear(GL::FramebufferClear::Color | GL::FramebufferClear::Depth);
 
-    _shader
-        .setLightPositions({{1.4f, 1.0f, 0.75f, 0.0f}})
-        .setDiffuseColor(_color)
-        .setAmbientColor(Color3::fromHsv({_color.hue(), 1.0f, 0.3f}))
-        .setTransformationMatrix(_transformation)
-        .setNormalMatrix(_transformation.normalMatrix())
-        .setProjectionMatrix(_projection)
-        .draw(_mesh);
+    _camera->draw(_drawables);
 
     swapBuffers();
 }
 
+void BZFlagNew::viewportEvent(ViewportEvent& e) {
+    GL::defaultFramebuffer.setViewport({{}, e.framebufferSize()});
+    _camera->setViewport(e.windowSize());
+}
+
 void BZFlagNew::mousePressEvent(MouseEvent& e) {
-    if (e.button() != MouseEvent::Button::Left) return;
-    e.setAccepted();
+    if (e.button() == MouseEvent::Button::Left)
+        _previousPosition = positionOnSphere(e.position());
 }
 
 void BZFlagNew::mouseReleaseEvent(MouseEvent& e) {
-    _color = Color3::fromHsv({_color.hue() + 50.0_degf, 1.0f, 1.0f});
+    if (e.button() == MouseEvent::Button::Left)
+        _previousPosition = Vector3{};
+}
 
-    e.setAccepted();
+void BZFlagNew::mouseScrollEvent(MouseScrollEvent& e) {
+    if (!e.offset().y()) return;
+    const Float distance = _cameraObject.transformation().translation().z();
+    _cameraObject.translate(Vector3::zAxis(distance*(1.0f - (e.offset().y() > 0 ? 1/0.85f : 0.85f))));
     redraw();
 }
 
 void BZFlagNew::mouseMoveEvent(MouseMoveEvent &e) {
     if (!(e.buttons() & MouseMoveEvent::Button::Left)) return;
 
-    Vector2 delta = 3.0f * Vector2{e.relativePosition()}/Vector2{windowSize()};
-    _transformation =
-        Matrix4::rotationX(Rad{delta.y()}) * _transformation * Matrix4::rotationY(Rad{delta.x()});
-    e.setAccepted();
+    const Vector3 currentPosition = positionOnSphere(e.position());
+    const Vector3 axis = Math::cross(_previousPosition, currentPosition);
+
+    if (_previousPosition.length() < 0.001f || axis.length() < 0.001f) return;
+
+    _manipulator.rotate(Math::angle(_previousPosition, currentPosition), axis.normalized());
+    _previousPosition = currentPosition;
+
     redraw();
+}
+
+Vector3 BZFlagNew::positionOnSphere(const Vector2i& position) const {
+    const Vector2 positionNormalized = Vector2{position}/Vector2{_camera->viewport()} - Vector2{0.5f};
+    const Float length = positionNormalized.length();
+    const Vector3 result(length > 1.0f ? Vector3(positionNormalized, 0.0f) : Vector3(positionNormalized, 1.0f - length));
+    return (result * Vector3::yScale(-1.0f)).normalized();
 }
 
 MAGNUM_APPLICATION_MAIN(BZFlagNew)

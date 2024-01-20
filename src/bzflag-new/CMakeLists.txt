@@ -33,7 +33,7 @@ set_directory_properties(PROPERTIES CORRADE_USE_PEDANTIC_FLAGS ON)
 
 #corrade_add_resource(TexturedQuad_RESOURCES resources.conf)
 
-add_executable(bzflag-new WIN32 bzflag-new.cpp TexturedQuadShader.h ${TexturedQuad_RESOURCES})
+add_executable(bzflag-new WIN32 bzflag-new.cpp ${TexturedQuad_RESOURCES})
 target_link_libraries(bzflag-new PRIVATE
     Corrade::Main
     Magnum::Application
@@ -42,9 +42,10 @@ target_link_libraries(bzflag-new PRIVATE
     Magnum::Shaders
     Magnum::Trade
     Magnum::Primitives
-    Magnum::MeshTools)
+    Magnum::MeshTools
+    Magnum::SceneGraph)
 
-add_dependencies(bzflag-new Magnum::TgaImporter)
+add_dependencies(bzflag-new Magnum::AnyImageImporter Magnum::AnySceneImporter Magnum::ObjImporter)
 
 install(TARGETS bzflag-new DESTINATION ${MAGNUM_BINARY_INSTALL_DIR})
 
