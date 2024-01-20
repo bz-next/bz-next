@@ -27,19 +27,44 @@
     CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#include "Magnum/GL/GL.h"
+#include "Magnum/SceneGraph/SceneGraph.h"
+#include "Magnum/Trade/MaterialData.h"
+#include <Corrade/Containers/Array.h>
+#include <Corrade/Containers/Optional.h>
+#include <Corrade/Containers/Pair.h>
+#include <Corrade/PluginManager/Manager.h>
+#include <Corrade/Utility/Arguments.h>
+#include <Corrade/Utility/DebugStl.h>
+
+#include <Magnum/ImageView.h>
+#include <Magnum/Mesh.h>
+#include <Magnum/PixelFormat.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/GL/Mesh.h>
 #include <Magnum/GL/Renderer.h>
+#include <Magnum/GL/Texture.h>
+#include <Magnum/GL/TextureFormat.h>
 #include <Magnum/Math/Color.h>
-#include <Magnum/Math/Matrix4.h>
 #include <Magnum/MeshTools/Compile.h>
 #include <Magnum/Platform/Sdl2Application.h>
-#include <Magnum/Primitives/Cube.h>
+#include <Magnum/SceneGraph/Camera.h>
+#include <Magnum/SceneGraph/Drawable.h>
+#include <Magnum/SceneGraph/MatrixTransformation3D.h>
+#include <Magnum/SceneGraph/Scene.h>
 #include <Magnum/Shaders/PhongGL.h>
+#include <Magnum/Trade/AbstractImporter.h>
+#include <Magnum/Trade/ImageData.h>
 #include <Magnum/Trade/MeshData.h>
+#include <Magnum/Trade/PhongMaterialData.h>
+#include <Magnum/Trade/SceneData.h>
+#include <Magnum/Trade/TextureData.h>
 
 using namespace Magnum;
 using namespace Magnum::Math::Literals;
+
+typedef SceneGraph::Object<SceneGraph::MatrixTransformation3D> Object3D;
+typedef SceneGraph::Scene<SceneGraph::MatrixTransformation3D> Scene3D;
 
 class BZFlagNew: public Platform::Application {
     public:
@@ -47,32 +72,115 @@ class BZFlagNew: public Platform::Application {
 
     private:
         void drawEvent() override;
+        void viewportEvent(ViewportEvent& e) override;
         void mousePressEvent(MouseEvent& e) override;
         void mouseReleaseEvent(MouseEvent& e) override;
         void mouseMoveEvent(MouseMoveEvent& e) override;
+        void mouseScrollEvent(MouseScrollEvent& e) override;
 
-        GL::Mesh _mesh;
-        Shaders::PhongGL _shader;
-        
-        Matrix4 _transformation, _projection;
-        Color3 _color;
+        Vector3 positionOnSphere(const Vector2i& position) const;
+
+        Shaders::PhongGL _coloredShader;
+        Shaders::PhongGL _texturedShader{Shaders::PhongGL::Configuration().setFlags(Shaders::PhongGL::Flag::DiffuseTexture)};
+        Containers::Array<Containers::Optional<GL::Mesh>> _meshes;
+        Containers::Array<Containers::Optional<GL::Texture2D>> _textures;
+
+        Scene3D _scene;
+        Object3D _manipulator, _cameraObject;
+        SceneGraph::Camera3D* _camera;
+        SceneGraph::DrawableGroup3D _drawables;
+        Vector3 _previousPosition;
 };
 
 BZFlagNew::BZFlagNew(const Arguments& arguments):
     Platform::Application{arguments, Configuration{}
-        .setTitle("BZFlag Magnum Test")}
+        .setTitle("BZFlag Magnum Test")
+        .setWindowFlags(Configuration::WindowFlag::Resizable)}
 {
     using namespace Math::Literals;
+
+    Utility::Arguments args;
+    args.addArgument("file").setHelp("file", "file to load")
+        .addOption("importer", "AnySceneImporter").setHelp("importer", "importer plugin to use")
+        .addSkippedPrefix("magnum", "engine-specific options")
+        .setGlobalHelp("Displays a 3D scene file provided on command line.")
+        .parse(arguments.argc, arguments.argv);
+    
+    _cameraObject
+        .setParent(&_scene)
+        .translate(Vector3::zAxis(5.0f));
+    
+    (*(_camera = new SceneGraph::Camera3D{_cameraObject}))
+        .setAspectRatioPolicy(SceneGraph::AspectRatioPolicy::Extend)
+        .setProjectionMatrix(Matrix4::perspectiveProjection(35.0_degf, 1.0f, 0.01f, 1000.0f))
+        .setViewport(GL::defaultFramebuffer.viewport().size());
+    
+    _manipulator.setParent(&_scene);
+
 
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
     GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
 
-    _mesh = MeshTools::compile(Primitives::cubeSolid());
+    _coloredShader
+        .setAmbientColor(0x111111_rgbf)
+        .setSpecularColor(0xffffff_rgbf)
+        .setShininess(80.0f);
+    _texturedShader
+        .setAmbientColor(0x111111_rgbf)
+        .setSpecularColor(0x111111_rgbf)
+        .setShininess(80.0f);
 
-    _transformation = Matrix4::rotationX(30.0_degf)*Matrix4::rotationY(40.0_degf);
-    _projection = Matrix4::perspectiveProjection(35.0_degf, Vector2{windowSize()}.aspectRatio(), 0.01f, 100.0f)
-        * Matrix4::translation(Vector3::zAxis(-10.0f));
-    _color = Color3::fromHsv({35.0_degf, 1.0f, 1.0f});
+    PluginManager::Manager<Trade::AbstractImporter> manager;
+    Containers::Pointer<Trade::AbstractImporter> importer = manager.loadAndInstantiate(args.value("importer"));
+    if (!importer || !importer->openFile(args.value("file")))
+        std::exit(1);
+
+    _textures = Containers::Array<Containers::Optional<GL::Texture2D>>{importer->textureCount()};
+    for (UnsignedInt i = 0; i != importer->textureCount(); ++i) {
+        Containers::Optional<Trade::TextureData> textureData = importer->texture(i);
+        if (!textureData || textureData->type() != Trade::TextureType::Texture2D) {
+            Warning{} << "Cannot load texture" << i << importer->textureName(i);
+            continue;
+        }
+
+        Containers::Optional<Trade::ImageData2D> imageData = importer->image2D(textureData->image());
+        if (!imageData || !imageData->isCompressed()) {
+            Warning{} << "Cannot load image" << textureData->image() << importer->image2DName(textureData->image());
+            continue;
+        }
+
+        (*(_textures[i] = GL::Texture2D{}))
+            .setMagnificationFilter(textureData->magnificationFilter())
+            .setMinificationFilter(textureData->minificationFilter(), textureData->mipmapFilter())
+            .setWrapping(textureData->wrapping().xy())
+            .setStorage(Math::log2(imageData->size().max()) + 1, GL::textureFormat(imageData->format()), imageData->size())
+            .setSubImage(0, {}, *imageData)
+            .generateMipmap();
+        
+        Containers::Array<Containers::Optional<Trade::PhongMaterialData>> materials{importer->materialCount()};
+        for (UnsignedInt i = 0; i != importer->materialCount(); ++i) {
+            Containers::Optional<Trade::MaterialData> materialData;
+            if (!(materialData = importer->material(i))) {
+                Warning{} << "Cannot load material" << i << importer->materialName(i);
+                continue;
+            }
+            materials[i] = std::move(*materialData).as<Trade::PhongMaterialData>();
+        }
+
+        _meshes = Containers::Array<Containers::Optional<GL::Mesh>>{importer->meshCount()};
+        for (UnsignedInt i = 0; i != importer->meshCount(); ++i) {
+            Containers::Optional<Trade::MeshData> meshData;
+            if (!(meshData = importer->mesh(i))) {
+                Warning{} << "Cannot load mesh" << i << importer->meshName(i);
+                continue;
+            }
+            MeshTools::CompileFlags flags;
+            if (meshData->hasAttribute(Trade::MeshAttribute::Normal))
+                flags |= MeshTools::CompileFlag::GenerateFlatNormals;
+            _meshes[i] = MeshTools::compile(*meshData, flags);
+        }
+
+        
 }
 
 void BZFlagNew::drawEvent() {
