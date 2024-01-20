@@ -1,0 +1,65 @@
+/* bzflag
+ * Copyright (c) 1993-2021 Tim Riker
+ *
+ * This package is free software;  you can redistribute it and/or
+ * modify it under the terms of the license found in the file
+ * named COPYING that should have accompanied this file.
+ *
+ * THIS PACKAGE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+ */
+
+#ifndef __ROSTER_H__
+#define __ROSTER_H__
+
+// common - 1st
+#include "common.h"
+
+/* system interface headers */
+#include <vector>
+#include <string>
+
+/* common interface headers */
+#include "global.h"
+#include "Team.h"
+
+/* local interface headers */
+#include "RobotPlayer.h"
+#include "BaseLocalPlayer.h"
+#include "RemotePlayer.h"
+
+
+//
+// misc utility routines
+//
+
+typedef std::vector<std::string> NameList;
+
+extern int curMaxPlayers;
+extern RemotePlayer** remotePlayers;
+#ifdef ROBOT
+extern RobotPlayer* robots[MAX_ROBOTS];
+#endif
+extern int numRobots;
+
+extern NameList silencePlayers;
+
+
+Player*         lookupPlayer(PlayerId id);
+int         lookupPlayerIndex(PlayerId id);
+Player*         getPlayerByIndex(int index);
+Player*         getPlayerByName(const char* name);
+BaseLocalPlayer*    getLocalPlayer(PlayerId id);
+TeamColor       PlayerIdToTeam(PlayerId id);
+PlayerId        TeamToPlayerId(TeamColor team);
+
+#endif /* __ROSTER_H__ */
+
+// Local Variables: ***
+// mode: C++ ***
+// tab-width: 4 ***
+// c-basic-offset: 4 ***
+// indent-tabs-mode: nil ***
+// End: ***
+// ex: shiftwidth=4 tabstop=4

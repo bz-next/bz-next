@@ -60,6 +60,19 @@
 #include <Magnum/Trade/SceneData.h>
 #include <Magnum/Trade/TextureData.h>
 
+#include <ctime>
+
+bool            echoToConsole = false;
+bool            echoAnsi = false;
+int         debugLevel = 0;
+std::string     alternateConfig;
+struct tm       userTime;
+const char*     argv0;
+
+void dumpResources()
+{
+}
+
 using namespace Magnum;
 using namespace Magnum::Math::Literals;
 
