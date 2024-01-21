@@ -83,6 +83,9 @@
 #include "common.h"
 #include "GameTime.h"
 #include "ServerList.h"
+#include "AccessList.h"
+#include "Flag.h"
+#include "Roster.h"
 
 // defaults for bzdb
 #include "defaultBZDB.h"
@@ -93,6 +96,8 @@ int         debugLevel = 0;
 std::string     alternateConfig;
 struct tm       userTime;
 const char*     argv0;
+
+const bool devDriving = false;
 
 class BasicLoggingCallback : public LoggingCallback {
     public:
@@ -194,6 +199,14 @@ class BZFlagNew: public Platform::Sdl2Application {
         void initAres();
         void killAres();
 
+        void joinInternetGame();
+        void sendFlagNegotiation();
+        void leaveGame();
+
+        void doMotion();
+
+        bool isKillable(const Player* target);
+
         void drawEvent() override;
         void viewportEvent(ViewportEvent& e) override;
         void mousePressEvent(MouseEvent& e) override;
@@ -210,6 +223,18 @@ class BZFlagNew: public Platform::Sdl2Application {
         bool joinRequested = false;
         bool waitingDNS = false;
         Address serverNetworkAddress;
+        bool justJoined = false;
+        ServerLink *_serverLink;
+        bool serverDied = true;
+        bool serverError = true;
+        bool joiningGame = false;
+        bool entered = false;
+        LocalPlayer *myTank = NULL;
+        Team *teams = NULL;
+
+        std::vector<PlayingCallbackItem> playingCallbacks;
+
+        AccessList ServerAccessList;
 
         AresHandler *ares = NULL;
 
@@ -242,7 +267,8 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
     Platform::Application{arguments, Configuration{}
         .setTitle("BZFlag Magnum Test")
         .setWindowFlags(Configuration::WindowFlag::Resizable)},
-    motd(NULL)
+    motd(NULL),
+    ServerAccessList("ServerAccess.txt", NULL)
 {
     using namespace Math::Literals;
 
@@ -585,7 +611,7 @@ void BZFlagNew::playingLoop()
         if (joinRequested)
         {
             // if already connected to a game then first sign off
-            //if (myTank) leaveGame();
+            if (myTank) leaveGame();
 
             // get token if we need to (have a password but no token)
             if ((startupInfo.token[0] == '\0')
@@ -636,14 +662,430 @@ void BZFlagNew::playingLoop()
             {
                 // now try connecting
                 serverNetworkAddress = Address(inAddress);
+                char buf[INET_ADDRSTRLEN];
+                inet_ntop(AF_INET, &inAddress.s_addr, buf, sizeof(buf));
+                std::cout << "server addr: " << buf << std::endl;
                 joinInternetGame();
                 waitingDNS = false;
             }
+        }
+        // Process input events for a short time (base this on processInputEvents(maxproctime))
+        // hasjoystick handling
+
+
+        // Call playing callbacks
+        {
+            const int count = playingCallbacks.size();
+            for (int i = 0; i < count; i++)
+            {
+                const PlayingCallbackItem& cb = playingCallbacks[i];
+                (*cb.cb)(cb.data);
+            }
+        }
+
+        // quick out
+        if (CommandsStandard::isQuit())
+            break;
+        
+        // if server died then leave the game (note that this may cause
+        // further server errors but that's okay).
+        if (serverError ||
+                (serverLink && serverLink->getState() == ServerLink::Hungup))
+        {
+            // if we haven't reported the death yet then do so now
+            if (serverDied ||
+                    (serverLink && serverLink->getState() == ServerLink::Hungup))
+                printError("Server has unexpectedly disconnected");
+            leaveGame();
+        }
+
+        // TODO: Update sky every few seconds
+        if (world)
+            world->updateWind(dt);
+
+        // Move roaming camera
+
+        // update test video format timer
+
+        // update the countdowns
+        //updatePauseCountdown(dt);
+        //updateDestructCountdown(dt);
+
+        // update other tank's shots
+        for (int i = 0; i < curMaxPlayers; i++)
+        {
+            if (remotePlayers[i])
+                remotePlayers[i]->updateShots(dt);
+        }
+
+        const World *_world = World::getWorld();
+        if (_world)
+            _world->getWorldWeapons()->updateShots(dt);
+        // update track marks  (before any tanks are moved)
+        //TrackMarks::update(dt);
+
+        // do dead reckoning on remote players
+        for (int i = 0; i < curMaxPlayers; i++)
+        {
+            if (remotePlayers[i])
+            {
+                const bool wasNotResponding = remotePlayers[i]->isNotResponding();
+                remotePlayers[i]->doDeadReckoning();
+                const bool isNotResponding = remotePlayers[i]->isNotResponding();
+                if (!wasNotResponding && isNotResponding)
+                    addMessage(remotePlayers[i], "not responding");
+                else if (wasNotResponding && !isNotResponding)
+                    addMessage(remotePlayers[i], "okay");
+            }
+        }
+
+        // do motion
+        if (myTank)
+        {
+            if (myTank->isAlive() && !myTank->isPaused())
+            {
+                doMotion();
+                /*if (scoreboard->getHuntState()==ScoreboardRenderer::HUNT_ENABLED)
+                {
+                    setHuntTarget(); //spot hunt target
+                }*/
+                if (myTank->getTeam() != ObserverTeam &&
+                        ((fireButton && myTank->getFlag() == ::Flags::MachineGun) ||
+                         (myTank->getFlag() == ::Flags::TriggerHappy)))
+                    myTank->fireShot();
+
+                //setLookAtMarker();
+
+                // see if we have a target, if so lock on to the bastage
+                const Player* targetdPlayer = myTank->getTarget();
+                if (targetdPlayer && targetdPlayer->isAlive() && targetdPlayer->getFlag() != ::Flags::Stealth)
+                {
+                    hud->AddLockOnMarker(Float3ToVec3(myTank->getTarget()->getPosition()),
+                                         myTank->getTarget()->getCallSign(),
+                                         !isKillable(myTank->getTarget()));
+                }
+                else // if we should not have a target, force that target to be cleared
+                    myTank->setTarget(NULL);
+
+            }
+            else
+            {
+                int mx, my;
+                mainWindow->getMousePosition(mx, my);
+            }
+            myTank->update();
         }
         cURLManager::perform();
         mainLoopIteration();
     }
 
+}
+
+bool BZFlagNew::isKillable(const Player* target) {
+    if (target == myTank)
+        return false;
+    if (target->getTeam() == RogueTeam)
+        return true;
+    if (myTank->getFlag() == ::Flags::Colorblindness)
+        return true;
+    if (! World::getWorld()->allowTeamKills() || ! World::getWorld()->allowTeams())
+        return true;
+    if (target->getTeam() != myTank->getTeam())
+        return true;
+
+    return false;
+}
+
+void BZFlagNew::doMotion() {
+        float rotation = 0.0f, speed = 1.0f;
+    const int noMotionSize = hud->getNoMotionSize();
+    const int maxMotionSize = hud->getMaxMotionSize();
+
+    int keyboardRotation = myTank->getRotation();
+    int keyboardSpeed    = myTank->getSpeed();
+    /* see if controls are reversed */
+    if (myTank->getFlag() == ::Flags::ReverseControls)
+    {
+        keyboardRotation = -keyboardRotation;
+        keyboardSpeed    = -keyboardSpeed;
+    }
+
+    // mouse is default steering method; query mouse pos always, not doing so
+    // can lead to stuttering movement with X and software rendering (uncertain why)
+    int mx = 0, my = 0;
+    mainWindow->getMousePosition(mx, my);
+
+    // determine if joystick motion should be used instead of mouse motion
+    // when the player bumps the mouse, LocalPlayer::getInputMethod return Mouse;
+    // make it return Joystick when the user bumps the joystick
+    if (mainWindow->haveJoystick())
+    {
+        if (myTank->getInputMethod() == LocalPlayer::Joystick)
+        {
+            // if we're using the joystick right now, replace mouse coords with joystick coords
+            mainWindow->getJoyPosition(mx, my);
+        }
+        else
+        {
+            // if the joystick is not active, and we're not forced to some other input method,
+            // see if it's moved and autoswitch
+            if (BZDB.isTrue("allowInputChange"))
+            {
+                int jx = 0, jy = 0;
+                mainWindow->getJoyPosition(jx, jy);
+                // if we aren't using the joystick, but it's moving, start using it
+                if ((jx < -noMotionSize * 2) || (jx > noMotionSize * 2)
+                        || (jy < -noMotionSize * 2) || (jy > noMotionSize * 2))
+                    myTank->setInputMethod(LocalPlayer::Joystick); // joystick motion
+            } // allowInputChange
+        } // getInputMethod == Joystick
+    } // mainWindow->Joystick
+
+    /* see if controls are reversed */
+    if (myTank->getFlag() == ::Flags::ReverseControls)
+    {
+        mx = -mx;
+        my = -my;
+    }
+
+#if defined(FREEZING)
+    if (motionFreeze) return;
+#endif
+
+    /*if (myTank->isAutoPilot())
+        //doAutoPilot(rotation, speed);
+    else */if (myTank->getInputMethod() == LocalPlayer::Keyboard)
+    {
+
+        rotation = (float)keyboardRotation;
+        speed    = (float)keyboardSpeed;
+        if (speed < 0.0f)
+            speed /= 2.0;
+
+        rotation *= BZDB.eval("displayFOV") / 60.0f;
+        if (BZDB.isTrue("slowKeyboard"))
+        {
+            rotation *= 0.5f;
+            speed *= 0.5f;
+        }
+    }
+    else     // both mouse and joystick
+    {
+
+        // calculate desired rotation
+        if (keyboardRotation && !devDriving)
+        {
+            rotation = float(keyboardRotation);
+            rotation *= BZDB.eval("displayFOV") / 60.0f;
+            if (BZDB.isTrue("slowKeyboard"))
+                rotation *= 0.5f;
+        }
+        else if (mx < -noMotionSize)
+        {
+            rotation = float(-mx - noMotionSize) / float(maxMotionSize - noMotionSize);
+            if (rotation > 1.0f)
+                rotation = 1.0f;
+        }
+        else if (mx > noMotionSize)
+        {
+            rotation = -float(mx - noMotionSize) / float(maxMotionSize - noMotionSize);
+            if (rotation < -1.0f)
+                rotation = -1.0f;
+        }
+
+        // calculate desired speed
+        if (keyboardSpeed && !devDriving)
+        {
+            speed = float(keyboardSpeed);
+            if (speed < 0.0f)
+                speed *= 0.5f;
+            if (BZDB.isTrue("slowKeyboard"))
+                speed *= 0.5f;
+        }
+        else if (my < -noMotionSize)
+        {
+            speed = float(-my - noMotionSize) / float(maxMotionSize - noMotionSize);
+            if (speed > 1.0f)
+                speed = 1.0f;
+        }
+        else if (my > noMotionSize)
+        {
+            speed = -float(my - noMotionSize) / float(maxMotionSize - noMotionSize);
+            if (speed < -0.5f)
+                speed = -0.5f;
+        }
+        else
+            speed = 0.0f;
+    }
+
+    myTank->setDesiredAngVel(rotation);
+    myTank->setDesiredSpeed(speed);
+}
+
+void BZFlagNew::joinInternetGame()
+{
+    // check server address
+    if (serverNetworkAddress.isAny())
+    {
+        //HUDDialogStack::get()->setFailedMessage("Server not found");
+        std::cout << "Server not found!" << std::endl;
+        return;
+    }
+
+    // check for a local server block
+    ServerAccessList.reload();
+    std::vector<std::string> nameAndIp;
+    nameAndIp.push_back(startupInfo.serverName);
+    nameAndIp.push_back(serverNetworkAddress.getDotNotation());
+    if (!ServerAccessList.authorized(nameAndIp))
+    {
+        std::string msg;
+        //HUDDialogStack::get()->setFailedMessage("Server Access Denied Locally");
+        std::cout << "Server Access Denied Locally" << std::endl;
+        //std::string msg = ColorStrings[WhiteColor];
+        msg += "NOTE: ";
+        //msg += ColorStrings[GreyColor];
+        msg += "server access is controlled by ";
+        //msg += ColorStrings[YellowColor];
+        msg += ServerAccessList.getFilePath();
+        //addMessage(NULL, msg);
+        std::cout << msg;
+        return;
+    }
+    // open server
+    _serverLink = new ServerLink(serverNetworkAddress,
+            startupInfo.serverPort);
+    
+    // assume everything's okay for now
+    serverDied = false;
+    serverError = false;
+
+    if (!_serverLink)
+    {
+        std::cout << "Server link error" << std::endl;
+        return;
+    }
+
+    if (_serverLink->getState() != ServerLink::Okay)
+    {
+        switch (_serverLink->getState())
+        {
+        case ServerLink::BadVersion:
+        {
+            char versionError[37];
+            snprintf(versionError, sizeof(versionError), "Incompatible server version %s", serverLink->getVersion());
+            std::cout << versionError << std::endl;
+            //HUDDialogStack::get()->setFailedMessage(versionError);
+            break;
+        }
+
+        // you got banned
+        case ServerLink::Refused:
+        {
+            const std::string& rejmsg = _serverLink->getRejectionMessage();
+
+            // add to the HUD
+            std::string msg;
+            msg += "You have been banned from this server";
+            std::cout << msg << std::endl;
+            //HUDDialogStack::get()->setFailedMessage(msg.c_str());
+
+            break;
+        }
+
+        case ServerLink::Rejected:
+            // the server is probably full or the game is over.  if not then
+            // the server is having network problems.
+            std::cout << "Game is full or over.  Try again later." << std::endl;
+            break;
+
+        case ServerLink::SocketError:
+            std::cout << "Error connecting to server." << std::endl;
+            break;
+
+        case ServerLink::CrippledVersion:
+            // can't connect to (otherwise compatible) non-crippled server
+            std::cout << "Cannot connect to full version server." << std::endl;
+            break;
+
+        default:
+            std::cout << "Internal error connecting to server (error code %d)." << std::endl;
+            break;
+        }
+        return;
+    }
+
+    // use parallel UDP if desired and using server relay
+    if (startupInfo.useUDPconnection)
+        _serverLink->sendUDPlinkRequest();
+    else
+        printError("No UDP connection, see Options to enable.");
+
+    std::cout << "Connection established!" << std::endl;
+    sendFlagNegotiation();
+    joiningGame = true;
+    //scoreboard->huntReset();
+    GameTime::reset();
+}
+
+void BZFlagNew::sendFlagNegotiation() {
+    char msg[MaxPacketLen];
+    FlagTypeMap::iterator i;
+    char *buf = msg;
+
+    /* Send MsgNegotiateFlags to the server with
+     * the abbreviations for all the flags we support.
+     */
+    for (i = FlagType::getFlagMap().begin();
+            i != FlagType::getFlagMap().end();
+            ++i)
+        buf = (char*) i->second->pack(buf);
+    _serverLink->send(MsgNegotiateFlags, buf - msg, msg);
+}
+
+void BZFlagNew::leaveGame() {
+    entered = false;
+    joiningGame = false;
+    // my tank goes away
+    const bool sayGoodbye = (myTank != NULL);
+    LocalPlayer::setMyTank(NULL);
+    delete myTank;
+    myTank = NULL;
+
+    // reset the daylight time
+    const bool syncTime = (BZDB.eval(StateDatabase::BZDB_SYNCTIME) >= 0.0f);
+    const bool fixedTime = BZDB.isSet("fixedTime");
+    /*if (syncTime)
+    {
+        // return to the desired user time
+        epochOffset = userTimeEpochOffset;
+    }
+    else if (fixedTime)
+    {
+        // save the current user time
+        userTimeEpochOffset = epochOffset;
+    }
+    else
+    {
+        // revert back to when the client was started?
+        epochOffset = userTimeEpochOffset;
+    }
+    updateDaylight(epochOffset, *sceneRenderer);
+    lastEpochOffset = epochOffset;
+    BZDB.set(StateDatabase::BZDB_SYNCTIME,
+             BZDB.getDefault(StateDatabase::BZDB_SYNCTIME));
+    */
+    // flush downloaded textures (before the BzMaterials are nuked)
+    //Downloads::removeTextures();
+
+    // delete world
+    World::setWorld(NULL);
+    delete world;
+    world = NULL;
+    teams = NULL;
+    curMaxPlayers = 0;
+    numFlags = 0;
+    remotePlayers = NULL;
 }
 
 int main(int argc, char** argv)
