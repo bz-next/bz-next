@@ -242,6 +242,12 @@ class BZFlagNew: public Platform::Sdl2Application {
 
         bool gotBlowedUp(BaseLocalPlayer* tank, BlowedUpReason reason, PlayerId killer, const ShotPath* hit = NULL, int phydrv = -1);
 
+        const void *handleMsgSetVars(const void *msg);
+        void handlePlayerMessage(uint16_t, uint16_t, const void*);
+
+
+        void handleFlagTransferred(Player *fromTank, Player *toTank, int flagIndex);
+
         void handleServerMessage(bool human, uint16_t code, uint16_t len, const void* msg);
         bool processWorldChunk(const void *buf, uint16_t len, int bytesLeft);
 
@@ -280,6 +286,7 @@ class BZFlagNew: public Platform::Sdl2Application {
         bool fireButton = false;
         ShotStats *shotStats = NULL;
         bool wasRabbit = false;
+        char *worldDatabase = NULL;
 
         std::vector<PlayingCallbackItem> playingCallbacks;
 
@@ -318,12 +325,12 @@ WorldDownLoader::WorldDownLoader(BZFlagNew *app) :
 void WorldDownLoader::start(char * hexDigest)
 {
     if (_app->isCached(hexDigest))
-        loadCachedWorld();
+        _app->loadCachedWorld();
     else if (_app->worldUrl.size())
     {
         //HUDDialogStack::get()->setFailedMessage
         //(("Loading world from " + worldUrl).c_str());
-        std::cout << "Loading world from " << worldUrl;
+        std::cout << "Loading world from " << _app->worldUrl;
         setProgressFunction(curlProgressFunc, _app->worldUrl.c_str());
         setURL(_app->worldUrl);
         addHandle();
@@ -331,6 +338,57 @@ void WorldDownLoader::start(char * hexDigest)
     }
     else
         askToBZFS();
+}
+
+void WorldDownLoader::finalization(char *data, unsigned int length, bool good)
+{
+    if (good)
+    {
+        _app->worldDatabase = data;
+        theData       = NULL;
+        MD5 md5;
+        md5.update((unsigned char *)_app->worldDatabase, length);
+        md5.finalize();
+        std::string digest = md5.hexdigest();
+        if (digest != _app->md5Digest)
+        {
+            //HUDDialogStack::get()->setFailedMessage("Download from URL failed");
+            std::cout << "Download from URL failed" << std::endl;
+            askToBZFS();
+        }
+        else
+        {
+            std::ostream* cache =
+                FILEMGR.createDataOutStream(_app->worldCachePath, true, true);
+            if (cache != NULL)
+            {
+                cache->write(_app->worldDatabase, length);
+                delete cache;
+                _app->loadCachedWorld();
+            }
+            else
+            {
+                //HUDDialogStack::get()->setFailedMessage("Problem writing cache");
+                std::cout << "Problem writing cache" << std::endl;
+                askToBZFS();
+            }
+        }
+    }
+    else
+        askToBZFS();
+}
+
+void WorldDownLoader::askToBZFS() {
+    //HUDDialogStack::get()->setFailedMessage("Downloading World...");
+    std::cout << "Downloading world..." << std::endl;
+    char message[MaxPacketLen];
+    // ask for world
+    nboPackUInt(message, 0);
+    _app->_serverLink->send(MsgGetWorld, sizeof(uint32_t), message);
+    _app->worldPtr = 0;
+    //if (cacheOut)
+    //    delete cacheOut;
+    //cacheOut = FILEMGR.createDataOutStream(worldCachePath, true, true);
 }
 
 void BZFlagNew::loadCachedWorld() {
@@ -722,7 +780,7 @@ void BZFlagNew::enteringServer(const void *buf) {
 
 void BZFlagNew::setTankFlags()
 {
-        // scan through flags and, for flags on
+    // scan through flags and, for flags on
     // tanks, tell the tank about its flag.
     const int maxFlags = world->getMaxFlags();
     for (int i = 0; i < maxFlags; i++)
@@ -743,7 +801,7 @@ void BZFlagNew::setTankFlags()
 }
 
 void BZFlagNew::updateFlag(FlagType *flag) {
-        if (flag == Flags::Null)
+    if (flag == ::Flags::Null)
     {
         //hud->setColor(1.0f, 0.625f, 0.125f);
         //hud->setAlert(2, NULL, 0.0f);
@@ -755,7 +813,7 @@ void BZFlagNew::updateFlag(FlagType *flag) {
         //hud->setAlert(2, flag->flagName.c_str(), 3.0f, flag->endurance == FlagSticky);
     }
 
-    if (BZDB.isTrue("displayFlagHelp"))
+    //if (BZDB.isTrue("displayFlagHelp"))
         //hud->setFlagHelp(flag, FlagHelpDuration);
 
     //TODO radar
@@ -1217,6 +1275,138 @@ bool BZFlagNew::gotBlowedUp(BaseLocalPlayer* tank, BlowedUpReason reason, Player
     return (reason == GotShot && flag == ::Flags::Shield && shotId != -1);
 }
 
+const void *BZFlagNew::handleMsgSetVars(const void *msg) {
+    uint16_t numVars;
+    uint8_t nameLen = 0, valueLen = 0;
+
+    char name[MaxPacketLen];
+    char value[MaxPacketLen];
+
+    msg = nboUnpackUShort(msg, numVars);
+    for (int i = 0; i < numVars; i++)
+    {
+        msg = nboUnpackUByte(msg, nameLen);
+        msg = nboUnpackString(msg, name, nameLen);
+        name[nameLen] = '\0';
+
+        msg = nboUnpackUByte(msg, valueLen);
+        msg = nboUnpackString(msg, value, valueLen);
+        value[valueLen] = '\0';
+
+        if ((name[0] != '_') && (name[0] != '$'))
+        {
+            logDebugMessage(1, "Server BZDB change blocked: '%s' = '%s'\n",
+                            name, value);
+        }
+        else
+        {
+            BZDB.set(name, value);
+            BZDB.setPersistent(name, false);
+            BZDB.setPermission(name, StateDatabase::Locked);
+        }
+    }
+    return msg;
+}
+
+void BZFlagNew::handleFlagTransferred(Player *fromTank, Player *toTank, int flagIndex)
+{
+    ::Flag f = world->getFlag(flagIndex);
+
+    fromTank->setFlag(::Flags::Null);
+    toTank->setFlag(f.type);
+
+    if ((fromTank == myTank) || (toTank == myTank))
+        updateFlag(myTank->getFlag());
+
+    const float *pos = toTank->getPosition();
+    if (f.type->flagTeam != ::NoTeam)
+    {
+        /*if ((toTank->getTeam() == myTank->getTeam()) && (f.type->flagTeam != myTank->getTeam()))
+            playWorldSound(SFX_TEAMGRAB, pos);
+        else if ((fromTank->getTeam() == myTank->getTeam()) && (f.type->flagTeam == myTank->getTeam()))
+        {
+            hud->setAlert(1, "Flag Alert!!!", 3.0f, true);
+            playLocalSound(SFX_ALERT);
+        }*/
+    }
+
+    std::string message("stole ");
+    message += fromTank->getCallSign();
+    message += "'s flag";
+    addMessage(toTank, message);
+}
+
+void BZFlagNew::handlePlayerMessage(uint16_t code, uint16_t, const void* msg)
+{
+    switch (code)
+    {
+    case MsgPlayerUpdate:
+    case MsgPlayerUpdateSmall:
+    {
+        float timestamp; // could be used to enhance deadreckoning, but isn't for now
+        PlayerId id;
+        int32_t order;
+        const void *buf = msg;
+        buf = nboUnpackFloat(buf, timestamp);
+        buf = nboUnpackUByte(buf, id);
+        Player* tank = lookupPlayer(id);
+        if (!tank || tank == myTank) break;
+        nboUnpackInt(buf, order); // peek! don't update the msg pointer
+        if (order <= tank->getOrder()) break;
+        short oldStatus = tank->getStatus();
+        tank->unpack(msg, code);
+        short newStatus = tank->getStatus();
+        if ((oldStatus & short(PlayerState::Paused)) !=
+                (newStatus & short(PlayerState::Paused)))
+            addMessage(tank, (tank->getStatus() & PlayerState::Paused) ?
+                       "Paused" : "Resumed");
+        if ((oldStatus & short(PlayerState::Exploding)) == 0 &&
+                (newStatus & short(PlayerState::Exploding)) != 0)
+        {
+            // player has started exploding and we haven't gotten killed
+            // message yet -- set explosion now, play sound later (when we
+            // get killed message).  status is already !Alive so make player
+            // alive again, then call setExplode to kill him.
+            tank->setStatus(newStatus | short(PlayerState::Alive));
+            tank->setExplode(TimeKeeper::getTick());
+            // ROBOT -- play explosion now
+        }
+        break;
+    }
+
+    case MsgGMUpdate:
+    {
+        ShotUpdate shot;
+        msg = shot.unpack(msg);
+        Player* tank = lookupPlayer(shot.player);
+        if (!tank || tank == myTank) break;
+        RemotePlayer* remoteTank = (RemotePlayer*)tank;
+        RemoteShotPath* shotPath =
+            (RemoteShotPath*)remoteTank->getShot(shot.id);
+        if (shotPath) shotPath->update(shot, code, msg);
+        PlayerId targetId;
+        msg = nboUnpackUByte(msg, targetId);
+        Player* targetTank = lookupPlayer(targetId);
+        if (targetTank && (targetTank == myTank) && (myTank->isAlive()))
+        {
+            static TimeKeeper lastLockMsg;
+            if (TimeKeeper::getTick() - lastLockMsg > 0.75)
+            {
+                //playWorldSound(SFX_LOCK, shot.pos);
+                lastLockMsg=TimeKeeper::getTick();
+                addMessage(tank, "locked on me");
+            }
+        }
+        break;
+    }
+
+    // just echo lag ping message
+    case MsgLagPing:
+        serverLink->send(MsgLagPing,2,msg);
+        break;
+    }
+}
+
 void BZFlagNew::startupErrorCallback(const char* msg)
 {
     Warning{} << msg;
@@ -1652,7 +1842,7 @@ void BZFlagNew::handleServerMessage(bool human, uint16_t code, uint16_t len, con
             buffer[stringLen] = '\0';
             soundName = buffer;
 
-            if (soundType == LocalCustomSound)
+            //if (soundType == LocalCustomSound)
                 //playLocalSound (soundName);
         }
         break;
@@ -2029,7 +2219,7 @@ void BZFlagNew::handleServerMessage(bool human, uint16_t code, uint16_t len, con
         {
             victimPlayer->setExplode(TimeKeeper::getTick());
             const float* pos = victimPlayer->getPosition();
-            const bool localView = isViewTank(victimPlayer);
+            //const bool localView = isViewTank(victimPlayer);
             /*if (reason == GotRunOver)
                 playSound(SFX_RUNOVER, pos, killerLocal == myTank, localView);
             else
@@ -2238,8 +2428,8 @@ void BZFlagNew::handleServerMessage(bool human, uint16_t code, uint16_t len, con
         if (tank == myTank)
         {
             // grabbed flag
-            playLocalSound(myTank->getFlag()->endurance != FlagSticky ?
-                           SFX_GRAB_FLAG : SFX_GRAB_BAD);
+            /*playLocalSound(myTank->getFlag()->endurance != FlagSticky ?
+                           SFX_GRAB_FLAG : SFX_GRAB_BAD); */
             updateFlag(myTank->getFlag());
         }
         /*else if (isViewTank(tank))
@@ -2616,7 +2806,7 @@ void BZFlagNew::handleServerMessage(bool human, uint16_t code, uint16_t len, con
             {
                 const float* pos = teleporter->getPosition();
                 tank->setTeleport(TimeKeeper::getTick(), short(from), short(to));
-                playWorldSound(SFX_TELEPORT, pos);
+                //playWorldSound(SFX_TELEPORT, pos);
             }
         }
         break;
@@ -2791,8 +2981,8 @@ void BZFlagNew::handleServerMessage(bool human, uint16_t code, uint16_t len, con
                         if (playSound)
                         {
                             static TimeKeeper lastMsg = TimeKeeper::getSunGenesisTime();
-                            if (TimeKeeper::getTick() - lastMsg > 2.0f)
-                                playLocalSound( SFX_MESSAGE_PRIVATE );
+                            //if (TimeKeeper::getTick() - lastMsg > 2.0f)
+                                //playLocalSound( SFX_MESSAGE_PRIVATE );
                             lastMsg = TimeKeeper::getTick();
                         }
                     }
@@ -2808,8 +2998,8 @@ void BZFlagNew::handleServerMessage(bool human, uint16_t code, uint16_t len, con
                     if (!fromServer)
                     {
                         static TimeKeeper lastMsg = TimeKeeper::getSunGenesisTime();
-                        if (TimeKeeper::getTick() - lastMsg > 2.0f)
-                            playLocalSound( SFX_MESSAGE_ADMIN );
+                        //if (TimeKeeper::getTick() - lastMsg > 2.0f)
+                            //playLocalSound( SFX_MESSAGE_ADMIN );
                         lastMsg = TimeKeeper::getTick();
                     }
 
@@ -2830,8 +3020,8 @@ void BZFlagNew::handleServerMessage(bool human, uint16_t code, uint16_t len, con
                     if (srcPlayer != myTank)
                     {
                         static TimeKeeper lastMsg = TimeKeeper::getSunGenesisTime();
-                        if (TimeKeeper::getTick() - lastMsg > 2.0f)
-                            playLocalSound(SFX_MESSAGE_TEAM);
+                        //if (TimeKeeper::getTick() - lastMsg > 2.0f)
+                            //playLocalSound(SFX_MESSAGE_TEAM);
                         lastMsg = TimeKeeper::getTick();
                     }
                 }
@@ -2855,8 +3045,8 @@ void BZFlagNew::handleServerMessage(bool human, uint16_t code, uint16_t len, con
             else
                 addMessage(NULL, fullMsg, 1, false, oldcolor.c_str());
 
-            if (!srcPlayer || srcPlayer!=myTank)
-                hud->setAlert(0, fullMsg.c_str(), 3.0f, false);
+            //if (!srcPlayer || srcPlayer!=myTank)
+                //hud->setAlert(0, fullMsg.c_str(), 3.0f, false);
         }
         break;
     }
@@ -2878,7 +3068,7 @@ void BZFlagNew::handleServerMessage(bool human, uint16_t code, uint16_t len, con
         // remove all of the flags
         for (i=0 ; i<numFlags; i++)
         {
-            Flag& flag = world->getFlag(i);
+            ::Flag& flag = world->getFlag(i);
             flag.owner = (PlayerId) -1;
             flag.status = FlagNoExist;
             world->initFlag (i);
@@ -2949,7 +3139,7 @@ void BZFlagNew::handleServerMessage(bool human, uint16_t code, uint16_t len, con
                 int playerIndex = lookupPlayerIndex(playerId);
                 Player *_player = getPlayerByIndex(playerIndex);
                 if (!_player) continue;
-                printIpInfo(_player, addr, "(join)");
+                //printIpInfo(_player, addr, "(join)");
                 _player->setIpAddress(addr); // save for the signoff message
             } // end for loop
         }
@@ -2995,7 +3185,7 @@ void BZFlagNew::handleServerMessage(bool human, uint16_t code, uint16_t len, con
         break;
     }
 
-    if (checkScores) updateHighScores();
+    //if (checkScores) updateHighScores();
 }
 
 void BZFlagNew::updateFlags(float dt) {

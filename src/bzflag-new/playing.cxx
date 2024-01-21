@@ -1763,15 +1763,15 @@ static void loadCachedWorld()
     downloadingInitialTexture  = true;
 }
 
-class WorldDownLoader : cURLManager
+/*class WorldDownLoader : cURLManager
 {
 public:
     void start(char * hexDigest);
 private:
     void askToBZFS();
     virtual void finalization(char *data, unsigned int length, bool good);
-};
-
+};*/
+/*
 void WorldDownLoader::start(char * hexDigest)
 {
     if (isCached(hexDigest))
@@ -1836,9 +1836,9 @@ void WorldDownLoader::askToBZFS()
     if (cacheOut)
         delete cacheOut;
     cacheOut = FILEMGR.createDataOutStream(worldCachePath, true, true);
-}
+}*/
 
-static WorldDownLoader *worldDownLoader;
+//static WorldDownLoader *worldDownLoader;
 
 static void dumpMissingFlag(const char *buf, uint16_t len)
 {
@@ -2065,7 +2065,7 @@ static void     handleServerMessage(bool human, uint16_t code,
         isCacheTemp = hexDigest[0] == 't';
         md5Digest = &hexDigest[1];
 
-        worldDownLoader->start(hexDigest);
+        //worldDownLoader->start(hexDigest);
         delete [] hexDigest;
         break;
     }
@@ -7763,12 +7763,12 @@ void            startPlaying(BzfDisplay* _display,
     TimeKeeper::setTick();
     updateDaylight(epochOffset, *sceneRenderer);
 
-    worldDownLoader = new WorldDownLoader;
+    //worldDownLoader = new WorldDownLoader;
 
     // start game loop
     playingLoop();
 
-    delete worldDownLoader;
+    //delete worldDownLoader;
 
     // restore the sound.  if we don't do this then we'll save the
     // wrong volume when we dump out the configuration file if the
