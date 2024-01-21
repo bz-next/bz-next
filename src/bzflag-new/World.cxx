@@ -58,8 +58,6 @@ World::World() :
     shakeWins(),
     players(NULL),
     flags(NULL),
-    flagNodes(NULL),
-    flagWarpNodes(NULL),
     wind(),
     oldFogEffect(),
     oldUseDrawInfo()
@@ -129,7 +127,7 @@ void            World::checkCollisionManager()
 
 void            World::setFlagTexture(FlagSceneNode* flag)
 {
-    flag->setTexture(flagTexture);
+    //flag->setTexture(flagTexture);
 }
 
 void            World::setWorld(World* _playingField)
@@ -521,18 +519,8 @@ float           World::getProximity(const float* p, float r) const
 void            World::freeFlags()
 {
     int i;
-    if (flagNodes)
-        for (i = 0; i < maxFlags; i++)
-            delete flagNodes[i];
-    if (flagWarpNodes)
-        for (i = 0; i < maxFlags; i++)
-            delete flagWarpNodes[i];
     delete[] flags;
-    delete[] flagNodes;
-    delete[] flagWarpNodes;
     flags = NULL;
-    flagNodes = NULL;
-    flagWarpNodes = NULL;
 }
 
 void            World::makeMeshDrawMgrs()
@@ -686,7 +674,6 @@ void            World::initFlag(int index)
         return;
     // set color of flag (opaque)
     const float* color = flags[index].type->getColor();
-    flagNodes[index]->setColor(color[0], color[1], color[2]);
 
     // if coming or going then position warp
     Flag& flag = flags[index];
@@ -697,8 +684,6 @@ void            World::initFlag(int index)
         pos[1] = flag.position[1];
         pos[2] = 0.5f * flag.flightEnd * (flag.initialVelocity +
                                           0.25f * BZDBCache::gravity * flag.flightEnd) + flag.position[2];
-        flagWarpNodes[index]->move(pos);
-        flagWarpNodes[index]->setSizeFraction(0.0f);
     }
 }
 
@@ -726,7 +711,7 @@ void            World::updateWind(float UNUSED(dt))
 
 void            World::updateFlag(int index, float dt)
 {
-    if (!flagNodes) return;
+    /*if (!flagNodes) return;
     const GLfloat* color = flagNodes[index]->getColor();
     GLfloat alpha = color[3];
     Flag& flag = flags[index];
@@ -795,14 +780,12 @@ void            World::updateFlag(int index, float dt)
                 float t = (flag.flightTime - 0.25f * flag.flightEnd) /
                           (0.25f * flag.flightEnd);
                 alpha = 1.0f;
-                flagWarpNodes[index]->setSizeFraction(1.0f - t);
             }
             else
             {
                 // first half
                 float t = flag.flightTime / (0.25f * flag.flightEnd);
                 alpha = t;
-                flagWarpNodes[index]->setSizeFraction(t);
             }
         }
         break;
@@ -837,7 +820,6 @@ void            World::updateFlag(int index, float dt)
                 float t = (0.75f * flag.flightEnd - flag.flightTime) /
                           (0.25f * flag.flightEnd);
                 alpha = 1.0f;
-                flagWarpNodes[index]->setSizeFraction(1.0f - t);
             }
             else
             {
@@ -845,7 +827,6 @@ void            World::updateFlag(int index, float dt)
                 float t = (flag.flightEnd - flag.flightTime) /
                           (0.25f * flag.flightEnd);
                 alpha = t;
-                flagWarpNodes[index]->setSizeFraction(t);
             }
         }
         break;
@@ -901,12 +882,12 @@ void            World::updateFlag(int index, float dt)
             flagNodes[index]->setWind(wind, dt); // assumes homogeneous wind
             flagNodes[index]->setBillboard(true);
         }
-    }
+    }*/
 }
 
 void            World::addFlags(SceneDatabase* scene, bool seerView)
 {
-    if (!flagNodes) return;
+    /*if (!flagNodes) return;
     for (int i = 0; i < maxFlags; i++)
     {
         // if not showing flags, only allow FlagOnTank through
@@ -929,15 +910,14 @@ void            World::addFlags(SceneDatabase* scene, bool seerView)
                 continue;
         }
 
-        scene->addDynamicNode(flagNodes[i]);
 
         // add warp if coming/going and hovering
         if ((flags[i].status == FlagComing &&
                 flags[i].flightTime < 0.5 * flags[i].flightEnd) ||
                 (flags[i].status == FlagGoing &&
                  flags[i].flightTime >= 0.5 * flags[i].flightEnd))
-            scene->addDynamicNode(flagWarpNodes[i]);
-    }
+            //scene->addDynamicNode(flagWarpNodes[i]);
+    }*/
 }
 
 

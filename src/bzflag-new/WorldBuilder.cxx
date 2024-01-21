@@ -260,8 +260,8 @@ void WorldBuilder::preGetWorld()
     // prepare flags array
     world->freeFlags();
     world->flags = new Flag[world->maxFlags];
-    world->flagNodes = new FlagSceneNode*[world->maxFlags];
-    world->flagWarpNodes = new FlagWarpSceneNode*[world->maxFlags];
+    //world->flagNodes = new FlagSceneNode*[world->maxFlags];
+    //world->flagWarpNodes = new FlagWarpSceneNode*[world->maxFlags];
     for (i = 0; i < world->maxFlags; i++)
     {
         world->flags[i].type = Flags::Null;
@@ -269,9 +269,9 @@ void WorldBuilder::preGetWorld()
         world->flags[i].position[0] = 0.0f;
         world->flags[i].position[1] = 0.0f;
         world->flags[i].position[2] = 0.0f;
-        world->flagNodes[i] = new FlagSceneNode(world->flags[i].position);
-        world->flagWarpNodes[i] = new FlagWarpSceneNode(world->flags[i].position);
-        world->flagNodes[i]->setTexture(World::flagTexture);
+        //world->flagNodes[i] = new FlagSceneNode(world->flags[i].position);
+        //world->flagWarpNodes[i] = new FlagWarpSceneNode(world->flags[i].position);
+        //world->flagNodes[i]->setTexture(World::flagTexture);
     }
 
     return;

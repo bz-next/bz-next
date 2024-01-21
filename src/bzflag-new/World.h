@@ -21,7 +21,6 @@
 
 /* common interface headers */
 #include "Team.h"
-#include "FlagWarpSceneNode.h"
 #include "BundleMgr.h"
 #include "LinkManager.h"
 
@@ -177,8 +176,6 @@ private:
     RemotePlayer**  players;
     WorldPlayer*    worldWeapons;
     Flag*       flags;
-    FlagSceneNode** flagNodes;
-    FlagWarpSceneNode** flagWarpNodes;
 
     int         drawInfoCount;
     MeshDrawInfo**  drawInfoArray;

@@ -114,11 +114,11 @@ void MessageOfTheDay::finalization(char *_data, unsigned int length, bool good)
             regfree(&re);
         }
     }
-    controlPanel->addMessage(ColorStrings[UnderlineColor]
+    /*controlPanel->addMessage(ColorStrings[UnderlineColor]
                              + ColorStrings[WhiteColor]
                              + "Message of the day: ");
     for (j = 0; j < msgs.size(); ++j)
-        controlPanel->addMessage(ColorStrings[WhiteColor] + "* " + msgs[j]);
+        controlPanel->addMessage(ColorStrings[WhiteColor] + "* " + msgs[j]);*/
 }
 
 
