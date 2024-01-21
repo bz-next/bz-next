@@ -215,8 +215,13 @@ class BZFlagNew: public Platform::Sdl2Application {
         void killAres();
 
         void joinInternetGame();
+        void joinInternetGame2();
         void sendFlagNegotiation();
         void leaveGame();
+
+        void addMessage(const Player *_player, const std::string& msg, int mode = 3,
+                           bool highlight = false,
+                           const char* oldColor = NULL);
 
         void setTankFlags();
         void updateFlag(FlagType *flag);
@@ -495,6 +500,67 @@ void BZFlagNew::loadCachedWorld() {
     downloadingInitialTexture  = true;
 }
 
+void BZFlagNew::addMessage(const Player *_player, const std::string& msg, int mode, bool highlight, const char* oldColor) {
+    std::string fullMessage;
+
+    if (BZDB.isTrue("colorful"))
+    {
+        if (_player)
+        {
+            if (highlight)
+            {
+                if (BZDB.get("killerhighlight") == "1")
+                    fullMessage += ColorStrings[PulsatingColor];
+                else if (BZDB.get("killerhighlight") == "2")
+                    fullMessage += ColorStrings[UnderlineColor];
+            }
+            const PlayerId pid = _player->getId();
+            if (pid < 200)
+            {
+                TeamColor color = _player->getTeam();
+                fullMessage += Team::getAnsiCode(color);
+            }
+            else if (pid == ServerPlayer)
+                fullMessage += ColorStrings[YellowColor];
+            else
+            {
+                fullMessage += ColorStrings[CyanColor]; //replay observers
+            }
+            fullMessage += _player->getCallSign();
+
+            if (highlight)
+                fullMessage += ColorStrings[ResetColor];
+#ifdef BWSUPPORT
+            fullMessage += " (";
+            fullMessage += Team::getName(_player->getTeam());
+            fullMessage += ")";
+#endif
+            fullMessage += ColorStrings[DefaultColor] + ": ";
+        }
+        fullMessage += msg;
+    }
+    else
+    {
+        if (oldColor != NULL)
+            fullMessage = oldColor;
+
+        if (_player)
+        {
+            fullMessage += _player->getCallSign();
+
+#ifdef BWSUPPORT
+            fullMessage += " (";
+            fullMessage += Team::getName(_player->getTeam());
+            fullMessage += ")";
+#endif
+            fullMessage += ": ";
+        }
+        fullMessage += stripAnsiCodes(msg);
+    }
+    //controlPanel->addMessage(fullMessage, mode);
+    std::cout << fullMessage << std::endl;
+}
+
 bool BZFlagNew::isCached(char *hexDigest) {
     std::istream *cachedWorld;
     bool cached    = false;
@@ -705,7 +771,7 @@ void BZFlagNew::enteringServer(const void *buf) {
         myTank->setTeam((TeamColor)team);
         //hud->setAlert(1, teamMsg.c_str(), 8.0f,
         //              (TeamColor)team==ObserverTeam?true:false);
-        //addMessage(NULL, teamMsg.c_str(), 3, true);
+        addMessage(NULL, teamMsg.c_str(), 3, true);
         std::cout << teamMsg << std::endl;
     }
 
@@ -1072,6 +1138,63 @@ int BZFlagNew::main() {
     return 0;
 }
 
+void BZFlagNew::joinInternetGame2()
+{
+    justJoined = true;
+
+    //HUDDialogStack::get()->setFailedMessage("Entering game...");
+
+    ServerLink::setServer(serverLink);
+    World::setWorld(world);
+
+    // prep teams
+    teams = world->getTeams();
+
+    // prep players
+    curMaxPlayers = 0;
+    remotePlayers = world->getPlayers();
+
+    // reset the autocompleter
+    completer.setDefaults();
+    //BZDB.iterate(addVarToAutoComplete, NULL);
+
+    // prep flags
+    numFlags = world->getMaxFlags();
+
+    // make scene database
+    //setSceneDatabase();
+    //mainWindow->getWindow()->yieldCurrent();
+
+    // make radar
+    //  radar = new RadarRenderer(*sceneRenderer, *world);
+    //  mainWindow->getWindow()->yieldCurrent();
+    //radar->setWorld(world);
+    //controlPanel->setRadarRenderer(radar);
+    //controlPanel->resize();
+
+    // make local player
+    myTank = new LocalPlayer(_serverLink->getId(), startupInfo.callsign,
+                             startupInfo.motto);
+    myTank->setTeam(startupInfo.team);
+    LocalPlayer::setMyTank(myTank);
+
+    if (world->allowRabbit() && myTank->getTeam() != ObserverTeam)
+        myTank->setTeam(HunterTeam);
+
+    // tell server we want to join
+    _serverLink->sendEnter(TankPlayer, myTank->getTeam(),
+                          myTank->getCallSign(),
+                          myTank->getMotto(),
+                          startupInfo.token);
+    startupInfo.token[0] = '\0';
+
+    // hopefully it worked!  pop all the menus.
+    //HUDDialogStack* stack = HUDDialogStack::get();
+    //while (stack->isActive())
+    //    stack->pop();
+    joiningGame = false;
+}
+
 ServerLink* BZFlagNew::lookupServer(const Player *_player) {
     PlayerId id = _player->getId();
     if (myTank->getId() == id) return _serverLink;
@@ -1402,7 +1525,7 @@ void BZFlagNew::handlePlayerMessage(uint16_t code, uint16_t, const void* msg)
 
     // just echo lag ping message
     case MsgLagPing:
-        serverLink->send(MsgLagPing,2,msg);
+        _serverLink->send(MsgLagPing,2,msg);
         break;
     }
 }
@@ -1586,11 +1709,11 @@ void BZFlagNew::playingLoop()
         // if server died then leave the game (note that this may cause
         // further server errors but that's okay).
         if (serverError ||
-                (serverLink && serverLink->getState() == ServerLink::Hungup))
+                (_serverLink && _serverLink->getState() == ServerLink::Hungup))
         {
             // if we haven't reported the death yet then do so now
             if (serverDied ||
-                    (serverLink && serverLink->getState() == ServerLink::Hungup))
+                    (_serverLink && _serverLink->getState() == ServerLink::Hungup))
                 printError("Server has unexpectedly disconnected");
             leaveGame();
         }
@@ -1666,8 +1789,8 @@ void BZFlagNew::playingLoop()
             }
             else
             {
-                int mx, my;
-                mainWindow->getMousePosition(mx, my);
+                //int mx, my;
+                //mainWindow->getMousePosition(mx, my);
             }
             myTank->update();
         }
@@ -1716,7 +1839,7 @@ void BZFlagNew::playingLoop()
         if (sendUpdate)
         {
             // also calls setDeadReckoning()
-            serverLink->sendPlayerUpdate(myTank);
+            _serverLink->sendPlayerUpdate(myTank);
         }
 
         cURLManager::perform();
@@ -1729,7 +1852,7 @@ void BZFlagNew::playingLoop()
             Downloads::finalizeDownloads();
             if (downloadingInitialTexture)
             {
-                //joinInternetGame2();
+                joinInternetGame2();
                 downloadingInitialTexture = false;
             }
             //else
@@ -2204,7 +2327,7 @@ void BZFlagNew::handleServerMessage(bool human, uint16_t code, uint16_t len, con
             // uh oh, i'm dead
             if (myTank->isAlive())
             {
-                serverLink->sendDropFlag(myTank->getPosition());
+                _serverLink->sendDropFlag(myTank->getPosition());
                 handleMyTankKilled(reason);
             }
         }
@@ -2597,7 +2720,7 @@ void BZFlagNew::handleServerMessage(bool human, uint16_t code, uint16_t len, con
             {
                 wasRabbit = true;
                 if (myTank->isPaused())
-                    serverLink->sendNewRabbit();
+                    _serverLink->sendNewRabbit();
                 else
                 {
                     //hud->setAlert(0, "You are now the rabbit.", 10.0f, false);
@@ -2901,7 +3024,8 @@ void BZFlagNew::handleServerMessage(bool human, uint16_t code, uint16_t len, con
         else
             origText = stripAnsiCodes(std::string((const char*)msg));
 
-        std::string text = BundleMgr::getCurrentBundle()->getLocalString(origText);
+        //std::string text = BundleMgr::getCurrentBundle()->getLocalString(origText);
+        std::string text = origText;
 
         if (toAll || toAdmin || srcPlayer == myTank  || dstPlayer == myTank ||
                 dstTeam == myTank->getTeam())
@@ -3456,7 +3580,7 @@ void BZFlagNew::joinInternetGame()
         msg += "server access is controlled by ";
         //msg += ColorStrings[YellowColor];
         msg += ServerAccessList.getFilePath();
-        //addMessage(NULL, msg);
+        addMessage(NULL, msg);
         std::cout << msg;
         return;
     }
