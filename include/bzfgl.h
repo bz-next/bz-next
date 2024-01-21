@@ -23,6 +23,10 @@
 # error OpenGL version 1.1 functionality is required
 #endif
 
+//#define GLclampf float;
+#define GL_MODULATE 0x2100
+#define GL_SMOOTH 0x1D01
+typedef float GLclampf;
 
 /* These will track glBegin/End pairs to make sure that they match */
 #ifdef DEBUG

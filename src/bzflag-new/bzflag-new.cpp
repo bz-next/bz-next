@@ -61,6 +61,31 @@
 #include <Magnum/Trade/TextureData.h>
 
 #include <ctime>
+#include <cassert>
+#include "StartupInfo.h"
+#include "StateDatabase.h"
+#include "playing.h"
+#include "common.h"
+#include "BZDBCache.h"
+#include "BZDBLocal.h"
+#include "CommandsStandard.h"
+#include "ServerListCache.h"
+#include "cURLManager.h"
+#include "AresHandler.h"
+#include "TimeKeeper.h"
+#include "commands.h"
+#include "CommandManager.h"
+#include "ErrorHandler.h"
+#include "World.h"
+#include "bzfio.h"
+#include "version.h"
+#include "motd.h"
+#include "common.h"
+#include "GameTime.h"
+#include "ServerList.h"
+
+// defaults for bzdb
+#include "defaultBZDB.h"
 
 bool            echoToConsole = false;
 bool            echoAnsi = false;
@@ -68,6 +93,27 @@ int         debugLevel = 0;
 std::string     alternateConfig;
 struct tm       userTime;
 const char*     argv0;
+
+class BasicLoggingCallback : public LoggingCallback {
+    public:
+        void log(int lvl, const char* msg) override;
+};
+
+void BasicLoggingCallback::log(int lvl, const char* msg)
+{
+    std::cout << lvl << " " << msg << std::endl;
+}
+
+BasicLoggingCallback blc;
+
+class WorldDownLoader : cURLManager
+{
+public:
+    void start(char * hexDigest);
+private:
+    void askToBZFS();
+    virtual void finalization(char *data, unsigned int length, bool good);
+};
 
 void dumpResources()
 {
@@ -133,19 +179,41 @@ void TexturedDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::Cam
         .draw(_mesh);
 } 
 
-class BZFlagNew: public Platform::Application {
+class BZFlagNew: public Platform::Sdl2Application {
     public:
         explicit BZFlagNew(const Arguments& arguments);
+        int main();
+
 
     private:
+        void startPlaying();
+        void playingLoop();
+
+        static void startupErrorCallback(const char* msg);
+
+        void initAres();
+        void killAres();
+
         void drawEvent() override;
         void viewportEvent(ViewportEvent& e) override;
         void mousePressEvent(MouseEvent& e) override;
         void mouseReleaseEvent(MouseEvent& e) override;
         void mouseMoveEvent(MouseMoveEvent& e) override;
         void mouseScrollEvent(MouseScrollEvent& e) override;
-
+        
         Vector3 positionOnSphere(const Vector2i& position) const;
+
+        WorldDownLoader *worldDownLoader;
+        double lastObserverUpdateTime = -1;
+        StartupInfo startupInfo;
+        MessageOfTheDay *motd;
+        bool joinRequested = false;
+        bool waitingDNS = false;
+        Address serverNetworkAddress;
+
+        AresHandler *ares = NULL;
+
+        World *world = NULL;
 
         Shaders::PhongGL _coloredShader;
         Shaders::PhongGL _texturedShader{Shaders::PhongGL::Configuration().setFlags(Shaders::PhongGL::Flag::DiffuseTexture)};
@@ -159,15 +227,30 @@ class BZFlagNew: public Platform::Application {
         Vector3 _previousPosition;
 };
 
+void BZFlagNew::initAres()
+{
+    ares = new AresHandler(0);
+}
+
+void BZFlagNew::killAres()
+{
+    delete ares;
+    ares = NULL;
+}
+
 BZFlagNew::BZFlagNew(const Arguments& arguments):
     Platform::Application{arguments, Configuration{}
         .setTitle("BZFlag Magnum Test")
-        .setWindowFlags(Configuration::WindowFlag::Resizable)}
+        .setWindowFlags(Configuration::WindowFlag::Resizable)},
+    motd(NULL)
 {
     using namespace Math::Literals;
 
+    loggingCallback = &blc;
+    debugLevel = 4;
+
     Utility::Arguments args;
-    args.addArgument("file").setHelp("file", "file to load")
+    args/*.addArgument("file").setHelp("file", "file to load")*/
         .addOption("importer", "AnySceneImporter").setHelp("importer", "importer plugin to use")
         .addSkippedPrefix("magnum", "engine-specific options")
         .setGlobalHelp("Displays a 3D scene file provided on command line.")
@@ -199,10 +282,10 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
 
     PluginManager::Manager<Trade::AbstractImporter> manager;
     Containers::Pointer<Trade::AbstractImporter> importer = manager.loadAndInstantiate(args.value("importer"));
-    if (!importer || !importer->openFile(args.value("file")))
+    if (!importer || !importer->openFile("scene.obj"))
         std::exit(1);
 
-    Warning{} << args.value("file");
+    //Warning{} << args.value("file");
 
     _textures = Containers::Array<Containers::Optional<GL::Texture2D>>{importer->textureCount()};
     for (UnsignedInt i = 0; i != importer->textureCount(); ++i) {
@@ -343,4 +426,230 @@ Vector3 BZFlagNew::positionOnSphere(const Vector2i& position) const {
     return (result * Vector3::yScale(-1.0f)).normalized();
 }
 
-MAGNUM_APPLICATION_MAIN(BZFlagNew)
+int BZFlagNew::main() {
+    initAres();
+
+    bzfsrand((unsigned int)time(0));
+
+    // set default DB entries
+    for (unsigned int gi = 0; gi < numGlobalDBItems; ++gi)
+    {
+        assert(globalDBItems[gi].name != NULL);
+        if (globalDBItems[gi].value != NULL)
+        {
+            BZDB.set(globalDBItems[gi].name, globalDBItems[gi].value);
+            BZDB.setDefault(globalDBItems[gi].name, globalDBItems[gi].value);
+        }
+        BZDB.setPersistent(globalDBItems[gi].name, globalDBItems[gi].persistent);
+        BZDB.setPermission(globalDBItems[gi].name, globalDBItems[gi].permission);
+    }
+
+    BZDBCache::init();
+    BZDBLOCAL.init();
+
+    BZDBCache::init();
+    BZDBLOCAL.init();
+
+    ::Flags::init();
+
+    time_t timeNow;
+    time(&timeNow);
+    userTime = *localtime(&timeNow);
+
+    CommandsStandard::add();
+    unsigned int i;
+
+    //initConfigData();
+    loadBZDBDefaults();
+
+    ServerListCache::get()->loadCache();
+
+    BZDB.set("callsign", "bzflagdevtest");
+    BZDB.set("server", "localhost");
+    BZDB.set("port", "5154");
+
+    startupInfo.useUDPconnection=true;
+    startupInfo.team = ObserverTeam;
+    strcpy(startupInfo.callsign, "testingbz");
+    strcpy(startupInfo.serverName, "localhost");
+    startupInfo.serverPort = 5154;
+
+    startupInfo.autoConnect = true;
+
+    Team::updateShotColors();
+
+    startPlaying();
+
+    killAres();
+    AresHandler::globalShutdown();
+    return 0;
+}
+
+void BZFlagNew::startupErrorCallback(const char* msg)
+{
+    Warning{} << msg;
+}
+
+void BZFlagNew::startPlaying()
+{
+    lastObserverUpdateTime = TimeKeeper::getTick().getSeconds();
+
+    // register some commands
+    for (unsigned int c = 0; c < bzcountof(commandList); ++c)
+        CMDMGR.add(commandList[c].name, commandList[c].func, commandList[c].help);
+
+    // init tank display lists
+    // make control panel
+    // make radar
+    // tie radar to ctrl panel
+
+    setErrorCallback(startupErrorCallback);
+
+    // init epoch offset and update daylight
+
+    // signal handling
+
+    // make hud
+    // init ctrl panel and hud
+    // make bg renderer
+    // load explosion textures and make explosion scene nodes
+    // make scenedatabasebuilder and init world
+
+    World::init();
+
+    // prepare dialogs / main menu
+
+    setErrorCallback(startupErrorCallback);
+
+        // print debugging info
+    {
+        // Application version
+        logDebugMessage(1,"BZFlag version:   %s\n", getAppVersion());
+
+        // Protocol version
+        logDebugMessage(1,"BZFlag protocol:  %s\n", getProtocolVersion());
+
+        // OpenGL Driver Information
+        logDebugMessage(1,"OpenGL vendor:    %s\n", (const char*)glGetString(GL_VENDOR));
+        logDebugMessage(1,"OpenGL version:   %s\n", (const char*)glGetString(GL_VERSION));
+        logDebugMessage(1,"OpenGL renderer:  %s\n", (const char*)glGetString(GL_RENDERER));
+    }
+
+    if (!BZDB.isTrue("disableMOTD"))
+    {
+        motd = new MessageOfTheDay;
+        motd->getURL(BZDB.get("motdServer"));
+    }
+
+    if (startupInfo.autoConnect &&
+            startupInfo.callsign[0] && startupInfo.serverName[0])
+    {
+        joinRequested    = true;
+    }
+
+    TimeKeeper::setTick();
+
+    worldDownLoader = new WorldDownLoader;
+
+    playingLoop();
+
+    delete worldDownLoader;
+
+    // leaveGame();
+    World::done();
+}
+
+void BZFlagNew::playingLoop()
+{
+        // main loop
+    while (!CommandsStandard::isQuit())
+    {
+
+        BZDBCache::update();
+
+        // set this step game time
+        GameTime::setStepTime();
+
+        // get delta time
+        TimeKeeper prevTime = TimeKeeper::getTick();
+        TimeKeeper::setTick();
+        const float dt = float(TimeKeeper::getTick() - prevTime);
+
+        // see if the world collision grid needs to be updated
+        if (world)
+            world->checkCollisionManager();
+
+        // try to join a game if requested.  do this *before* handling
+        // events so we do a redraw after the request is posted and
+        // before we actually try to join.
+        if (joinRequested)
+        {
+            // if already connected to a game then first sign off
+            //if (myTank) leaveGame();
+
+            // get token if we need to (have a password but no token)
+            if ((startupInfo.token[0] == '\0')
+                    && (startupInfo.password[0] != '\0'))
+            {
+                ServerList* serverList = new ServerList;
+                serverList->startServerPings(&startupInfo);
+                // wait no more than 10 seconds for a token
+                for (int j = 0; j < 40; j++)
+                {
+                    serverList->checkEchos(getStartupInfo());
+                    cURLManager::perform();
+                    if (startupInfo.token[0] != '\0') break;
+                    TimeKeeper::sleep(0.25f);
+                }
+                delete serverList;
+            }
+            ares->queryHost(startupInfo.serverName);
+            waitingDNS = true;
+
+            // don't try again
+            joinRequested = false;
+        }
+
+        if (waitingDNS)
+        {
+            fd_set readers, writers;
+            int nfds = -1;
+            struct timeval timeout;
+            timeout.tv_sec  = 0;
+            timeout.tv_usec = 0;
+            FD_ZERO(&readers);
+            FD_ZERO(&writers);
+            ares->setFd(&readers, &writers, nfds);
+            nfds = select(nfds + 1, (fd_set*)&readers, (fd_set*)&writers, 0,
+                          &timeout);
+            ares->process(&readers, &writers);
+
+            struct in_addr inAddress;
+            AresHandler::ResolutionStatus status = ares->getHostAddress(&inAddress);
+            if (status == AresHandler::Failed)
+            {
+                //HUDDialogStack::get()->setFailedMessage("Server not found");
+                std::cout << "Ares Handler failed, server not found." << std::endl;
+                waitingDNS = false;
+            }
+            else if (status == AresHandler::HbNSucceeded)
+            {
+                // now try connecting
+                serverNetworkAddress = Address(inAddress);
+                joinInternetGame();
+                waitingDNS = false;
+            }
+        }
+        cURLManager::perform();
+        mainLoopIteration();
+    }
+
+}
+
+int main(int argc, char** argv)
+{
+    BZFlagNew app({argc, argv});
+    return app.main();
+}
+
+//MAGNUM_APPLICATION_MAIN(BZFlagNew)
