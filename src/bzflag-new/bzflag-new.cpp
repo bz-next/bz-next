@@ -63,6 +63,8 @@
 #include <ctime>
 #include <cassert>
 #include <sstream>
+#include "utime.h"
+
 #include "StartupInfo.h"
 #include "StateDatabase.h"
 #include "playing.h"
@@ -209,6 +211,8 @@ class BZFlagNew: public Platform::Sdl2Application {
         void startPlaying();
         void playingLoop();
 
+        void tickEvent() override;
+
         static void startupErrorCallback(const char* msg);
 
         void initAres();
@@ -249,6 +253,8 @@ class BZFlagNew: public Platform::Sdl2Application {
 
         const void *handleMsgSetVars(const void *msg);
         void handlePlayerMessage(uint16_t, uint16_t, const void*);
+
+        void markOld(std::string &fileName);
 
 
         void handleFlagTransferred(Player *fromTank, Player *toTank, int flagIndex);
@@ -292,6 +298,7 @@ class BZFlagNew: public Platform::Sdl2Application {
         ShotStats *shotStats = NULL;
         bool wasRabbit = false;
         char *worldDatabase = NULL;
+        std::ostream *cacheOut = NULL;
 
         std::vector<PlayingCallbackItem> playingCallbacks;
 
@@ -391,9 +398,35 @@ void WorldDownLoader::askToBZFS() {
     nboPackUInt(message, 0);
     _app->_serverLink->send(MsgGetWorld, sizeof(uint32_t), message);
     _app->worldPtr = 0;
-    //if (cacheOut)
-    //    delete cacheOut;
-    //cacheOut = FILEMGR.createDataOutStream(worldCachePath, true, true);
+    if (_app->cacheOut)
+        delete _app->cacheOut;
+    _app->cacheOut = FILEMGR.createDataOutStream(_app->worldCachePath, true, true);
+}
+
+void BZFlagNew::markOld(std::string &fileName) {
+    #ifdef _WIN32
+    FILETIME ft;
+    HANDLE h = CreateFile(fileName.c_str(),
+                          FILE_WRITE_ATTRIBUTES | FILE_WRITE_EA, 0, NULL,
+                          OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (h != INVALID_HANDLE_VALUE)
+    {
+        SYSTEMTIME st;
+        memset(&st, 0, sizeof(st));
+        st.wYear = 1900;
+        st.wMonth = 1;
+        st.wDay = 1;
+        SystemTimeToFileTime(&st, &ft);
+        SetFileTime(h, &ft, &ft, &ft);
+        GetLastError();
+        CloseHandle(h);
+    }
+#else
+    struct utimbuf times;
+    times.actime = 0;
+    times.modtime = 0;
+    utime(fileName.c_str(), &times);
+#endif
 }
 
 void BZFlagNew::loadCachedWorld() {
@@ -724,6 +757,9 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
         
 }
 
+void BZFlagNew::tickEvent() {
+}
+
 void BZFlagNew::enteringServer(const void *buf) {
         // the server sends back the team the player was joined to
     const void *tmpbuf = buf;
@@ -795,7 +831,7 @@ void BZFlagNew::enteringServer(const void *buf) {
         if (roamView <= Roaming::roamViewDisabled)
             roamView = Roaming::roamViewFP;
         ROAM.setMode(roamView);
-        //    ROAM.resetCamera();
+            ROAM.resetCamera();
     }
     else
         ROAM.setMode(Roaming::roamViewDisabled);
@@ -2062,14 +2098,14 @@ void BZFlagNew::handleServerMessage(bool human, uint16_t code, uint16_t len, con
             _serverLink->send(MsgGetWorld, sizeof(uint32_t), message);
             break;
         }
-        //if (cacheOut)
-        //    delete cacheOut;
-        //cacheOut = NULL;
+        if (cacheOut)
+            delete cacheOut;
+        cacheOut = NULL;
         
         loadCachedWorld();
 
-        //if (isCacheTemp)
-        //    markOld(worldCachePath);
+        if (isCacheTemp)
+            markOld(worldCachePath);
         break;
     }
 
@@ -3336,8 +3372,8 @@ void BZFlagNew::updateFlags(float dt) {
 bool BZFlagNew::processWorldChunk(const void *buf, uint16_t len, int bytesLeft) {
     int totalSize = worldPtr + len + bytesLeft;
     int doneSize  = worldPtr + len;
-    //if (cacheOut)
-    //    cacheOut->write((const char *)buf, len);
+    if (cacheOut)
+        cacheOut->write((const char *)buf, len);
     /*HUDDialogStack::get()->setFailedMessage
     (TextUtils::format
      ("Downloading World (%2d%% complete/%d kb remaining)...",
