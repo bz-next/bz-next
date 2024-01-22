@@ -59,6 +59,7 @@
 #include <Magnum/Trade/PhongMaterialData.h>
 #include <Magnum/Trade/SceneData.h>
 #include <Magnum/Trade/TextureData.h>
+#include <Magnum/Primitives/Cube.h>
 
 #include <ctime>
 #include <cassert>
@@ -100,6 +101,7 @@
 #include "md5.h"
 #include "AnsiCodes.h"
 #include "PhysicsDriver.h"
+#include "ObstacleMgr.h"
 
 // defaults for bzdb
 #include "defaultBZDB.h"
@@ -183,7 +185,7 @@ class TexturedDrawable : public SceneGraph::Drawable3D {
 void ColoredDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::Camera3D& camera) {
     _shader
         .setDiffuseColor(_color)
-        .setLightPositions({{camera.cameraMatrix().transformPoint({-3.0f, 10.0f, 10.0f}), 0.0f}})
+        .setLightPositions({{camera.cameraMatrix().transformPoint({0.0f, 0.0f, 1000.0f}), 0.0f}})
         .setTransformationMatrix(transformationMatrix)
         .setNormalMatrix(transformationMatrix.normalMatrix())
         .setProjectionMatrix(camera.projectionMatrix())
@@ -319,6 +321,165 @@ class BZFlagNew: public Platform::Sdl2Application {
         SceneGraph::DrawableGroup3D _drawables;
         Vector3 _previousPosition;
 };
+
+BZFlagNew::BZFlagNew(const Arguments& arguments):
+    Platform::Application{arguments, Configuration{}
+        .setTitle("BZFlag Magnum Test")
+        .setWindowFlags(Configuration::WindowFlag::Resizable)},
+    motd(NULL),
+    ServerAccessList("ServerAccess.txt", NULL)
+{
+    using namespace Math::Literals;
+
+    loggingCallback = &blc;
+    debugLevel = 4;
+
+    Utility::Arguments args;
+    args/*.addArgument("file").setHelp("file", "file to load")*/
+        .addOption("importer", "AnySceneImporter").setHelp("importer", "importer plugin to use")
+        .addSkippedPrefix("magnum", "engine-specific options")
+        .setGlobalHelp("Displays a 3D scene file provided on command line.")
+        .parse(arguments.argc, arguments.argv);
+    
+    _cameraObject
+        .setParent(&_scene)
+        .translate(Vector3::zAxis(5.0f));
+    
+    (*(_camera = new SceneGraph::Camera3D{_cameraObject}))
+        .setAspectRatioPolicy(SceneGraph::AspectRatioPolicy::Extend)
+        .setProjectionMatrix(Matrix4::perspectiveProjection(35.0_degf, 1.0f, 0.01f, 10000.0f))
+        .setViewport(GL::defaultFramebuffer.viewport().size());
+    
+    _manipulator.setParent(&_scene);
+
+
+    GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
+    GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
+
+    _coloredShader
+        .setAmbientColor(0x111111_rgbf)
+        .setSpecularColor(0xffffff_rgbf)
+        .setShininess(80.0f);
+    _texturedShader
+        .setAmbientColor(0x111111_rgbf)
+        .setSpecularColor(0x111111_rgbf)
+        .setShininess(80.0f);
+
+    PluginManager::Manager<Trade::AbstractImporter> manager;
+    Containers::Pointer<Trade::AbstractImporter> importer = manager.loadAndInstantiate(args.value("importer"));
+    //if (!importer || !importer->openFile("scene.obj"))
+    //    std::exit(1);
+
+    //Warning{} << args.value("file");
+
+    //_textures = Containers::Array<Containers::Optional<GL::Texture2D>>{importer->textureCount()};
+    _textures = Containers::Array<Containers::Optional<GL::Texture2D>>{};
+    /*for (UnsignedInt i = 0; i != importer->textureCount(); ++i) {
+        Containers::Optional<Trade::TextureData> textureData = importer->texture(i);
+        if (!textureData || textureData->type() != Trade::TextureType::Texture2D) {
+            Warning{} << "Cannot load texture" << i << importer->textureName(i);
+            continue;
+        }
+
+        Containers::Optional<Trade::ImageData2D> imageData = importer->image2D(textureData->image());
+        if (!imageData || !imageData->isCompressed()) {
+            Warning{} << "Cannot load image" << textureData->image() << importer->image2DName(textureData->image());
+            continue;
+        }
+
+        (*(_textures[i] = GL::Texture2D{}))
+            .setMagnificationFilter(textureData->magnificationFilter())
+            .setMinificationFilter(textureData->minificationFilter(), textureData->mipmapFilter())
+            .setWrapping(textureData->wrapping().xy())
+            .setStorage(Math::log2(imageData->size().max()) + 1, GL::textureFormat(imageData->format()), imageData->size())
+            .setSubImage(0, {}, *imageData)
+            .generateMipmap();
+    }*/
+    Containers::Array<Containers::Optional<Trade::PhongMaterialData>> materials{};
+    /*Containers::Array<Containers::Optional<Trade::PhongMaterialData>> materials{importer->materialCount()};
+    for (UnsignedInt i = 0; i != importer->materialCount(); ++i) {
+        Containers::Optional<Trade::MaterialData> materialData;
+        if (!(materialData = importer->material(i))) {
+            Warning{} << "Cannot load material" << i << importer->materialName(i);
+            continue;
+        }
+        materials[i] = std::move(*materialData).as<Trade::PhongMaterialData>();
+    }*/
+
+    _meshes = Containers::Array<Containers::Optional<GL::Mesh>>{1};
+    /*_meshes = Containers::Array<Containers::Optional<GL::Mesh>>{importer->meshCount()};
+    for (UnsignedInt i = 0; i != importer->meshCount(); ++i) {
+        Containers::Optional<Trade::MeshData> meshData;
+        if (!(meshData = importer->mesh(i))) {
+            Warning{} << "Cannot load mesh" << i << importer->meshName(i);
+            continue;
+        }
+        MeshTools::CompileFlags flags;
+        if (meshData->hasAttribute(Trade::MeshAttribute::Normal))
+            flags |= MeshTools::CompileFlag::GenerateFlatNormals;
+        _meshes[i] = MeshTools::compile(*meshData, flags);
+    }*/
+
+    //Warning{} << "Mesh count:" << importer->meshCount();
+
+    // Edge case where the file doesn't have any scene (just a mesh)
+    /*if (importer->defaultScene() == -1) {
+        if (!_meshes.isEmpty() && _meshes[0])
+            new ColoredDrawable{_manipulator, _coloredShader, *_meshes[0], 0xffffff_rgbf, _drawables};
+        return;
+    }*/
+
+    // Add cube mesh
+    /*_meshes[0] = MeshTools::compile(Primitives::cubeSolid());   // Do we need to gen normals?
+    _meshes[1] = MeshTools::compile(Primitives::cubeSolid());
+    Object3D *obj = new Object3D{};
+    obj->setParent(&_manipulator);
+    Object3D *obj2 = new Object3D{};
+    obj2->setParent(&_manipulator).translate(Vector3{4.0, 0.0, 0.0});
+    new ColoredDrawable(*obj, _coloredShader, *_meshes[0], 0x551122_rgbf, _drawables);
+    new ColoredDrawable(*obj2, _coloredShader, *_meshes[1], 0x5511FF_rgbf, _drawables);*/
+
+
+    /*Containers::Optional<Trade::SceneData> scene;
+    if (!(scene = importer->scene(importer->defaultScene())) ||
+        !scene->is3D() || !scene->hasField(Trade::SceneField::Parent) || !scene->hasField(Trade::SceneField::Mesh)) {
+        Fatal{} << "Cannot load scene" << importer->defaultScene() << importer->sceneName(importer->defaultScene());
+        }
+    Containers::Array<Object3D*> objects{std::size_t(scene->mappingBound())};
+    Containers::Array<Containers::Pair<UnsignedInt, Int>> parents = scene->parentsAsArray();
+    for (const Containers::Pair<UnsignedInt, Int>& parent: parents) {
+        objects[parent.first()] = new Object3D{};
+    }
+    for (const Containers::Pair<UnsignedInt, Int>& parent: parents) {
+        objects[parent.first()]->setParent(parent.second() == -1 ? &_manipulator : objects[parent.second()]);
+    }
+
+    for (const Containers::Pair<UnsignedInt, Containers::Pair<UnsignedInt, Int>>& meshMaterial: scene->meshesMaterialsAsArray()) {
+        Object3D* object = objects[meshMaterial.first()];
+        Containers::Optional<GL::Mesh>& mesh = _meshes[meshMaterial.second().first()];
+        
+        if (!object || !mesh) continue;
+
+        Int materialId = meshMaterial.second().second();
+
+        if (materialId == -1 || !materials[materialId]) {
+            new ColoredDrawable{*object, _coloredShader, *mesh, 0xfffffff_rgbf, _drawables};
+        } else if (materials[materialId]->hasAttribute(Trade::MaterialAttribute::DiffuseTexture) && _textures[materials[materialId]->diffuseTexture()]) {
+            new TexturedDrawable{*object, _texturedShader, *mesh, *_textures[materials[materialId]->diffuseTexture()], _drawables};
+        } else {
+            new ColoredDrawable{*object, _coloredShader, *mesh, materials[materialId]->diffuseColor(), _drawables};
+        }
+    }*/
+        
+}
+
+void BZFlagNew::drawEvent() {
+    GL::defaultFramebuffer.clear(GL::FramebufferClear::Color | GL::FramebufferClear::Depth);
+
+    _camera->draw(_drawables);
+
+    swapBuffers();
+}
 
 class WorldDownLoader : cURLManager
 {
@@ -619,145 +780,35 @@ void BZFlagNew::killAres()
     ares = NULL;
 }
 
-BZFlagNew::BZFlagNew(const Arguments& arguments):
-    Platform::Application{arguments, Configuration{}
-        .setTitle("BZFlag Magnum Test")
-        .setWindowFlags(Configuration::WindowFlag::Resizable)},
-    motd(NULL),
-    ServerAccessList("ServerAccess.txt", NULL)
-{
-    using namespace Math::Literals;
-
-    loggingCallback = &blc;
-    debugLevel = 4;
-
-    Utility::Arguments args;
-    args/*.addArgument("file").setHelp("file", "file to load")*/
-        .addOption("importer", "AnySceneImporter").setHelp("importer", "importer plugin to use")
-        .addSkippedPrefix("magnum", "engine-specific options")
-        .setGlobalHelp("Displays a 3D scene file provided on command line.")
-        .parse(arguments.argc, arguments.argv);
-    
-    _cameraObject
-        .setParent(&_scene)
-        .translate(Vector3::zAxis(5.0f));
-    
-    (*(_camera = new SceneGraph::Camera3D{_cameraObject}))
-        .setAspectRatioPolicy(SceneGraph::AspectRatioPolicy::Extend)
-        .setProjectionMatrix(Matrix4::perspectiveProjection(35.0_degf, 1.0f, 0.01f, 1000.0f))
-        .setViewport(GL::defaultFramebuffer.viewport().size());
-    
-    _manipulator.setParent(&_scene);
-
-
-    GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
-    GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
-
-    _coloredShader
-        .setAmbientColor(0x111111_rgbf)
-        .setSpecularColor(0xffffff_rgbf)
-        .setShininess(80.0f);
-    _texturedShader
-        .setAmbientColor(0x111111_rgbf)
-        .setSpecularColor(0x111111_rgbf)
-        .setShininess(80.0f);
-
-    PluginManager::Manager<Trade::AbstractImporter> manager;
-    Containers::Pointer<Trade::AbstractImporter> importer = manager.loadAndInstantiate(args.value("importer"));
-    if (!importer || !importer->openFile("scene.obj"))
-        std::exit(1);
-
-    //Warning{} << args.value("file");
-
-    _textures = Containers::Array<Containers::Optional<GL::Texture2D>>{importer->textureCount()};
-    for (UnsignedInt i = 0; i != importer->textureCount(); ++i) {
-        Containers::Optional<Trade::TextureData> textureData = importer->texture(i);
-        if (!textureData || textureData->type() != Trade::TextureType::Texture2D) {
-            Warning{} << "Cannot load texture" << i << importer->textureName(i);
-            continue;
-        }
-
-        Containers::Optional<Trade::ImageData2D> imageData = importer->image2D(textureData->image());
-        if (!imageData || !imageData->isCompressed()) {
-            Warning{} << "Cannot load image" << textureData->image() << importer->image2DName(textureData->image());
-            continue;
-        }
-
-        (*(_textures[i] = GL::Texture2D{}))
-            .setMagnificationFilter(textureData->magnificationFilter())
-            .setMinificationFilter(textureData->minificationFilter(), textureData->mipmapFilter())
-            .setWrapping(textureData->wrapping().xy())
-            .setStorage(Math::log2(imageData->size().max()) + 1, GL::textureFormat(imageData->format()), imageData->size())
-            .setSubImage(0, {}, *imageData)
-            .generateMipmap();
-    }
-        
-    Containers::Array<Containers::Optional<Trade::PhongMaterialData>> materials{importer->materialCount()};
-    for (UnsignedInt i = 0; i != importer->materialCount(); ++i) {
-        Containers::Optional<Trade::MaterialData> materialData;
-        if (!(materialData = importer->material(i))) {
-            Warning{} << "Cannot load material" << i << importer->materialName(i);
-            continue;
-        }
-        materials[i] = std::move(*materialData).as<Trade::PhongMaterialData>();
-    }
-
-    _meshes = Containers::Array<Containers::Optional<GL::Mesh>>{importer->meshCount()};
-    for (UnsignedInt i = 0; i != importer->meshCount(); ++i) {
-        Containers::Optional<Trade::MeshData> meshData;
-        if (!(meshData = importer->mesh(i))) {
-            Warning{} << "Cannot load mesh" << i << importer->meshName(i);
-            continue;
-        }
-        MeshTools::CompileFlags flags;
-        if (meshData->hasAttribute(Trade::MeshAttribute::Normal))
-            flags |= MeshTools::CompileFlag::GenerateFlatNormals;
-        _meshes[i] = MeshTools::compile(*meshData, flags);
-    }
-
-    Warning{} << "Mesh count:" << importer->meshCount();
-
-    // Edge case where the file doesn't have any scene (just a mesh)
-    if (importer->defaultScene() == -1) {
-        if (!_meshes.isEmpty() && _meshes[0])
-            new ColoredDrawable{_manipulator, _coloredShader, *_meshes[0], 0xffffff_rgbf, _drawables};
-        return;
-    }
-
-    Containers::Optional<Trade::SceneData> scene;
-    if (!(scene = importer->scene(importer->defaultScene())) ||
-        !scene->is3D() || !scene->hasField(Trade::SceneField::Parent) || !scene->hasField(Trade::SceneField::Mesh)) {
-        Fatal{} << "Cannot load scene" << importer->defaultScene() << importer->sceneName(importer->defaultScene());
-        }
-    Containers::Array<Object3D*> objects{std::size_t(scene->mappingBound())};
-    Containers::Array<Containers::Pair<UnsignedInt, Int>> parents = scene->parentsAsArray();
-    for (const Containers::Pair<UnsignedInt, Int>& parent: parents) {
-        objects[parent.first()] = new Object3D{};
-    }
-    for (const Containers::Pair<UnsignedInt, Int>& parent: parents) {
-        objects[parent.first()]->setParent(parent.second() == -1 ? &_manipulator : objects[parent.second()]);
-    }
-
-    for (const Containers::Pair<UnsignedInt, Containers::Pair<UnsignedInt, Int>>& meshMaterial: scene->meshesMaterialsAsArray()) {
-        Object3D* object = objects[meshMaterial.first()];
-        Containers::Optional<GL::Mesh>& mesh = _meshes[meshMaterial.second().first()];
-        
-        if (!object || !mesh) continue;
-
-        Int materialId = meshMaterial.second().second();
-
-        if (materialId == -1 || !materials[materialId]) {
-            new ColoredDrawable{*object, _coloredShader, *mesh, 0xfffffff_rgbf, _drawables};
-        } else if (materials[materialId]->hasAttribute(Trade::MaterialAttribute::DiffuseTexture) && _textures[materials[materialId]->diffuseTexture()]) {
-            new TexturedDrawable{*object, _texturedShader, *mesh, *_textures[materials[materialId]->diffuseTexture()], _drawables};
-        } else {
-            new ColoredDrawable{*object, _coloredShader, *mesh, materials[materialId]->diffuseColor(), _drawables};
-        }
-    }
-        
-}
-
 void BZFlagNew::tickEvent() {
+    static bool haveWeDoneIt = false;
+    if (world != NULL && !haveWeDoneIt) {
+
+        _meshes[0] = MeshTools::compile(Primitives::cubeSolid());
+        const ObstacleList& l = OBSTACLEMGR.getBoxes();
+        std::cout << "Number of boxes: " << l.size() << std::endl;
+        for (int i = 0; i < l.size(); ++i) {
+            Object3D *obj = new Object3D{};
+            obj->setParent(&_manipulator);
+            const float *pos = l[i]->getPosition();
+            std::cout << "pos " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
+            obj->rotateZ(Rad(l[i]->getRotation()));
+            const float *sz = l[i]->getSize();
+            obj->translate(Vector3{pos[0], pos[1], pos[2]});
+            obj->scaleLocal(Vector3{sz[0], sz[1], sz[2]});
+            
+            new ColoredDrawable(*obj, _coloredShader, *_meshes[0], 0xCCAA22_rgbf, _drawables);
+        }
+        //_meshes[1] = MeshTools::compile(Primitives::cubeSolid());
+        /*Object3D *obj = new Object3D{};
+        obj->setParent(&_manipulator);
+        Object3D *obj2 = new Object3D{};
+        obj2->setParent(&_manipulator).translate(Vector3{4.0, 0.0, 0.0});
+        new ColoredDrawable(*obj, _coloredShader, *_meshes[0], 0x551122_rgbf, _drawables);
+        new ColoredDrawable(*obj2, _coloredShader, *_meshes[0], 0x5511FF_rgbf, _drawables);
+        haveWeDoneIt = true;*/
+        haveWeDoneIt = true;
+    }
 }
 
 void BZFlagNew::enteringServer(const void *buf) {
@@ -1062,14 +1113,6 @@ bool BZFlagNew::removePlayer(PlayerId id) {
         shotStats->refresh();
 
     return true;
-}
-
-void BZFlagNew::drawEvent() {
-    GL::defaultFramebuffer.clear(GL::FramebufferClear::Color | GL::FramebufferClear::Depth);
-
-    _camera->draw(_drawables);
-
-    swapBuffers();
 }
 
 void BZFlagNew::viewportEvent(ViewportEvent& e) {
