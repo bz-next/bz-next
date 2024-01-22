@@ -320,6 +320,9 @@ class BZFlagNew: public Platform::Sdl2Application {
         SceneGraph::Camera3D* _camera;
         SceneGraph::DrawableGroup3D _drawables;
         Vector3 _previousPosition;
+
+        std::vector<Object3D *> tankObjs;
+        //std::vector<ColoredDrawable *> tankDrawables;
 };
 
 BZFlagNew::BZFlagNew(const Arguments& arguments):
@@ -796,7 +799,6 @@ void BZFlagNew::tickEvent() {
             const float *sz = l[i]->getSize();
             obj->translate(Vector3{pos[0], pos[1], pos[2]});
             obj->scaleLocal(Vector3{sz[0], sz[1], sz[2]});
-            
             new ColoredDrawable(*obj, _coloredShader, *_meshes[0], 0xCCAA22_rgbf, _drawables);
         }
         //_meshes[1] = MeshTools::compile(Primitives::cubeSolid());
@@ -809,6 +811,37 @@ void BZFlagNew::tickEvent() {
         haveWeDoneIt = true;*/
         haveWeDoneIt = true;
     }
+    static bool haveWeDoneIt2 = false;
+    if (entered && !haveWeDoneIt2) {
+        //tankObjs.resize(curMaxPlayers);
+        for (int i = 0; i < curMaxPlayers; ++i) {
+            Object3D *o = new Object3D{};
+            o->setParent(&_manipulator);
+            new ColoredDrawable(*o, _coloredShader, *_meshes[0], 0xEE1111_rgbf, _drawables);
+            tankObjs.push_back(o);
+        }
+        haveWeDoneIt2 = true;
+    }
+
+    if (entered) {
+        for (int i = 0; i < curMaxPlayers; ++i) {
+            if (remotePlayers[i]) {
+                const float *pos = remotePlayers[i]->getPosition();
+                //std::cout << i << " " << tankObjs.size() << " HERE" << std::endl;
+                tankObjs[i]->resetTransformation();
+                tankObjs[i]->translate(Vector3{{0.0f, 0.0f, 1.0f}});
+                tankObjs[i]->scale(Vector3{10.0, 10.0, 10.0});
+                tankObjs[i]->translate(Vector3{pos[0], pos[1], pos[2]});
+                
+                //Warning{} << Vector3{pos[0], pos[1], pos[2]};
+            }
+        }
+    }
+
+    redraw();
+
+
+
 }
 
 void BZFlagNew::enteringServer(const void *buf) {
@@ -1196,15 +1229,15 @@ int BZFlagNew::main() {
 
     ServerListCache::get()->loadCache();
 
-    BZDB.set("callsign", "bzflagdevtest");
-    BZDB.set("server", "localhost");
-    BZDB.set("port", "5154");
+    BZDB.set("callsign", "testingbz");
+    BZDB.set("server", "bzflag.allejo.io");
+    BZDB.set("port", "5150");
 
     startupInfo.useUDPconnection=true;
     startupInfo.team = ObserverTeam;
     strcpy(startupInfo.callsign, "testingbz");
-    strcpy(startupInfo.serverName, "localhost");
-    startupInfo.serverPort = 5154;
+    strcpy(startupInfo.serverName, "bzflag.allejo.io");
+    startupInfo.serverPort = 5150;
 
     startupInfo.autoConnect = true;
 
