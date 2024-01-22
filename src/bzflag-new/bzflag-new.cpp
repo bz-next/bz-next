@@ -3744,7 +3744,7 @@ void BZFlagNew::leaveGame() {
              BZDB.getDefault(StateDatabase::BZDB_SYNCTIME));
     */
     // flush downloaded textures (before the BzMaterials are nuked)
-    //Downloads::removeTextures();
+    Downloads::removeTextures();
 
     // delete world
     World::setWorld(NULL);
