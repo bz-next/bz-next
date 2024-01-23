@@ -27,7 +27,9 @@
     CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#include "Corrade/Containers/ArrayView.h"
 #include "Magnum/GL/GL.h"
+#include "Magnum/MeshTools/GenerateNormals.h"
 #include "Magnum/SceneGraph/SceneGraph.h"
 #include "Magnum/Trade/MaterialData.h"
 #include <Corrade/Containers/Array.h>
@@ -47,6 +49,9 @@
 #include <Magnum/GL/TextureFormat.h>
 #include <Magnum/Math/Color.h>
 #include <Magnum/MeshTools/Compile.h>
+#include <Magnum/MeshTools/Interleave.h>
+#include <Magnum/MeshTools/Duplicate.h>
+#include <Magnum/MeshTools/RemoveDuplicates.h>
 #include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/SceneGraph/Camera.h>
 #include <Magnum/SceneGraph/Drawable.h>
@@ -64,6 +69,7 @@
 #include <ctime>
 #include <cassert>
 #include <sstream>
+#include "Magnum/Types.h"
 #include "utime.h"
 
 #include "StartupInfo.h"
@@ -200,7 +206,103 @@ void TexturedDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::Cam
         .setProjectionMatrix(camera.projectionMatrix())
         .bindDiffuseTexture(_texture)
         .draw(_mesh);
-} 
+}
+
+class WorldRenderer {
+    public:
+        WorldRenderer();
+        // Assumes that world is already loaded and OBSTACLEMGR is ready to go
+        void createWorldObject();
+
+        SceneGraph::DrawableGroup3D &getDrawableGroup();
+        Object3D *getWorldObject();
+    private:
+        std::map<std::string, std::vector<GL::Mesh>> worldMeshes;
+        Object3D *worldParent;
+        SceneGraph::DrawableGroup3D worldDrawables;
+        Shaders::PhongGL coloredShader;
+};
+
+SceneGraph::DrawableGroup3D &WorldRenderer::getDrawableGroup()
+{
+    return worldDrawables;
+}
+
+Object3D *WorldRenderer::getWorldObject()
+{
+    return worldParent;
+}
+
+WorldRenderer::WorldRenderer() {
+    worldMeshes.insert(std::make_pair("cube", std::vector<GL::Mesh>{1}));
+    worldMeshes["cube"][0] = MeshTools::compile(Primitives::cubeSolid());
+
+    Vector3 verts[5] =
+    {
+        {-1.0f, -1.0f, 0.0f},
+        {+1.0f, -1.0f, 0.0f},
+        {+1.0f, +1.0f, 0.0f},
+        {-1.0f, +1.0f, 0.0f},
+        { 0.0f,  0.0f, 1.0f}
+    };
+
+    Magnum::UnsignedInt idx[] =
+    {
+        // base
+        2, 1, 0,
+        0, 3, 2,
+        0, 4, 3,
+        3, 4, 2,
+        2, 4, 1,
+        4, 0, 1
+    };
+
+    Containers::Array<Vector3> positions = MeshTools::duplicate<Magnum::UnsignedInt, Vector3>(idx, verts);
+    Containers::Array<Vector3> normals = MeshTools::generateFlatNormals(positions);
+
+    worldMeshes.insert(std::make_pair("pyr", std::vector<GL::Mesh>{1}));
+    worldMeshes["pyr"][0]
+        .setCount(18)
+        .addVertexBuffer(
+            GL::Buffer{MeshTools::interleave(positions, normals)},
+            0,
+            Shaders::PhongGL::Position{}, Shaders::PhongGL::Normal{});
+
+    worldParent = new Object3D{};
+    
+
+}
+
+void WorldRenderer::createWorldObject() {
+    {
+        const ObstacleList& l = OBSTACLEMGR.getBoxes();
+        for (int i = 0; i < l.size(); ++i) {
+            Object3D *obj = new Object3D{};
+            obj->setParent(worldParent);
+            const float *pos = l[i]->getPosition();
+            //std::cout << "pos " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
+            obj->rotateZ(Rad(l[i]->getRotation()));
+            const float *sz = l[i]->getSize();
+            obj->translate(Vector3{pos[0], pos[1], pos[2]});
+            obj->scaleLocal(Vector3{sz[0], sz[1], sz[2]});
+            new ColoredDrawable(*obj, coloredShader, worldMeshes["cube"][0], 0xCCAA22_rgbf, worldDrawables);
+        }
+    }
+    {
+        const ObstacleList& l = OBSTACLEMGR.getPyrs();
+        for (int i = 0; i < l.size(); ++i) {
+            Object3D *obj = new Object3D{};
+            obj->setParent(worldParent);
+            const float *pos = l[i]->getPosition();
+            //std::cout << "pos " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
+            obj->rotateZ(Rad(l[i]->getRotation()));
+            const float *sz = l[i]->getSize();
+            obj->translate(Vector3{pos[0], pos[1], pos[2]});
+            obj->scaleLocal(Vector3{sz[0], sz[1], sz[2]});
+            new ColoredDrawable(*obj, coloredShader, worldMeshes["pyr"][0], 0x1155FF_rgbf, worldDrawables);
+        }
+    }
+}
 
 class BZFlagNew: public Platform::Sdl2Application {
     public:
@@ -209,11 +311,22 @@ class BZFlagNew: public Platform::Sdl2Application {
 
 
     private:
+        void tickEvent() override;
+
+        void drawEvent() override;
+        void viewportEvent(ViewportEvent& e) override;
+        void mousePressEvent(MouseEvent& e) override;
+        void mouseReleaseEvent(MouseEvent& e) override;
+        void mouseMoveEvent(MouseMoveEvent& e) override;
+        void mouseScrollEvent(MouseScrollEvent& e) override;
+        
+        Vector3 positionOnSphere(const Vector2i& position) const;
+
         friend class WorldDownLoader;
         void startPlaying();
         void playingLoop();
 
-        void tickEvent() override;
+
 
         static void startupErrorCallback(const char* msg);
 
@@ -258,20 +371,10 @@ class BZFlagNew: public Platform::Sdl2Application {
 
         void markOld(std::string &fileName);
 
-
         void handleFlagTransferred(Player *fromTank, Player *toTank, int flagIndex);
 
         void handleServerMessage(bool human, uint16_t code, uint16_t len, const void* msg);
         bool processWorldChunk(const void *buf, uint16_t len, int bytesLeft);
-
-        void drawEvent() override;
-        void viewportEvent(ViewportEvent& e) override;
-        void mousePressEvent(MouseEvent& e) override;
-        void mouseReleaseEvent(MouseEvent& e) override;
-        void mouseMoveEvent(MouseMoveEvent& e) override;
-        void mouseScrollEvent(MouseScrollEvent& e) override;
-        
-        Vector3 positionOnSphere(const Vector2i& position) const;
 
         WorldDownLoader *worldDownLoader;
         double lastObserverUpdateTime = -1;
@@ -322,6 +425,8 @@ class BZFlagNew: public Platform::Sdl2Application {
         Vector3 _previousPosition;
 
         std::vector<Object3D *> tankObjs;
+
+        WorldRenderer worldRenderer;
         //std::vector<ColoredDrawable *> tankDrawables;
 };
 
@@ -473,13 +578,15 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
             new ColoredDrawable{*object, _coloredShader, *mesh, materials[materialId]->diffuseColor(), _drawables};
         }
     }*/
+
+    worldRenderer.getWorldObject()->setParent(&_manipulator);
         
 }
 
 void BZFlagNew::drawEvent() {
     GL::defaultFramebuffer.clear(GL::FramebufferClear::Color | GL::FramebufferClear::Depth);
 
-    _camera->draw(_drawables);
+    _camera->draw(worldRenderer.getDrawableGroup());
 
     swapBuffers();
 }
@@ -785,9 +892,9 @@ void BZFlagNew::killAres()
 
 void BZFlagNew::tickEvent() {
     static bool haveWeDoneIt = false;
-    if (world != NULL && !haveWeDoneIt) {
+    if (world != NULL && entered && !haveWeDoneIt) {
 
-        _meshes[0] = MeshTools::compile(Primitives::cubeSolid());
+        /*_meshes[0] = MeshTools::compile(Primitives::cubeSolid());
         const ObstacleList& l = OBSTACLEMGR.getBoxes();
         std::cout << "Number of boxes: " << l.size() << std::endl;
         for (int i = 0; i < l.size(); ++i) {
@@ -800,7 +907,9 @@ void BZFlagNew::tickEvent() {
             obj->translate(Vector3{pos[0], pos[1], pos[2]});
             obj->scaleLocal(Vector3{sz[0], sz[1], sz[2]});
             new ColoredDrawable(*obj, _coloredShader, *_meshes[0], 0xCCAA22_rgbf, _drawables);
-        }
+        }*/
+
+        worldRenderer.createWorldObject();
         //_meshes[1] = MeshTools::compile(Primitives::cubeSolid());
         /*Object3D *obj = new Object3D{};
         obj->setParent(&_manipulator);
@@ -812,7 +921,7 @@ void BZFlagNew::tickEvent() {
         haveWeDoneIt = true;
     }
     static bool haveWeDoneIt2 = false;
-    if (entered && !haveWeDoneIt2) {
+    /*if (entered && !haveWeDoneIt2) {
         //tankObjs.resize(curMaxPlayers);
         for (int i = 0; i < curMaxPlayers; ++i) {
             Object3D *o = new Object3D{};
@@ -821,9 +930,9 @@ void BZFlagNew::tickEvent() {
             tankObjs.push_back(o);
         }
         haveWeDoneIt2 = true;
-    }
+    }*/
 
-    if (entered) {
+    /*if (entered) {
         for (int i = 0; i < curMaxPlayers; ++i) {
             if (remotePlayers[i]) {
                 const float *pos = remotePlayers[i]->getPosition();
@@ -836,7 +945,7 @@ void BZFlagNew::tickEvent() {
                 //Warning{} << Vector3{pos[0], pos[1], pos[2]};
             }
         }
-    }
+    }*/
 
     redraw();
 
@@ -1230,14 +1339,14 @@ int BZFlagNew::main() {
     ServerListCache::get()->loadCache();
 
     BZDB.set("callsign", "testingbz");
-    BZDB.set("server", "bzflag.allejo.io");
-    BZDB.set("port", "5150");
+    BZDB.set("server", "localhost");
+    BZDB.set("port", "5154");
 
     startupInfo.useUDPconnection=true;
     startupInfo.team = ObserverTeam;
     strcpy(startupInfo.callsign, "testingbz");
-    strcpy(startupInfo.serverName, "bzflag.allejo.io");
-    startupInfo.serverPort = 5150;
+    strcpy(startupInfo.serverName, "localhost");
+    startupInfo.serverPort = 5154;
 
     startupInfo.autoConnect = true;
 

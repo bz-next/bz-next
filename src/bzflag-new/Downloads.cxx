@@ -320,7 +320,8 @@ static void printAuthNotice()
     msg += "download access is controlled by ";
     msg += ColorStrings[YellowColor];
     msg += DownloadAccessList.getFilePath();
-    addMessage(NULL, msg);
+    //addMessage(NULL, msg);
+    std::cout << msg << std::endl;
     return;
 }
 
@@ -397,7 +398,8 @@ static bool checkAuthorizations(BzMaterialManager::TextureSet& set)
             msg += "local denial: ";
             msg += ColorStrings[GreyColor];
             msg += url;
-            addMessage(NULL, msg);
+            //addMessage(NULL, msg);
+            std::cout << msg << std::endl;
             // remove the url
             MATERIALMGR.setTextureLocal(url, "");
             set.erase(set_it);
