@@ -34,6 +34,7 @@
 #include "Magnum/MeshTools/Copy.h"
 #include "Magnum/MeshTools/GenerateNormals.h"
 #include "Magnum/SceneGraph/SceneGraph.h"
+#include "Magnum/Trade/Data.h"
 #include "Magnum/Trade/MaterialData.h"
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/Optional.h>
@@ -228,12 +229,69 @@ void ColoredDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::Came
 
 void TexturedDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::Camera3D& camera) {
     _shader
-        .setLightPositions({{camera.cameraMatrix().transformPoint({-3.0f, 10.0f, 10.0f}), 0.0f}})
+        .setLightPositions({{camera.cameraMatrix().transformPoint({0.0f, 0.0f, 1000.0f}), 0.0f}})
         .setTransformationMatrix(transformationMatrix)
         .setNormalMatrix(transformationMatrix.normalMatrix())
         .setProjectionMatrix(camera.projectionMatrix())
         .bindDiffuseTexture(_texture)
         .draw(_mesh);
+}
+
+class WorldPrimitiveGenerator {
+    public:
+        WorldPrimitiveGenerator() = delete;
+
+        static Trade::MeshData pyrSolid();
+    private:
+
+
+};
+
+Trade::MeshData WorldPrimitiveGenerator::pyrSolid() {
+    // Create pyr mesh
+    Vector3 pyrVerts[5] =
+    {
+        {-1.0f, -1.0f, 0.0f},
+        {+1.0f, -1.0f, 0.0f},
+        {+1.0f, +1.0f, 0.0f},
+        {-1.0f, +1.0f, 0.0f},
+        { 0.0f,  0.0f, 1.0f}
+    };
+
+    Magnum::UnsignedShort pyrIndices[] =
+    {
+        // base
+        2, 1, 0,
+        0, 3, 2,
+        0, 4, 3,
+        3, 4, 2,
+        2, 4, 1,
+        4, 0, 1
+    };
+
+    struct Vertex {
+        Vector3 position;
+        Vector3 normal;
+    };
+
+    Containers::Array<Vector3> positions = MeshTools::duplicate<typeof pyrIndices[0], Vector3>(pyrIndices, pyrVerts);
+    Containers::Array<Vector3> normals = MeshTools::generateFlatNormals(positions);
+
+    Containers::Array<char> vertexData{positions.size() * sizeof(Vertex)};
+    vertexData = MeshTools::interleave(positions, normals);
+
+    Containers::StridedArrayView1D<const Vertex> vertices = Containers::arrayCast<const Vertex>(vertexData);
+
+    Trade::MeshAttributeData pyrAttributes[] {
+        Trade::MeshAttributeData{Trade::MeshAttribute::Position, vertices.slice(&Vertex::position)},
+        Trade::MeshAttributeData{Trade::MeshAttribute::Normal, vertices.slice(&Vertex::normal)}
+    };
+    
+    return Trade::MeshData{MeshPrimitive::Triangles, std::move(vertexData),
+        {
+            Trade::MeshAttributeData{Trade::MeshAttribute::Position, vertices.slice(&Vertex::position)},
+            Trade::MeshAttributeData{Trade::MeshAttribute::Normal, vertices.slice(&Vertex::normal)}
+        }, (Magnum::UnsignedInt)positions.size()};
 }
 
 class WorldRenderer {
@@ -245,7 +303,12 @@ class WorldRenderer {
         SceneGraph::DrawableGroup3D &getDrawableGroup();
         Object3D *getWorldObject();
     private:
-        std::map<std::string, std::vector<GL::Mesh>> worldMeshes;
+        struct InstanceData {
+            Matrix4 transformationMatrix;
+            Matrix3x3 normalMatrix;
+            Color3 color;
+        };
+        std::map<std::string, std::list<GL::Mesh>> worldMeshes;
         Object3D *worldParent;
         SceneGraph::DrawableGroup3D worldDrawables;
         Shaders::PhongGL coloredShader;
@@ -265,44 +328,8 @@ Object3D *WorldRenderer::getWorldObject()
 }
 
 WorldRenderer::WorldRenderer() {
-    // Create cube mesh
-    worldMeshes.insert(std::make_pair("cube", std::vector<GL::Mesh>{}));
     worldMeshes["cube"].push_back(MeshTools::compile(Primitives::cubeSolid()));
-
-    // Create pyr mesh
-    {
-        Vector3 verts[5] =
-        {
-            {-1.0f, -1.0f, 0.0f},
-            {+1.0f, -1.0f, 0.0f},
-            {+1.0f, +1.0f, 0.0f},
-            {-1.0f, +1.0f, 0.0f},
-            { 0.0f,  0.0f, 1.0f}
-        };
-
-        Magnum::UnsignedInt idx[] =
-        {
-            // base
-            2, 1, 0,
-            0, 3, 2,
-            0, 4, 3,
-            3, 4, 2,
-            2, 4, 1,
-            4, 0, 1
-        };
-
-        Containers::Array<Vector3> positions = MeshTools::duplicate<Magnum::UnsignedInt, Vector3>(idx, verts);
-        Containers::Array<Vector3> normals = MeshTools::generateFlatNormals(positions);
-
-        worldMeshes.insert(std::make_pair("pyr", std::vector<GL::Mesh>{}));
-        worldMeshes["pyr"].push_back(std::move(
-            GL::Mesh{}
-                .setCount(18)
-                .addVertexBuffer(
-                    GL::Buffer{MeshTools::interleave(positions, normals)},
-                    0,
-                    Shaders::PhongGL::Position{}, Shaders::PhongGL::Normal{})));
-    }
+    worldMeshes["pyr"].push_back(MeshTools::compile(WorldPrimitiveGenerator::pyrSolid()));
 
     worldParent = new Object3D{};
     
@@ -310,32 +337,15 @@ WorldRenderer::WorldRenderer() {
 }
 
 void WorldRenderer::createWorldObject() {
-    worldMeshes.insert(std::make_pair("instances", std::vector<GL::Mesh>{1}));
-    // Create world box instances (using instanced rendering for performance)
-    {
-        const ObstacleList& l = OBSTACLEMGR.getBoxes();
-
-        struct InstanceData {
-                Matrix4 transformationMatrix;
-                Matrix3x3 normalMatrix;
-                Color3 color;
-        };
+    auto buildInstanceVectorFromList = [](const ObstacleList &l, Color3 color) {
         std::vector<InstanceData> instances;
-
-        Object3D *worldCubes = new Object3D;
-
-        worldMeshes["instances"].push_back(MeshTools::compile(Primitives::cubeSolid()));
-        GL::Mesh *worldBoxMesh = &worldMeshes["instances"].back();
-
         for (int i = 0; i < l.size(); ++i) {
             Object3D obj;
             InstanceData thisInstance;
             
-            thisInstance.transformationMatrix.rotationZ(Rad(l[i]->getRotation()));
             const float *pos = l[i]->getPosition();
             const float *sz = l[i]->getSize();
 
-            //std::cout << "pos " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
             obj.rotateZ(Rad(l[i]->getRotation()));
             obj.translate(Vector3{pos[0], pos[1], pos[2]});
             obj.scaleLocal(Vector3{sz[0], sz[1], sz[2]});
@@ -343,46 +353,48 @@ void WorldRenderer::createWorldObject() {
             thisInstance.transformationMatrix = obj.transformationMatrix();
             thisInstance.normalMatrix = obj.transformationMatrix().normalMatrix();
 
-            thisInstance.color = 0xCCAA22_rgbf;
+            thisInstance.color = color;
             instances.push_back(thisInstance);
         }
+        return instances;
+    };
+    // Create world box instances (using instanced rendering for performance)
+    {
+        Object3D *worldCubes = new Object3D;
+
+        worldMeshes["instances"].push_back(MeshTools::compile(Primitives::cubeSolid()));
+        GL::Mesh *worldBoxMesh = &worldMeshes["instances"].back();
+
+        std::vector<InstanceData> instances = buildInstanceVectorFromList(OBSTACLEMGR.getBoxes(), 0xCC5511_rgbf);
+
         worldCubes->setParent(worldParent);
-        worldBoxMesh->addVertexBufferInstanced(GL::Buffer{instances}, 1, 0, Shaders::PhongGL::TransformationMatrix{},
+        worldBoxMesh->addVertexBufferInstanced(GL::Buffer{instances}, 1, 0,
+            Shaders::PhongGL::TransformationMatrix{},
             Shaders::PhongGL::NormalMatrix{},
             Shaders::PhongGL::Color3{});
         worldBoxMesh->setInstanceCount(instances.size());
         new InstancedColoredDrawable(*worldCubes, coloredShaderInstanced, *worldBoxMesh, worldDrawables);
     }
+    // Create world pyramids
     {
         const ObstacleList& l = OBSTACLEMGR.getPyrs();
         for (int i = 0; i < l.size(); ++i) {
-            Object3D *obj = new Object3D{};
-            obj->setParent(worldParent);
-            const float *pos = l[i]->getPosition();
-            //std::cout << "pos " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
-            obj->rotateZ(Rad(l[i]->getRotation()));
-            const float *sz = l[i]->getSize();
-            obj->translate(Vector3{pos[0], pos[1], pos[2]});
-            obj->scaleLocal(Vector3{sz[0], sz[1], sz[2]});
-            new ColoredDrawable(*obj, coloredShader, worldMeshes["pyr"][0], 0x1155FF_rgbf, worldDrawables);
+            Object3D *worldPyrs = new Object3D;
+
+            worldMeshes["instances"].push_back(MeshTools::compile(WorldPrimitiveGenerator::pyrSolid()));
+            GL::Mesh *worldPyrMesh = &worldMeshes["instances"].back();
+
+            std::vector<InstanceData> instances = buildInstanceVectorFromList(OBSTACLEMGR.getPyrs(), 0x1155CC_rgbf);
+
+            worldPyrs->setParent(worldParent);
+            worldPyrMesh->addVertexBufferInstanced(GL::Buffer{instances}, 1, 0,
+                Shaders::PhongGL::TransformationMatrix{},
+                Shaders::PhongGL::NormalMatrix{},
+                Shaders::PhongGL::Color3{});
+            worldPyrMesh->setInstanceCount(instances.size());
+            new InstancedColoredDrawable(*worldPyrs, coloredShaderInstanced, *worldPyrMesh, worldDrawables);
         }
     }
-    /*{
-        const ObstacleList& l = OBSTACLEMGR.getWalls();
-        std::cout << "########## wall size: " << l.size() << std::endl;
-        exit(0);
-        for (int i = 0; i < l.size(); ++i) {
-            Object3D *obj = new Object3D{};
-            obj->setParent(worldParent);
-            const float *pos = l[i]->getPosition();
-            //std::cout << "pos " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
-            obj->rotateZ(Rad(l[i]->getRotation()));
-            const float *sz = l[i]->getSize();
-            obj->translate(Vector3{pos[0], pos[1], pos[2]});
-            obj->scaleLocal(Vector3{sz[0], sz[1], sz[2]});
-            new ColoredDrawable(*obj, coloredShader, worldMeshes["pyr"][0], 0x1155FF_rgbf, worldDrawables);
-        }
-    }*/
 }
 
 class BZFlagNew: public Platform::Sdl2Application {
