@@ -33,7 +33,8 @@ find_package(Magnum REQUIRED
     Primitives
     MeshTools
     Trade
-    Sdl2Application)
+    Sdl2Application
+    DebugTools)
 #find_package(MagnumExtras REQUIRED Ui)
 
 

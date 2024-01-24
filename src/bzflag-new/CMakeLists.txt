@@ -216,6 +216,7 @@ target_link_libraries(bzflag-new PRIVATE
     Magnum::Primitives
     Magnum::MeshTools
     Magnum::SceneGraph
+    Magnum::DebugTools
     ${ZLIB_LIBRARIES}
     Threads::Threads
     OpenGL::GL

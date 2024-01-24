@@ -28,7 +28,10 @@
 */
 
 #include "Corrade/Containers/ArrayView.h"
+#include "Magnum/DebugTools/FrameProfiler.h"
+#include "Magnum/DebugTools/Profiler.h"
 #include "Magnum/GL/GL.h"
+#include "Magnum/MeshTools/Copy.h"
 #include "Magnum/MeshTools/GenerateNormals.h"
 #include "Magnum/SceneGraph/SceneGraph.h"
 #include "Magnum/Trade/MaterialData.h"
@@ -65,6 +68,7 @@
 #include <Magnum/Trade/SceneData.h>
 #include <Magnum/Trade/TextureData.h>
 #include <Magnum/Primitives/Cube.h>
+#include <Magnum/DebugTools/Profiler.h>
 
 #include <ctime>
 #include <cassert>
@@ -171,6 +175,30 @@ class ColoredDrawable : public SceneGraph::Drawable3D {
         Color4 _color;
 };
 
+class InstancedColoredDrawable : public SceneGraph::Drawable3D {
+    public:
+        explicit InstancedColoredDrawable(Object3D& object, Shaders::PhongGL& shader, GL::Mesh& mesh, SceneGraph::DrawableGroup3D& group) :
+            SceneGraph::Drawable3D{object, &group},
+            _shader(shader),
+            _mesh(mesh)
+        {}
+
+    private:
+        void draw(const Matrix4& transformationMatrix, SceneGraph::Camera3D& camera) override;
+
+        Shaders::PhongGL& _shader;
+        GL::Mesh& _mesh;
+};
+
+void InstancedColoredDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::Camera3D& camera) {
+    _shader
+        .setLightPositions({{camera.cameraMatrix().transformPoint({0.0f, 0.0f, 1000.0f}), 0.0f}})
+        .setTransformationMatrix(transformationMatrix)
+        .setNormalMatrix(transformationMatrix.normalMatrix())
+        .setProjectionMatrix(camera.projectionMatrix())
+        .draw(_mesh);
+}
+
 class TexturedDrawable : public SceneGraph::Drawable3D {
     public:
         explicit TexturedDrawable(Object3D& object, Shaders::PhongGL& shader, GL::Mesh& mesh, GL::Texture2D& texture, SceneGraph::DrawableGroup3D& group) :
@@ -221,6 +249,9 @@ class WorldRenderer {
         Object3D *worldParent;
         SceneGraph::DrawableGroup3D worldDrawables;
         Shaders::PhongGL coloredShader;
+        Shaders::PhongGL coloredShaderInstanced{Shaders::PhongGL::Configuration{}
+            .setFlags(Shaders::PhongGL::Flag::InstancedTransformation|
+                    Shaders::PhongGL::Flag::VertexColor)};
 };
 
 SceneGraph::DrawableGroup3D &WorldRenderer::getDrawableGroup()
@@ -234,39 +265,44 @@ Object3D *WorldRenderer::getWorldObject()
 }
 
 WorldRenderer::WorldRenderer() {
-    worldMeshes.insert(std::make_pair("cube", std::vector<GL::Mesh>{1}));
-    worldMeshes["cube"][0] = MeshTools::compile(Primitives::cubeSolid());
+    // Create cube mesh
+    worldMeshes.insert(std::make_pair("cube", std::vector<GL::Mesh>{}));
+    worldMeshes["cube"].push_back(MeshTools::compile(Primitives::cubeSolid()));
 
-    Vector3 verts[5] =
+    // Create pyr mesh
     {
-        {-1.0f, -1.0f, 0.0f},
-        {+1.0f, -1.0f, 0.0f},
-        {+1.0f, +1.0f, 0.0f},
-        {-1.0f, +1.0f, 0.0f},
-        { 0.0f,  0.0f, 1.0f}
-    };
+        Vector3 verts[5] =
+        {
+            {-1.0f, -1.0f, 0.0f},
+            {+1.0f, -1.0f, 0.0f},
+            {+1.0f, +1.0f, 0.0f},
+            {-1.0f, +1.0f, 0.0f},
+            { 0.0f,  0.0f, 1.0f}
+        };
 
-    Magnum::UnsignedInt idx[] =
-    {
-        // base
-        2, 1, 0,
-        0, 3, 2,
-        0, 4, 3,
-        3, 4, 2,
-        2, 4, 1,
-        4, 0, 1
-    };
+        Magnum::UnsignedInt idx[] =
+        {
+            // base
+            2, 1, 0,
+            0, 3, 2,
+            0, 4, 3,
+            3, 4, 2,
+            2, 4, 1,
+            4, 0, 1
+        };
 
-    Containers::Array<Vector3> positions = MeshTools::duplicate<Magnum::UnsignedInt, Vector3>(idx, verts);
-    Containers::Array<Vector3> normals = MeshTools::generateFlatNormals(positions);
+        Containers::Array<Vector3> positions = MeshTools::duplicate<Magnum::UnsignedInt, Vector3>(idx, verts);
+        Containers::Array<Vector3> normals = MeshTools::generateFlatNormals(positions);
 
-    worldMeshes.insert(std::make_pair("pyr", std::vector<GL::Mesh>{1}));
-    worldMeshes["pyr"][0]
-        .setCount(18)
-        .addVertexBuffer(
-            GL::Buffer{MeshTools::interleave(positions, normals)},
-            0,
-            Shaders::PhongGL::Position{}, Shaders::PhongGL::Normal{});
+        worldMeshes.insert(std::make_pair("pyr", std::vector<GL::Mesh>{}));
+        worldMeshes["pyr"].push_back(std::move(
+            GL::Mesh{}
+                .setCount(18)
+                .addVertexBuffer(
+                    GL::Buffer{MeshTools::interleave(positions, normals)},
+                    0,
+                    Shaders::PhongGL::Position{}, Shaders::PhongGL::Normal{})));
+    }
 
     worldParent = new Object3D{};
     
@@ -274,19 +310,48 @@ WorldRenderer::WorldRenderer() {
 }
 
 void WorldRenderer::createWorldObject() {
+    worldMeshes.insert(std::make_pair("instances", std::vector<GL::Mesh>{1}));
+    // Create world box instances (using instanced rendering for performance)
     {
         const ObstacleList& l = OBSTACLEMGR.getBoxes();
+
+        struct InstanceData {
+                Matrix4 transformationMatrix;
+                Matrix3x3 normalMatrix;
+                Color3 color;
+        };
+        std::vector<InstanceData> instances;
+
+        Object3D *worldCubes = new Object3D;
+
+        worldMeshes["instances"].push_back(MeshTools::compile(Primitives::cubeSolid()));
+        GL::Mesh *worldBoxMesh = &worldMeshes["instances"].back();
+
         for (int i = 0; i < l.size(); ++i) {
-            Object3D *obj = new Object3D{};
-            obj->setParent(worldParent);
+            Object3D obj;
+            InstanceData thisInstance;
+            
+            thisInstance.transformationMatrix.rotationZ(Rad(l[i]->getRotation()));
             const float *pos = l[i]->getPosition();
-            //std::cout << "pos " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
-            obj->rotateZ(Rad(l[i]->getRotation()));
             const float *sz = l[i]->getSize();
-            obj->translate(Vector3{pos[0], pos[1], pos[2]});
-            obj->scaleLocal(Vector3{sz[0], sz[1], sz[2]});
-            new ColoredDrawable(*obj, coloredShader, worldMeshes["cube"][0], 0xCCAA22_rgbf, worldDrawables);
+
+            //std::cout << "pos " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
+            obj.rotateZ(Rad(l[i]->getRotation()));
+            obj.translate(Vector3{pos[0], pos[1], pos[2]});
+            obj.scaleLocal(Vector3{sz[0], sz[1], sz[2]});
+
+            thisInstance.transformationMatrix = obj.transformationMatrix();
+            thisInstance.normalMatrix = obj.transformationMatrix().normalMatrix();
+
+            thisInstance.color = 0xCCAA22_rgbf;
+            instances.push_back(thisInstance);
         }
+        worldCubes->setParent(worldParent);
+        worldBoxMesh->addVertexBufferInstanced(GL::Buffer{instances}, 1, 0, Shaders::PhongGL::TransformationMatrix{},
+            Shaders::PhongGL::NormalMatrix{},
+            Shaders::PhongGL::Color3{});
+        worldBoxMesh->setInstanceCount(instances.size());
+        new InstancedColoredDrawable(*worldCubes, coloredShaderInstanced, *worldBoxMesh, worldDrawables);
     }
     {
         const ObstacleList& l = OBSTACLEMGR.getPyrs();
@@ -302,6 +367,22 @@ void WorldRenderer::createWorldObject() {
             new ColoredDrawable(*obj, coloredShader, worldMeshes["pyr"][0], 0x1155FF_rgbf, worldDrawables);
         }
     }
+    /*{
+        const ObstacleList& l = OBSTACLEMGR.getWalls();
+        std::cout << "########## wall size: " << l.size() << std::endl;
+        exit(0);
+        for (int i = 0; i < l.size(); ++i) {
+            Object3D *obj = new Object3D{};
+            obj->setParent(worldParent);
+            const float *pos = l[i]->getPosition();
+            //std::cout << "pos " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
+            obj->rotateZ(Rad(l[i]->getRotation()));
+            const float *sz = l[i]->getSize();
+            obj->translate(Vector3{pos[0], pos[1], pos[2]});
+            obj->scaleLocal(Vector3{sz[0], sz[1], sz[2]});
+            new ColoredDrawable(*obj, coloredShader, worldMeshes["pyr"][0], 0x1155FF_rgbf, worldDrawables);
+        }
+    }*/
 }
 
 class BZFlagNew: public Platform::Sdl2Application {
@@ -404,6 +485,9 @@ class BZFlagNew: public Platform::Sdl2Application {
         bool wasRabbit = false;
         char *worldDatabase = NULL;
         std::ostream *cacheOut = NULL;
+
+        DebugTools::FrameProfilerGL _profiler{DebugTools::FrameProfilerGL::Value::FrameTime|
+    DebugTools::FrameProfilerGL::Value::GpuDuration, 50};
 
         std::vector<PlayingCallbackItem> playingCallbacks;
 
@@ -580,15 +664,19 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
     }*/
 
     worldRenderer.getWorldObject()->setParent(&_manipulator);
-        
+    setMinimalLoopPeriod(0);
+    //setSwapInterval(0);
 }
 
 void BZFlagNew::drawEvent() {
+    _profiler.beginFrame();
     GL::defaultFramebuffer.clear(GL::FramebufferClear::Color | GL::FramebufferClear::Depth);
 
     _camera->draw(worldRenderer.getDrawableGroup());
 
     swapBuffers();
+    _profiler.endFrame();
+    _profiler.printStatistics(10);
 }
 
 class WorldDownLoader : cURLManager
