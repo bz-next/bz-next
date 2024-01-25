@@ -76,7 +76,8 @@ namespace ImGui
 
         std::string seq{&s[2], seqEnd};
         std::string colorStr;
-        for (const auto& el : jet::split(seq, ";")) {
+        auto tokens = jet::split(seq, ";");
+        for (const auto& el : tokens) {
             if (el[0] == '3' && el.size() == 2) {
                 colorStr = el;
                 break;
@@ -93,6 +94,17 @@ namespace ImGui
                 case '5': *col = 0xffcc99cc; break;
                 case '6': *col = 0xffcccc66; break;
                 case '7': *col = 0xff2d2d2d; break;
+                case '8': {
+                    if (tokens.size() != 5) return false;
+                    if (tokens[1] != "2") return false;
+                    ImU32 tempCol = std::atoi(tokens[2].c_str()) << 16;
+                    tempCol |= std::atoi(tokens[3].c_str()) << 8;
+                    tempCol |= std::atoi(tokens[4].c_str());
+                    // Make it opaque
+                    tempCol |= 0xff<<24;
+                    *col = tempCol;
+                    break;
+                }
                 default: return false;
             }
         }
