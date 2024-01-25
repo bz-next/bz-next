@@ -194,7 +194,7 @@ const void* WorldBuilder::unpack(const void* buf)
 
     world->makeLinkMaterial();
 
-    world->makeMeshDrawMgrs();
+    //world->makeMeshDrawMgrs();
 
     // NOTE: relying on checkCollisionManager() to do the first loading
     //       of ColiisionManager, because the BZDB variables come in later,

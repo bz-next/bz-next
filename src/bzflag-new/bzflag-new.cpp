@@ -27,6 +27,7 @@
     CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+
 #include "Corrade/Containers/ArrayView.h"
 #include "Magnum/DebugTools/FrameProfiler.h"
 #include "Magnum/DebugTools/Profiler.h"
@@ -70,17 +71,23 @@
 #include <Magnum/Trade/TextureData.h>
 #include <Magnum/Primitives/Cube.h>
 #include <Magnum/DebugTools/Profiler.h>
+#include <Magnum/ImGuiIntegration/Context.hpp>
 
 #include <ctime>
 #include <cassert>
+#include <imgui.h>
 #include <sstream>
+#include <cstring>
+#include <functional>
 #include "Magnum/Types.h"
 #include "utime.h"
 
+#include "common.h"
+
+#include "Address.h"
 #include "StartupInfo.h"
 #include "StateDatabase.h"
 #include "playing.h"
-#include "common.h"
 #include "BZDBCache.h"
 #include "BZDBLocal.h"
 #include "CommandsStandard.h"
@@ -242,12 +249,60 @@ class WorldPrimitiveGenerator {
         WorldPrimitiveGenerator() = delete;
 
         static Trade::MeshData pyrSolid();
+        static Trade::MeshData wall();
     private:
 
 
 };
 
 Trade::MeshData WorldPrimitiveGenerator::pyrSolid() {
+    // Create pyr mesh
+    Vector3 pyrVerts[5] =
+    {
+        {-1.0f, -1.0f, 0.0f},
+        {+1.0f, -1.0f, 0.0f},
+        {+1.0f, +1.0f, 0.0f},
+        {-1.0f, +1.0f, 0.0f},
+        { 0.0f,  0.0f, 1.0f}
+    };
+
+    Magnum::UnsignedShort pyrIndices[] =
+    {
+        // base
+        2, 1, 0,
+        0, 3, 2,
+        0, 4, 3,
+        3, 4, 2,
+        2, 4, 1,
+        4, 0, 1
+    };
+
+    struct Vertex {
+        Vector3 position;
+        Vector3 normal;
+    };
+
+    Containers::Array<Vector3> positions = MeshTools::duplicate<typeof pyrIndices[0], Vector3>(pyrIndices, pyrVerts);
+    Containers::Array<Vector3> normals = MeshTools::generateFlatNormals(positions);
+
+    Containers::Array<char> vertexData{positions.size() * sizeof(Vertex)};
+    vertexData = MeshTools::interleave(positions, normals);
+
+    Containers::StridedArrayView1D<const Vertex> vertices = Containers::arrayCast<const Vertex>(vertexData);
+
+    Trade::MeshAttributeData pyrAttributes[] {
+        Trade::MeshAttributeData{Trade::MeshAttribute::Position, vertices.slice(&Vertex::position)},
+        Trade::MeshAttributeData{Trade::MeshAttribute::Normal, vertices.slice(&Vertex::normal)}
+    };
+    
+    return Trade::MeshData{MeshPrimitive::Triangles, std::move(vertexData),
+        {
+            Trade::MeshAttributeData{Trade::MeshAttribute::Position, vertices.slice(&Vertex::position)},
+            Trade::MeshAttributeData{Trade::MeshAttribute::Normal, vertices.slice(&Vertex::normal)}
+        }, (Magnum::UnsignedInt)positions.size()};
+}
+
+Trade::MeshData WorldPrimitiveGenerator::wall() {
     // Create pyr mesh
     Vector3 pyrVerts[5] =
     {
@@ -337,6 +392,8 @@ WorldRenderer::WorldRenderer() {
 }
 
 void WorldRenderer::createWorldObject() {
+    // Perhaps do culling here in the future if necessary?
+    // Could construct instance buffer per-frame.
     auto buildInstanceVectorFromList = [](const ObstacleList &l, Color3 color) {
         std::vector<InstanceData> instances;
         for (int i = 0; i < l.size(); ++i) {
@@ -395,6 +452,169 @@ void WorldRenderer::createWorldObject() {
             new InstancedColoredDrawable(*worldPyrs, coloredShaderInstanced, *worldPyrMesh, worldDrawables);
         }
     }
+
+}
+
+class BZChatConsole {
+    using CommandCallback = std::function<void(const char*)>;
+    public:
+        BZChatConsole();
+        ~BZChatConsole();
+
+        void clearLog();
+        void addLog(const char* fmt, ...) IM_FMTARGS(2);
+        void draw(const char* title, bool* p_open);
+        void execCommand(const char* command_line);
+        void registerCommandCallback(CommandCallback&& fun);
+        static int textEditCallbackStub(ImGuiInputTextCallbackData* data);
+        int textEditCallback(ImGuiInputTextCallbackData* data);
+
+    private:
+        char inputBuf[256];
+        ImVector<char*> items;
+        ImVector<const char*> commands;
+        ImVector<char*> history;
+        int historyPos;
+        ImGuiTextFilter filter;
+        bool autoScroll;
+        bool scrollToBottom;
+
+        std::vector<CommandCallback> commandCallbacks;
+
+        static int   Stricmp(const char* s1, const char* s2)         { int d; while ((d = toupper(*s2) - toupper(*s1)) == 0 && *s1) { s1++; s2++; } return d; }
+        static int   Strnicmp(const char* s1, const char* s2, int n) { int d = 0; while (n > 0 && (d = toupper(*s2) - toupper(*s1)) == 0 && *s1) { s1++; s2++; n--; } return d; }
+        static char* Strdup(const char* s)                           { IM_ASSERT(s); size_t len = strlen(s) + 1; void* buf = malloc(len); IM_ASSERT(buf); return (char*)memcpy(buf, (const void*)s, len); }
+        static void  Strtrim(char* s)                                { char* str_end = s + strlen(s); while (str_end > s && str_end[-1] == ' ') str_end--; *str_end = 0; }
+};
+
+BZChatConsole::BZChatConsole() {
+    clearLog();
+    memset(inputBuf, 0, sizeof(inputBuf));
+    historyPos = -1;
+
+    commands.push_back("/clear");
+    autoScroll = true;
+    scrollToBottom = false;
+    addLog("Console Initialized");
+}
+
+BZChatConsole::~BZChatConsole() {
+    clearLog();
+    for (int i = 0; i < history.size(); ++i)
+        free(history[i]);
+}
+
+void BZChatConsole::clearLog() {
+    for (int i = 0; i < items.size(); ++i)
+        free(items[i]);
+    items.clear();
+}
+
+void BZChatConsole::addLog(const char* fmt, ...) {
+    char buf[1024];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buf, IM_ARRAYSIZE(buf), fmt, args);
+    buf[IM_ARRAYSIZE(buf) - 1] = 0;
+    va_end(args);
+    items.push_back(Strdup(buf));
+}
+void BZChatConsole::draw(const char* title, bool* p_open) {
+    ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
+    if (!ImGui::Begin(title, p_open)) {
+        ImGui::End();
+        return;
+    }
+    const float footer_height_to_reserve = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
+    if (ImGui::BeginChild("ScrollingRegion", ImVec2(0, -footer_height_to_reserve), ImGuiChildFlags_None, ImGuiWindowFlags_HorizontalScrollbar)) {
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, -1));
+        for (const char* item : items) {
+            ImGui::TextUnformatted(item);
+        }
+        if (scrollToBottom || (autoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY()))
+            ImGui::SetScrollHereY(1.0f);
+        scrollToBottom = false;
+        ImGui::PopStyleVar();
+    }
+    ImGui::EndChild();
+    ImGui::Separator();
+
+    bool reclaim_focus = false;
+    ImGuiInputTextFlags input_text_flags = ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_EscapeClearsAll | ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackHistory;
+    if (ImGui::InputText("##", inputBuf, IM_ARRAYSIZE(inputBuf), input_text_flags, &textEditCallbackStub, (void*)this)) {
+        char *s = inputBuf;
+        Strtrim(s);
+        if (s[0])
+            execCommand(s);
+        strcpy(s, "");
+        reclaim_focus = true;
+    }
+    ImGui::SetItemDefaultFocus();
+    if (reclaim_focus)
+        ImGui::SetKeyboardFocusHere(-1);
+    ImGui::End();
+}
+
+void BZChatConsole::registerCommandCallback(CommandCallback&& fun) {
+    commandCallbacks.emplace_back(std::move(fun));
+}
+
+void BZChatConsole::execCommand(const char* command_line) {
+    addLog(command_line);
+    bool handledLocally = false;
+    historyPos = -1;
+    for (int i = history.size() - 1; i >= 0; --i) {
+        if (Stricmp(history[i], command_line) == 0) {
+            free(history[i]);
+            history.erase(history.begin() + i);
+            break;
+        }
+    }
+    history.push_back(strdup(command_line));
+    if (Stricmp(command_line, "/CLEAR") == 0) {
+        clearLog();
+        handledLocally = true;
+    }
+    scrollToBottom = true;
+    if (handledLocally) return;
+    for (CommandCallback cb: commandCallbacks) {
+        cb(command_line);
+    }
+}
+int BZChatConsole::textEditCallbackStub(ImGuiInputTextCallbackData* data) {
+    BZChatConsole* console = (BZChatConsole*)data->UserData;
+    return console->textEditCallback(data);
+}
+int BZChatConsole::textEditCallback(ImGuiInputTextCallbackData* data) {
+    switch (data->EventFlag) {
+        case ImGuiInputTextFlags_CallbackCompletion:
+        {   // tab-completion for server commands could go here...
+            break;
+        }
+        case ImGuiInputTextFlags_CallbackHistory:
+        {
+            const int prev_history_pos = historyPos;
+            if (data->EventKey == ImGuiKey_UpArrow) {
+                if (historyPos == -1) {
+                    historyPos = history.size() - 1;
+                } else if (historyPos > 0) {
+                    historyPos--;
+                }
+            } else if (data->EventKey == ImGuiKey_DownArrow) {
+                if (historyPos != -1)
+                    if (++historyPos >= history.size())
+                        historyPos = -1;
+            }
+
+            if (prev_history_pos != historyPos) {
+                const char* history_str = (historyPos > 0) ? history[historyPos] : "";
+                data->DeleteChars(0, data->BufTextLen);
+                data->InsertChars(0, history_str);
+            }
+            break;
+        }
+    }
+    return 0;
 }
 
 class BZFlagNew: public Platform::Sdl2Application {
@@ -412,6 +632,17 @@ class BZFlagNew: public Platform::Sdl2Application {
         void mouseReleaseEvent(MouseEvent& e) override;
         void mouseMoveEvent(MouseMoveEvent& e) override;
         void mouseScrollEvent(MouseScrollEvent& e) override;
+        void textInputEvent(TextInputEvent& event) override;
+
+        void keyPressEvent(KeyEvent& event) override;
+        void keyReleaseEvent(KeyEvent& event) override;
+
+        // IMGUI
+        void showMainMenuBar();
+        void showMenuView();
+
+        void maybeShowConsole();
+        bool showConsole = true;
         
         Vector3 positionOnSphere(const Vector2i& position) const;
 
@@ -419,7 +650,7 @@ class BZFlagNew: public Platform::Sdl2Application {
         void startPlaying();
         void playingLoop();
 
-
+        void onConsoleText(const char* txt);
 
         static void startupErrorCallback(const char* msg);
 
@@ -524,6 +755,9 @@ class BZFlagNew: public Platform::Sdl2Application {
 
         WorldRenderer worldRenderer;
         //std::vector<ColoredDrawable *> tankDrawables;
+        ImGuiIntegration::Context _imgui{NoCreate};
+
+        BZChatConsole console;
 };
 
 BZFlagNew::BZFlagNew(const Arguments& arguments):
@@ -571,124 +805,133 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
 
     PluginManager::Manager<Trade::AbstractImporter> manager;
     Containers::Pointer<Trade::AbstractImporter> importer = manager.loadAndInstantiate(args.value("importer"));
-    //if (!importer || !importer->openFile("scene.obj"))
-    //    std::exit(1);
 
-    //Warning{} << args.value("file");
-
-    //_textures = Containers::Array<Containers::Optional<GL::Texture2D>>{importer->textureCount()};
     _textures = Containers::Array<Containers::Optional<GL::Texture2D>>{};
-    /*for (UnsignedInt i = 0; i != importer->textureCount(); ++i) {
-        Containers::Optional<Trade::TextureData> textureData = importer->texture(i);
-        if (!textureData || textureData->type() != Trade::TextureType::Texture2D) {
-            Warning{} << "Cannot load texture" << i << importer->textureName(i);
-            continue;
-        }
 
-        Containers::Optional<Trade::ImageData2D> imageData = importer->image2D(textureData->image());
-        if (!imageData || !imageData->isCompressed()) {
-            Warning{} << "Cannot load image" << textureData->image() << importer->image2DName(textureData->image());
-            continue;
-        }
-
-        (*(_textures[i] = GL::Texture2D{}))
-            .setMagnificationFilter(textureData->magnificationFilter())
-            .setMinificationFilter(textureData->minificationFilter(), textureData->mipmapFilter())
-            .setWrapping(textureData->wrapping().xy())
-            .setStorage(Math::log2(imageData->size().max()) + 1, GL::textureFormat(imageData->format()), imageData->size())
-            .setSubImage(0, {}, *imageData)
-            .generateMipmap();
-    }*/
     Containers::Array<Containers::Optional<Trade::PhongMaterialData>> materials{};
-    /*Containers::Array<Containers::Optional<Trade::PhongMaterialData>> materials{importer->materialCount()};
-    for (UnsignedInt i = 0; i != importer->materialCount(); ++i) {
-        Containers::Optional<Trade::MaterialData> materialData;
-        if (!(materialData = importer->material(i))) {
-            Warning{} << "Cannot load material" << i << importer->materialName(i);
-            continue;
-        }
-        materials[i] = std::move(*materialData).as<Trade::PhongMaterialData>();
-    }*/
 
     _meshes = Containers::Array<Containers::Optional<GL::Mesh>>{1};
-    /*_meshes = Containers::Array<Containers::Optional<GL::Mesh>>{importer->meshCount()};
-    for (UnsignedInt i = 0; i != importer->meshCount(); ++i) {
-        Containers::Optional<Trade::MeshData> meshData;
-        if (!(meshData = importer->mesh(i))) {
-            Warning{} << "Cannot load mesh" << i << importer->meshName(i);
-            continue;
-        }
-        MeshTools::CompileFlags flags;
-        if (meshData->hasAttribute(Trade::MeshAttribute::Normal))
-            flags |= MeshTools::CompileFlag::GenerateFlatNormals;
-        _meshes[i] = MeshTools::compile(*meshData, flags);
-    }*/
-
-    //Warning{} << "Mesh count:" << importer->meshCount();
-
-    // Edge case where the file doesn't have any scene (just a mesh)
-    /*if (importer->defaultScene() == -1) {
-        if (!_meshes.isEmpty() && _meshes[0])
-            new ColoredDrawable{_manipulator, _coloredShader, *_meshes[0], 0xffffff_rgbf, _drawables};
-        return;
-    }*/
-
-    // Add cube mesh
-    /*_meshes[0] = MeshTools::compile(Primitives::cubeSolid());   // Do we need to gen normals?
-    _meshes[1] = MeshTools::compile(Primitives::cubeSolid());
-    Object3D *obj = new Object3D{};
-    obj->setParent(&_manipulator);
-    Object3D *obj2 = new Object3D{};
-    obj2->setParent(&_manipulator).translate(Vector3{4.0, 0.0, 0.0});
-    new ColoredDrawable(*obj, _coloredShader, *_meshes[0], 0x551122_rgbf, _drawables);
-    new ColoredDrawable(*obj2, _coloredShader, *_meshes[1], 0x5511FF_rgbf, _drawables);*/
-
-
-    /*Containers::Optional<Trade::SceneData> scene;
-    if (!(scene = importer->scene(importer->defaultScene())) ||
-        !scene->is3D() || !scene->hasField(Trade::SceneField::Parent) || !scene->hasField(Trade::SceneField::Mesh)) {
-        Fatal{} << "Cannot load scene" << importer->defaultScene() << importer->sceneName(importer->defaultScene());
-        }
-    Containers::Array<Object3D*> objects{std::size_t(scene->mappingBound())};
-    Containers::Array<Containers::Pair<UnsignedInt, Int>> parents = scene->parentsAsArray();
-    for (const Containers::Pair<UnsignedInt, Int>& parent: parents) {
-        objects[parent.first()] = new Object3D{};
-    }
-    for (const Containers::Pair<UnsignedInt, Int>& parent: parents) {
-        objects[parent.first()]->setParent(parent.second() == -1 ? &_manipulator : objects[parent.second()]);
-    }
-
-    for (const Containers::Pair<UnsignedInt, Containers::Pair<UnsignedInt, Int>>& meshMaterial: scene->meshesMaterialsAsArray()) {
-        Object3D* object = objects[meshMaterial.first()];
-        Containers::Optional<GL::Mesh>& mesh = _meshes[meshMaterial.second().first()];
-        
-        if (!object || !mesh) continue;
-
-        Int materialId = meshMaterial.second().second();
-
-        if (materialId == -1 || !materials[materialId]) {
-            new ColoredDrawable{*object, _coloredShader, *mesh, 0xfffffff_rgbf, _drawables};
-        } else if (materials[materialId]->hasAttribute(Trade::MaterialAttribute::DiffuseTexture) && _textures[materials[materialId]->diffuseTexture()]) {
-            new TexturedDrawable{*object, _texturedShader, *mesh, *_textures[materials[materialId]->diffuseTexture()], _drawables};
-        } else {
-            new ColoredDrawable{*object, _coloredShader, *mesh, materials[materialId]->diffuseColor(), _drawables};
-        }
-    }*/
 
     worldRenderer.getWorldObject()->setParent(&_manipulator);
+
+    _imgui = ImGuiIntegration::Context(Vector2{windowSize()}/dpiScaling(), windowSize(), framebufferSize());
+
+    console.registerCommandCallback([&](const char* txt){
+        onConsoleText(txt);
+    });
+
+    /* Set up proper blending to be used by ImGui. There's a great chance
+       you'll need this exact behavior for the rest of your scene. If not, set
+       this only for the drawFrame() call. */
+    GL::Renderer::setBlendEquation(GL::Renderer::BlendEquation::Add,
+        GL::Renderer::BlendEquation::Add);
+    GL::Renderer::setBlendFunction(GL::Renderer::BlendFunction::SourceAlpha,
+        GL::Renderer::BlendFunction::OneMinusSourceAlpha);
+
     setMinimalLoopPeriod(0);
     //setSwapInterval(0);
 }
 
+void BZFlagNew::showMainMenuBar() {
+    if (ImGui::BeginMainMenuBar()) {
+        if (ImGui::BeginMenu("View")) {
+            showMenuView();
+            ImGui::EndMenu();
+        }
+        ImGui::EndMainMenuBar();
+    }
+}
+
+void BZFlagNew::showMenuView() {
+    if (ImGui::MenuItem("Console", NULL, &showConsole)) {}
+}
+
+void BZFlagNew::maybeShowConsole() {
+    if (showConsole)
+        console.draw("Console", NULL);
+}
+
+void BZFlagNew::onConsoleText(const char* msg) {
+    // local commands:
+    // /set lists all BZDB variables
+    /*if (msg == "/set")
+    {
+        if (ui != NULL)
+            BZDB.iterate(listSetVars, this);
+        return;
+    }*/
+
+    // Flawfinder: ignore
+    char buffer[MessageLen];
+    // Flawfinder: ignore
+    char buffer2[1 + MessageLen];
+    void* buf = buffer2;
+
+    buf = nboPackUByte(buf, AllPlayers);
+    // Flawfinder: ignore
+    strncpy(buffer, msg, MessageLen - 1);
+    buffer[MessageLen - 1] = '\0';
+    nboPackString(buffer2 + 1, buffer, MessageLen);
+    _serverLink->send(MsgMessage, sizeof(buffer2), buffer2);
+    std::cout << msg << std::endl;
+}
+
 void BZFlagNew::drawEvent() {
-    _profiler.beginFrame();
+    //_profiler.beginFrame();
     GL::defaultFramebuffer.clear(GL::FramebufferClear::Color | GL::FramebufferClear::Depth);
+
+    _imgui.newFrame();
+    /* Enable text input, if needed */
+    if(ImGui::GetIO().WantTextInput && !isTextInputActive())
+        startTextInput();
+    else if(!ImGui::GetIO().WantTextInput && isTextInputActive())
+        stopTextInput();
+
+    showMainMenuBar();
+    maybeShowConsole();
+
+    /* 1. Show a simple window.
+       Tip: if we don't call ImGui::Begin()/ImGui::End() the widgets appear in
+       a window called "Debug" automatically */
+    {
+        ImGui::Text("Hello, world!");
+        //ImGui::SliderFloat("Float", &_floatValue, 0.0f, 1.0f);
+        //if(ImGui::ColorEdit3("Clear Color", _clearColor.data()))
+        //    GL::Renderer::setClearColor(_clearColor);
+        //if(ImGui::Button("Test Window"))
+        //    _showDemoWindow ^= true;
+        //if(ImGui::Button("Another Window"))
+        //    _showAnotherWindow ^= true;
+        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
+            1000.0/Double(ImGui::GetIO().Framerate), Double(ImGui::GetIO().Framerate));
+    }
+
+    /* Update application cursor */
+    _imgui.updateApplicationCursor(*this);
+
+    /* Reset state. Only needed if you want to draw something else with
+       different state after. */
+    GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
+    GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
+    GL::Renderer::disable(GL::Renderer::Feature::ScissorTest);
+    GL::Renderer::disable(GL::Renderer::Feature::Blending);
 
     _camera->draw(worldRenderer.getDrawableGroup());
 
+        /* Set appropriate states. If you only draw ImGui, it is sufficient to
+       just enable blending and scissor test in the constructor. */
+    GL::Renderer::enable(GL::Renderer::Feature::Blending);
+    GL::Renderer::enable(GL::Renderer::Feature::ScissorTest);
+    GL::Renderer::disable(GL::Renderer::Feature::FaceCulling);
+    GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
+
+    _imgui.drawFrame();
+
+    
+
     swapBuffers();
-    _profiler.endFrame();
-    _profiler.printStatistics(10);
+    //_profiler.endFrame();
+    //_profiler.printStatistics(10);
 }
 
 class WorldDownLoader : cURLManager
@@ -712,8 +955,8 @@ void WorldDownLoader::start(char * hexDigest)
     else if (_app->worldUrl.size())
     {
         //HUDDialogStack::get()->setFailedMessage
-        //(("Loading world from " + worldUrl).c_str());
-        std::cout << "Loading world from " << _app->worldUrl;
+        _app->console.addLog(("Loading world from " + _app->worldUrl).c_str());
+        //std::cout << "Loading world from " << _app->worldUrl;
         setProgressFunction(curlProgressFunc, _app->worldUrl.c_str());
         setURL(_app->worldUrl);
         addHandle();
@@ -736,7 +979,8 @@ void WorldDownLoader::finalization(char *data, unsigned int length, bool good)
         if (digest != _app->md5Digest)
         {
             //HUDDialogStack::get()->setFailedMessage("Download from URL failed");
-            std::cout << "Download from URL failed" << std::endl;
+            //std::cout << "Download from URL failed" << std::endl;
+            _app->console.addLog("Download from URL failed");
             askToBZFS();
         }
         else
@@ -752,7 +996,8 @@ void WorldDownLoader::finalization(char *data, unsigned int length, bool good)
             else
             {
                 //HUDDialogStack::get()->setFailedMessage("Problem writing cache");
-                std::cout << "Problem writing cache" << std::endl;
+                //std::cout << "Problem writing cache" << std::endl;
+                _app->console.addLog("Problem writing cache");
                 askToBZFS();
             }
         }
@@ -763,7 +1008,8 @@ void WorldDownLoader::finalization(char *data, unsigned int length, bool good)
 
 void WorldDownLoader::askToBZFS() {
     //HUDDialogStack::get()->setFailedMessage("Downloading World...");
-    std::cout << "Downloading world..." << std::endl;
+    //std::cout << "Downloading world..." << std::endl;
+    _app->console.addLog("Downloading World...");
     char message[MaxPacketLen];
     // ask for world
     nboPackUInt(message, 0);
@@ -813,7 +1059,8 @@ void BZFlagNew::loadCachedWorld() {
     if (!cachedWorld)
     {
         //HUDDialogStack::get()->setFailedMessage("World cache files disappeared.  Join canceled");
-        std::cout << "World cache files disappeared.  Join canceled" << std::endl;
+        //std::cout << "World cache files disappeared.  Join canceled" << std::endl;
+        console.addLog("World cache files disappeared.  Join canceled");
         //drawFrame(0.0f);
         remove(worldCachePath.c_str());
         joiningGame = false;
@@ -823,7 +1070,8 @@ void BZFlagNew::loadCachedWorld() {
     // status update
     //HUDDialogStack::get()->setFailedMessage("Loading world into memory...");
     //drawFrame(0.0f);
-    std::cout << "Loading world into memory..." << std::endl;
+    //std::cout << "Loading world into memory..." << std::endl;
+    console.addLog("Loading world into memory...");
 
     // get the world size
     cachedWorld->seekg(0, std::ios::end);
@@ -837,7 +1085,8 @@ void BZFlagNew::loadCachedWorld() {
     {
         //HUDDialogStack::get()->setFailedMessage("Error loading cached world.  Join canceled");
         //drawFrame(0.0f);
-        std::cout << "Error loading cached world." << std::endl;
+        //std::cout << "Error loading cached world." << std::endl;
+        console.addLog("Error loading cached world.");
         remove(worldCachePath.c_str());
         joiningGame = false;
         return;
@@ -848,7 +1097,8 @@ void BZFlagNew::loadCachedWorld() {
     // verify
     //HUDDialogStack::get()->setFailedMessage("Verifying world integrity...");
     //drawFrame(0.0f);
-    std::cout << "Verifying world" << std::endl;
+    //std::cout << "Verifying world" << std::endl;
+    console.addLog("Verifying world integrity...");
     MD5 md5;
     md5.update((unsigned char *)localWorldDatabase, charSize);
     md5.finalize();
@@ -860,7 +1110,8 @@ void BZFlagNew::loadCachedWorld() {
         worldBuilder = NULL;
         delete[] localWorldDatabase;
         //HUDDialogStack::get()->setFailedMessage("Error on md5. Removing offending file.");
-        std::cout << "md5 error" << std::endl;
+        //std::cout << "md5 error" << std::endl;
+        console.addLog("Error on md5. Removing offending file.");
         remove(worldCachePath.c_str());
         joiningGame = false;
         return;
@@ -869,7 +1120,8 @@ void BZFlagNew::loadCachedWorld() {
     // make world
     //HUDDialogStack::get()->setFailedMessage("Preparing world...");
     //drawFrame(0.0f);
-    std::cout << "Preparing world..." << std::endl;
+    //std::cout << "Preparing world..." << std::endl;
+    console.addLog("Preparing world...");
     if (world)
     {
         delete world;
@@ -883,7 +1135,8 @@ void BZFlagNew::loadCachedWorld() {
         worldBuilder = NULL;
         delete[] localWorldDatabase;
         //HUDDialogStack::get()->setFailedMessage("Error unpacking world database. Join canceled.");
-        std::cout << "Error unpacking world db." << std::endl;
+        //std::cout << "Error unpacking world db." << std::endl;
+        console.addLog("Error unpacking world database. Join canceled.");
         remove(worldCachePath.c_str());
         joiningGame = false;
         return;
@@ -962,7 +1215,8 @@ void BZFlagNew::addMessage(const Player *_player, const std::string& msg, int mo
         fullMessage += stripAnsiCodes(msg);
     }
     //controlPanel->addMessage(fullMessage, mode);
-    std::cout << fullMessage << std::endl;
+    //std::cout << fullMessage << std::endl;
+    console.addLog(fullMessage.c_str());
 }
 
 bool BZFlagNew::isCached(char *hexDigest) {
@@ -1101,7 +1355,8 @@ void BZFlagNew::enteringServer(const void *buf) {
         //hud->setAlert(1, teamMsg.c_str(), 8.0f,
         //              (TeamColor)team==ObserverTeam?true:false);
         addMessage(NULL, teamMsg.c_str(), 3, true);
-        std::cout << teamMsg << std::endl;
+        //std::cout << teamMsg << std::endl;
+        console.addLog(teamMsg.c_str());
     }
 
     // observer colors are actually cyan, make them black
@@ -1359,20 +1614,37 @@ bool BZFlagNew::removePlayer(PlayerId id) {
 
 void BZFlagNew::viewportEvent(ViewportEvent& e) {
     GL::defaultFramebuffer.setViewport({{}, e.framebufferSize()});
+    _imgui.relayout(Vector2{e.windowSize()}/e.dpiScaling(),
+        e.windowSize(), e.framebufferSize());
     _camera->setViewport(e.windowSize());
 }
 
+void BZFlagNew::keyPressEvent(KeyEvent& event) {
+    if(_imgui.handleKeyPressEvent(event)) return;
+}
+
+void BZFlagNew::keyReleaseEvent(KeyEvent& event) {
+    if(_imgui.handleKeyReleaseEvent(event)) return;
+}
+
 void BZFlagNew::mousePressEvent(MouseEvent& e) {
+    if(_imgui.handleMousePressEvent(e)) return;
     if (e.button() == MouseEvent::Button::Left)
         _previousPosition = positionOnSphere(e.position());
 }
 
 void BZFlagNew::mouseReleaseEvent(MouseEvent& e) {
+    if(_imgui.handleMouseReleaseEvent(e)) return;
     if (e.button() == MouseEvent::Button::Left)
         _previousPosition = Vector3{};
 }
 
 void BZFlagNew::mouseScrollEvent(MouseScrollEvent& e) {
+    if(_imgui.handleMouseScrollEvent(e)) {
+        /* Prevent scrolling the page */
+        e.setAccepted();
+        return;
+    }
     if (!e.offset().y()) return;
     const Float distance = _cameraObject.transformation().translation().z();
     _cameraObject.translate(Vector3::zAxis(distance*(1.0f - (e.offset().y() > 0 ? 1/0.85f : 0.85f))));
@@ -1380,6 +1652,7 @@ void BZFlagNew::mouseScrollEvent(MouseScrollEvent& e) {
 }
 
 void BZFlagNew::mouseMoveEvent(MouseMoveEvent &e) {
+    if(_imgui.handleMouseMoveEvent(e)) return;
     if (!(e.buttons() & MouseMoveEvent::Button::Left)) return;
 
     const Vector3 currentPosition = positionOnSphere(e.position());
@@ -1391,6 +1664,10 @@ void BZFlagNew::mouseMoveEvent(MouseMoveEvent &e) {
     _previousPosition = currentPosition;
 
     redraw();
+}
+
+void BZFlagNew::textInputEvent(TextInputEvent& e) {
+    if(_imgui.handleTextInputEvent(e)) return;
 }
 
 Vector3 BZFlagNew::positionOnSphere(const Vector2i& position) const {
@@ -1439,14 +1716,14 @@ int BZFlagNew::main() {
     ServerListCache::get()->loadCache();
 
     BZDB.set("callsign", "testingbz");
-    BZDB.set("server", "localhost");
-    BZDB.set("port", "5154");
+    BZDB.set("server", "bzflag.allejo.io");
+    BZDB.set("port", "5130");
 
     startupInfo.useUDPconnection=true;
     startupInfo.team = ObserverTeam;
     strcpy(startupInfo.callsign, "testingbz");
-    strcpy(startupInfo.serverName, "localhost");
-    startupInfo.serverPort = 5154;
+    strcpy(startupInfo.serverName, "bzflag.allejo.io");
+    startupInfo.serverPort = 5130;
 
     startupInfo.autoConnect = true;
 
@@ -1995,7 +2272,8 @@ void BZFlagNew::playingLoop()
             if (status == AresHandler::Failed)
             {
                 //HUDDialogStack::get()->setFailedMessage("Server not found");
-                std::cout << "Ares Handler failed, server not found." << std::endl;
+                //std::cout << "Ares Handler failed, server not found." << std::endl;
+                console.addLog("Server not found");
                 waitingDNS = false;
             }
             else if (status == AresHandler::HbNSucceeded)
@@ -2004,7 +2282,6 @@ void BZFlagNew::playingLoop()
                 serverNetworkAddress = Address(inAddress);
                 char buf[INET_ADDRSTRLEN];
                 inet_ntop(AF_INET, &inAddress.s_addr, buf, sizeof(buf));
-                std::cout << "server addr: " << buf << std::endl;
                 joinInternetGame();
                 waitingDNS = false;
             }
@@ -2343,7 +2620,8 @@ void BZFlagNew::handleServerMessage(bool human, uint16_t code, uint16_t len, con
         worldBuilder->unpackGameSettings(msg);
         _serverLink->send(MsgWantWHash, 0, NULL);
         //HUDDialogStack::get()->setFailedMessage("Requesting World Hash...");
-        std::cout << "Requesting world hash..." << std::endl;
+        //std::cout << "Requesting world hash..." << std::endl;
+        console.addLog("Requesting world hash...");
         break;
     }
 
@@ -2418,9 +2696,10 @@ void BZFlagNew::handleServerMessage(bool human, uint16_t code, uint16_t len, con
         }
         else if (timeLeft < 0)
         {
-            std::cout << "Game Paused" << std::endl;
+            //std::cout << "Game Paused" << std::endl;
             //controlPanel->addMessage("Game Paused");
             //hud->setAlert(0, "Game Paused", 10.0f, true);
+            console.addLog("Game Paused");
         }
         break;
     }
@@ -2462,7 +2741,8 @@ void BZFlagNew::handleServerMessage(bool human, uint16_t code, uint16_t len, con
         myTank->explodeTank();
         //controlPanel->addMessage(msg2);
         //hud->setAlert(0, msg2.c_str(), 10.0f, true);
-        std::cout << msg2 << std::endl;
+        //std::cout << msg2 << std::endl;
+        console.addLog(msg2.c_str());
         break;
     }
 
@@ -3663,7 +3943,9 @@ bool BZFlagNew::processWorldChunk(const void *buf, uint16_t len, int bytesLeft) 
     (TextUtils::format
      ("Downloading World (%2d%% complete/%d kb remaining)...",
       (100 * doneSize / totalSize), bytesLeft / 1024).c_str());*/
-    std::cout << "Downloading World..." << std::endl;
+    //std::cout << "Downloading World..." << std::endl;
+    console.addLog("Downloading World (%2d%% complete/%d kb remaining)...",
+      (100 * doneSize / totalSize), bytesLeft / 1024);
     return bytesLeft == 0;
 }
 
@@ -3881,7 +4163,8 @@ void BZFlagNew::joinInternetGame()
     if (serverNetworkAddress.isAny())
     {
         //HUDDialogStack::get()->setFailedMessage("Server not found");
-        std::cout << "Server not found!" << std::endl;
+        //std::cout << "Server not found!" << std::endl;
+        console.addLog("Server not found!");
         return;
     }
 
@@ -3892,17 +4175,17 @@ void BZFlagNew::joinInternetGame()
     nameAndIp.push_back(serverNetworkAddress.getDotNotation());
     if (!ServerAccessList.authorized(nameAndIp))
     {
-        std::string msg;
         //HUDDialogStack::get()->setFailedMessage("Server Access Denied Locally");
-        std::cout << "Server Access Denied Locally" << std::endl;
-        //std::string msg = ColorStrings[WhiteColor];
+        //std::cout << "Server Access Denied Locally" << std::endl;
+        console.addLog("Server Access Denied Locally");
+        std::string msg = ColorStrings[WhiteColor];
         msg += "NOTE: ";
-        //msg += ColorStrings[GreyColor];
+        msg += ColorStrings[GreyColor];
         msg += "server access is controlled by ";
-        //msg += ColorStrings[YellowColor];
+        msg += ColorStrings[YellowColor];
         msg += ServerAccessList.getFilePath();
         addMessage(NULL, msg);
-        std::cout << msg;
+        console.addLog(msg.c_str());
         return;
     }
     // open server
@@ -3915,7 +4198,8 @@ void BZFlagNew::joinInternetGame()
 
     if (!_serverLink)
     {
-        std::cout << "Server link error" << std::endl;
+        console.addLog("Server link error");
+        //std::cout << "Server link error" << std::endl;
         return;
     }
 
@@ -3927,8 +4211,9 @@ void BZFlagNew::joinInternetGame()
         {
             char versionError[37];
             snprintf(versionError, sizeof(versionError), "Incompatible server version %s", serverLink->getVersion());
-            std::cout << versionError << std::endl;
+            //std::cout << versionError << std::endl;
             //HUDDialogStack::get()->setFailedMessage(versionError);
+            console.addLog(versionError);
             break;
         }
 
@@ -3940,7 +4225,8 @@ void BZFlagNew::joinInternetGame()
             // add to the HUD
             std::string msg;
             msg += "You have been banned from this server";
-            std::cout << msg << std::endl;
+            //std::cout << msg << std::endl;
+            console.addLog(msg.c_str());
             //HUDDialogStack::get()->setFailedMessage(msg.c_str());
 
             break;
@@ -3949,20 +4235,20 @@ void BZFlagNew::joinInternetGame()
         case ServerLink::Rejected:
             // the server is probably full or the game is over.  if not then
             // the server is having network problems.
-            std::cout << "Game is full or over.  Try again later." << std::endl;
+            console.addLog("Game is full or over.  Try again later.");
             break;
 
         case ServerLink::SocketError:
-            std::cout << "Error connecting to server." << std::endl;
+            console.addLog("Error connecting to server.");
             break;
 
         case ServerLink::CrippledVersion:
             // can't connect to (otherwise compatible) non-crippled server
-            std::cout << "Cannot connect to full version server." << std::endl;
+            console.addLog("Cannot connect to full version server.");
             break;
 
         default:
-            std::cout << "Internal error connecting to server (error code %d)." << std::endl;
+            console.addLog("Internal error connecting to server (error code %d).", _serverLink->getState());
             break;
         }
         return;
@@ -3974,7 +4260,8 @@ void BZFlagNew::joinInternetGame()
     else
         printError("No UDP connection, see Options to enable.");
 
-    std::cout << "Connection established!" << std::endl;
+    //std::cout << "Connection established!" << std::endl;
+    console.addLog("Connection established!");
     sendFlagNegotiation();
     joiningGame = true;
     //scoreboard->huntReset();

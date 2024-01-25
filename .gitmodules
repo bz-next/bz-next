@@ -4,3 +4,9 @@
 [submodule "corrade"]
 	path = corrade
 	url = https://github.com/mosra/corrade.git
+[submodule "magnum-integration"]
+	path = magnum-integration
+	url = https://github.com/mosra/magnum-integration
+[submodule "imgui"]
+	path = imgui
+	url = https://github.com/ocornut/imgui
