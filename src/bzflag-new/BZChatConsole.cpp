@@ -97,7 +97,6 @@ void BZChatConsole::registerCommandCallback(CommandCallback&& fun) {
 }
 
 void BZChatConsole::execCommand(const char* command_line) {
-    addLog(command_line);
     bool handledLocally = false;
     historyPos = -1;
     for (int i = history.size() - 1; i >= 0; --i) {

@@ -97,9 +97,9 @@ namespace ImGui
                 case '8': {
                     if (tokens.size() != 5) return false;
                     if (tokens[1] != "2") return false;
-                    ImU32 tempCol = std::atoi(tokens[2].c_str()) << 16;
+                    ImU32 tempCol = std::atoi(tokens[2].c_str());
                     tempCol |= std::atoi(tokens[3].c_str()) << 8;
-                    tempCol |= std::atoi(tokens[4].c_str());
+                    tempCol |= std::atoi(tokens[4].c_str()) << 16;
                     // Make it opaque
                     tempCol |= 0xff<<24;
                     *col = tempCol;

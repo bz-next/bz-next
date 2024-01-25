@@ -1557,14 +1557,14 @@ int BZFlagNew::main() {
     ServerListCache::get()->loadCache();
 
     BZDB.set("callsign", "testingbz");
-    BZDB.set("server", "bzflag.allejo.io");
-    BZDB.set("port", "5130");
+    BZDB.set("server", "1purplepanzer.mooo.com");
+    BZDB.set("port", "4100");
 
     startupInfo.useUDPconnection=true;
     startupInfo.team = ObserverTeam;
     strcpy(startupInfo.callsign, "testingbz");
-    strcpy(startupInfo.serverName, "bzflag.allejo.io");
-    startupInfo.serverPort = 5130;
+    strcpy(startupInfo.serverName, "1purplepanzer.mooo.com");
+    startupInfo.serverPort = 4100;
 
     startupInfo.autoConnect = true;
 
