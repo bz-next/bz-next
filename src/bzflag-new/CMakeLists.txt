@@ -205,7 +205,9 @@ ActionBinding.cxx
     World.cxx
     World.h
     WorldPlayer.cxx
-    WorldPlayer.h)
+    WorldPlayer.h
+    BZChatConsole.cpp
+    ImGuiANSITextRenderer.cpp)
 target_link_libraries(bzflag-new PRIVATE
     Corrade::Main
     Magnum::Application
