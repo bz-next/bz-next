@@ -19,12 +19,18 @@ project(BZFlag
 )
 
 add_subdirectory(corrade EXCLUDE_FROM_ALL)
+
 set(MAGNUM_WITH_ANYIMAGEIMPORTER ON CACHE BOOL "" FORCE)
 set(MAGNUM_WITH_ANYSCENEIMPORTER ON CACHE BOOL "" FORCE)
 set(MAGNUM_WITH_OBJIMPORTER ON CACHE BOOL "" FORCE)
 set(MAGNUM_WITH_TGAIMPORTER ON CACHE BOOL "" FORCE)
 set(MAGNUM_WITH_SDL2APPLICATION ON CACHE BOOL "" FORCE)
+
+set(MAGNUM_WITH_IMGUI ON CACHE BOOL "" FORCE)
+set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
+
 add_subdirectory(magnum EXCLUDE_FROM_ALL)
+add_subdirectory(magnum-integration EXCLUDE_FROM_ALL)
 
 find_package(Corrade REQUIRED Main)
 find_package(Magnum REQUIRED
@@ -35,6 +41,8 @@ find_package(Magnum REQUIRED
     Trade
     Sdl2Application
     DebugTools)
+
+find_package(MagnumIntegration REQUIRED ImGui)
 #find_package(MagnumExtras REQUIRED Ui)
 
 
