@@ -90,7 +90,6 @@ BZScoreboard::BZScoreboard() :
     tkWarnRatio(),
     numHunted(0) {
 
-    clear();
     // initialize message color (white)
     messageColor[0] = 1.0f;
     messageColor[1] = 1.0f;
@@ -100,7 +99,6 @@ BZScoreboard::BZScoreboard() :
 }
 
 BZScoreboard::~BZScoreboard() {
-    clear();
 }
 
 const char  **BZScoreboard::getSortLabels ()
@@ -426,22 +424,6 @@ void BZScoreboard::getPlayerList(std::vector<Player*>& players)
             players.push_back(p);
     }
     delete[] pList;
-}
-
-void BZScoreboard::clear() {
-    for (int i = 0; i < items.size(); ++i)
-        free(items[i]);
-    items.clear();
-}
-
-void BZScoreboard::add(const char* fmt, ...) {
-    char buf[1024];
-    va_list args;
-    va_start(args, fmt);
-    vsnprintf(buf, IM_ARRAYSIZE(buf), fmt, args);
-    buf[IM_ARRAYSIZE(buf) - 1] = 0;
-    va_end(args);
-    items.push_back(Strdup(buf));
 }
 
 ImU32 msgColorToImGuiColor(const GLfloat *mc) {
