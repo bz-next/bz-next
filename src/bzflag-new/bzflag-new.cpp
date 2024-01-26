@@ -497,7 +497,7 @@ class BZFlagNew: public Platform::Sdl2Application {
 
         void exitEvent(ExitEvent& event) override;
 
-        void tryConnect(const std::string& callsign, const std::string& server, const std::string& port);
+        void tryConnect(const std::string& callsign, const std::string& password, const std::string& server, const std::string& port);
 
         // IMGUI
         void showMainMenuBar();
@@ -736,6 +736,7 @@ void BZFlagNew::maybeShowFPS() {
 void BZFlagNew::maybeShowConnect() {
 
     static char callsign[128];
+    static char password[128];
     static char hostname[128];
     static char port[128];
 
@@ -743,10 +744,11 @@ void BZFlagNew::maybeShowConnect() {
 
     ImGui::Begin("Connect", &showConnect, ImGuiWindowFlags_AlwaysAutoResize);
     ImGui::InputText("Callsign", callsign, IM_ARRAYSIZE(callsign));
+    ImGui::InputText("Password", password, IM_ARRAYSIZE(password), ImGuiInputTextFlags_Password);
     ImGui::InputText("Hostname", hostname, IM_ARRAYSIZE(hostname));
     ImGui::InputText("Port", port, IM_ARRAYSIZE(port));
     if (ImGui::Button("Connect")) {
-        tryConnect(callsign, hostname, port);
+        tryConnect(callsign, password, hostname, port);
     }
     ImGui::End();
 }
@@ -1540,15 +1542,21 @@ void BZFlagNew::exitEvent(ExitEvent& e) {
     isQuit = true;
 }
 
-void BZFlagNew::tryConnect(const std::string& callsign, const std::string& server, const std::string& port)
+void BZFlagNew::tryConnect(const std::string& callsign, const std::string& password, const std::string& server, const std::string& port)
 {
     BZDB.set("callsign", callsign.c_str());
     BZDB.set("server", server.c_str());
     BZDB.set("port", port.c_str());
+    if (password != BZDB.get("password")) {
+        // Password has changed, token is invalid.
+        startupInfo.token[0] = '\0';
+        BZDB.set("password", password.c_str());
+    }
 
     strcpy(startupInfo.callsign, callsign.c_str());
     strcpy(startupInfo.serverName, server.c_str());
     startupInfo.serverPort = std::atoi(port.c_str());
+    strcpy(startupInfo.password, password.c_str());
 
     joinRequested = true;
 }
@@ -2126,7 +2134,7 @@ void BZFlagNew::playingLoop()
                 // wait no more than 10 seconds for a token
                 for (int j = 0; j < 40; j++)
                 {
-                    serverList->checkEchos(getStartupInfo());
+                    serverList->checkEchos(&startupInfo);
                     cURLManager::perform();
                     if (startupInfo.token[0] != '\0') break;
                     TimeKeeper::sleep(0.25f);
