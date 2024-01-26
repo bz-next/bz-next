@@ -393,6 +393,7 @@ WorldRenderer::WorldRenderer() {
     //worldMeshes["pyr"].push_back(MeshTools::compile(WorldPrimitiveGenerator::pyrSolid()));
     worldDrawables = NULL;
     worldParent = new Object3D{};
+    worldParent->scale({0.01, 0.01, 0.01});
 }
 
 WorldRenderer::~WorldRenderer() {
@@ -651,11 +652,12 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
     
     _cameraObject
         .setParent(&_scene)
-        .translate(Vector3::zAxis(5.0f));
+        .translate(Vector3::zAxis(10.0f));
+        
     
     (*(_camera = new SceneGraph::Camera3D{_cameraObject}))
         .setAspectRatioPolicy(SceneGraph::AspectRatioPolicy::Extend)
-        .setProjectionMatrix(Matrix4::perspectiveProjection(35.0_degf, 1.0f, 0.01f, 10000.0f))
+        .setProjectionMatrix(Matrix4::perspectiveProjection(35.0_degf, 1.0f, 0.01f, 1000.0f))
         .setViewport(GL::defaultFramebuffer.viewport().size());
     
     _manipulator.setParent(&_scene);
