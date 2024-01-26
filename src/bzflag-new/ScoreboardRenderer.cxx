@@ -586,8 +586,8 @@ void ScoreboardRenderer::renderScoreboard(void)
 
     delete[] players;
 
-    if (World::getWorld()->allowTeams())
-        renderTeamScores(winWidth, y0, dy);
+    //if (World::getWorld()->allowTeams())
+    //    renderTeamScores(winWidth, y0, dy);
 }
 
 

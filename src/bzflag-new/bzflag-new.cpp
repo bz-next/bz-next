@@ -78,6 +78,7 @@
 #include "WorldRenderer.h"
 
 #include "BZChatConsole.h"
+#include "BZScoreboard.h"
 
 #include <ctime>
 #include <cassert>
@@ -207,6 +208,9 @@ class BZFlagNew: public Platform::Sdl2Application {
 
         void maybeShowConnect();
         bool showConnect = true;
+
+        void maybeShowScoreboard();
+        bool showScoreboard = true;
         
         Vector3 positionOnSphere(const Vector2i& position) const;
 
@@ -327,6 +331,7 @@ class BZFlagNew: public Platform::Sdl2Application {
         ImGuiIntegration::Context _imgui{NoCreate};
 
         BZChatConsole console;
+        BZScoreboard scoreboard;
 
         bool isQuit = false;
 };
@@ -417,6 +422,7 @@ void BZFlagNew::showMainMenuBar() {
 }
 
 void BZFlagNew::showMenuView() {
+    if (ImGui::MenuItem("Scoreboard", NULL, &showScoreboard)) {}
     if (ImGui::MenuItem("Console", NULL, &showConsole)) {}
     if (ImGui::MenuItem("FPS", NULL, &showFPS)) {}
 }
@@ -453,6 +459,12 @@ void BZFlagNew::maybeShowConnect() {
         tryConnect(callsign, password, hostname, port);
     }
     ImGui::End();
+}
+
+void BZFlagNew::maybeShowScoreboard() {
+    if (showScoreboard) {
+        scoreboard.draw("Scoreboard", NULL);
+    }
 }
 
 void BZFlagNew::onConsoleText(const char* msg) {
@@ -496,6 +508,7 @@ void BZFlagNew::drawEvent() {
     maybeShowConsole();
     maybeShowFPS();
     maybeShowConnect();
+    maybeShowScoreboard();
 
     /* Update application cursor */
     _imgui.updateApplicationCursor(*this);
@@ -1299,11 +1312,11 @@ int BZFlagNew::main() {
 
     startupInfo.useUDPconnection=true;
     startupInfo.team = ObserverTeam;
-    //strcpy(startupInfo.callsign, "testingbz");
-    //strcpy(startupInfo.serverName, "1purplepanzer.mooo.com");
-    //startupInfo.serverPort = 4100;
+    strcpy(startupInfo.callsign, "testingbz");
+    strcpy(startupInfo.serverName, "bzflag.allejo.io");
+    startupInfo.serverPort = 5198;
 
-    //startupInfo.autoConnect = true;
+    startupInfo.autoConnect = true;
 
     Team::updateShotColors();
 
