@@ -105,15 +105,15 @@ Player::Player(const PlayerId& _id, TeamColor _team,
     if (id != ServerPlayer)
     {
         // make scene nodes
-        tankNode = new TankSceneNode(state.pos, forward);
-        tankIDLNode = new TankIDLSceneNode(tankNode);
+        //tankNode = new TankSceneNode(state.pos, forward);
+        //tankIDLNode = new TankIDLSceneNode(tankNode);
         changeTeam(team);
         const float sphereRad = (1.5f * BZDBCache::tankRadius);
-        if (RENDERER.useQuality() >= 2)
+        /*if (RENDERER.useQuality() >= 2)
             pausedSphere = new SphereLodSceneNode(state.pos, sphereRad);
         else
             pausedSphere = new SphereBspSceneNode(state.pos, sphereRad);
-        pausedSphere->setColor(0.0f, 0.0f, 0.0f, 0.5f);
+        pausedSphere->setColor(0.0f, 0.0f, 0.0f, 0.5f);*/
     }
 
     // setup the dimension properties
@@ -146,9 +146,9 @@ Player::~Player()
 {
     if (id != ServerPlayer)
     {
-        delete tankIDLNode;
-        delete tankNode;
-        delete pausedSphere;
+        //delete tankIDLNode;
+        //delete tankNode;
+        //delete pausedSphere;
     }
 }
 
@@ -397,21 +397,21 @@ void Player::setExplode(const TimeKeeper& t)
     explodeTime = t;
     setStatus((getStatus() | short(PlayerState::Exploding) | short(PlayerState::Falling)) &
               ~(short(PlayerState::Alive) | short(PlayerState::Paused)));
-    tankNode->rebuildExplosion();
+    //tankNode->rebuildExplosion();
     // setup the flag effect to revert to normal
     updateFlagEffect(Flags::Null);
 }
 
 void Player::setDeathEffect ( TankDeathOverride *e )
 {
-    if (tankNode)
-        tankNode->setDeathOverride(e);
+    //if (tankNode)
+    //    tankNode->setDeathOverride(e);
 }
 
 TankDeathOverride* Player::getDeathEffect ( void )
 {
-    if (tankNode)
-        return tankNode->getDeathOverride();
+    //if (tankNode)
+    //    return tankNode->getDeathOverride();
 
     return NULL;
 }
@@ -687,7 +687,7 @@ void Player::updateTreads(float dt)
     const float leftOff = dt * (speedFactor - angularFactor);
     const float rightOff = dt * (speedFactor + angularFactor);
 
-    tankNode->addTreadOffsets(leftOff, rightOff);
+    //tankNode->addTreadOffsets(leftOff, rightOff);
 
     return;
 }
@@ -790,6 +790,7 @@ void Player::endShot(int index, bool isHit, bool showExplosion)
 
 void Player::setVisualTeam (TeamColor visualTeam)
 {
+    /*
     // only do all this junk when the effective team color actually changes
     if (visualTeam == lastVisualTeam)
         return;
@@ -834,11 +835,11 @@ void Player::setVisualTeam (TeamColor visualTeam)
     color[0] = _color[0];
     color[1] = _color[1];
     color[2] = _color[2];
-    tankNode->setMaterial(OpenGLMaterial(tankSpecular, emissive, shininess));
-    tankNode->setTexture(tankTexture);
+    //tankNode->setMaterial(OpenGLMaterial(tankSpecular, emissive, shininess));
+    //tankNode->setTexture(tankTexture);
 
     int jumpJetsTexture = tm.getTextureID("jumpjets", false);
-    tankNode->setJumpJetsTexture(jumpJetsTexture);
+    //tankNode->setJumpJetsTexture(jumpJetsTexture);*/
 }
 
 
@@ -871,7 +872,7 @@ void Player::addToScene(SceneDatabase* scene, TeamColor effectiveTeam,
                         bool inCockpit, bool seerView,
                         bool showTreads, bool showIDL)
 {
-    const GLfloat groundPlane[4] = {0.0f, 0.0f, 1.0f, 0.0f};
+    /*const GLfloat groundPlane[4] = {0.0f, 0.0f, 1.0f, 0.0f};
 
     if (!isAlive() && !isExploding())
     {
@@ -1003,7 +1004,7 @@ void Player::addToScene(SceneDatabase* scene, TeamColor effectiveTeam,
         pausedSphere->move(state.pos,
                            1.5f * BZDBCache::tankRadius * dimensionsScale[0]);
         scene->addDynamicSphere(pausedSphere);
-    }
+    }*/
 }
 
 
@@ -1456,8 +1457,8 @@ void Player::setDeadReckoning()
 
 void Player::setExplodePos( const float * p)
 {
-    if (tankNode)
-        tankNode->explodePos = fvec3(p[0],p[1],p[2]);
+    //if (tankNode)
+    //    tankNode->explodePos = fvec3(p[0],p[1],p[2]);
 }
 
 
@@ -1467,8 +1468,8 @@ void Player::renderRadar() const
     {
         return; // don't draw anything
     }
-    if (tankNode)
-        ((TankSceneNode*)tankNode)->renderRadar();
+    //if (tankNode)
+    //    ((TankSceneNode*)tankNode)->renderRadar();
     return;
 }
 
