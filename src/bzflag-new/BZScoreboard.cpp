@@ -716,23 +716,10 @@ void BZScoreboard::draw(const char* title, bool* p_open) {
         while ((player = players[i]) != NULL) {
             ImGui::TableNextRow();
 
-            /*if ((maxLines > 0) && (lines >= maxLines)) {
-                hiddenLines++;
-            } else {*/
-            //ImGui::TableSetColumnIndex(0);
-            //ImGui::Text("Hello");
-            //ImGui::TableSetColumnIndex(1);
-            //ImGui::Text("Hello");
-            //ImGui::TableSetColumnIndex(2);
-            //ImGui::Text("Hello");
-                drawPlayerScore(player, mottoLen, false);
-                if (World::getWorld()->allowTeams()) {
-                    renderTeamScores(i);
-                } else {
-                    ImGui::TableSetColumnIndex(3);
-                    ImGui::Text("Placeholder");
-                }
-            //}
+            drawPlayerScore(player, mottoLen, false);
+            if (World::getWorld()->allowTeams()) {
+                renderTeamScores(i);
+            }
             ++i;
         }
         ImGui::EndTable();
