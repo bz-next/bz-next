@@ -214,7 +214,8 @@ add_subdirectory(data)
 list(APPEND C_HEADERS_TO_CHECK
     limits.h
     memory.h
-    miniupnpc/miniupnpc.h # TODO: Should this be part of a find_package?
+# Disabling this for now...
+#    miniupnpc/miniupnpc.h # TODO: Should this be part of a find_package?
     ncurses.h
 
     regex.h
