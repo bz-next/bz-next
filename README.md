@@ -15,7 +15,7 @@ git checkout magnum-experiment
 git submodule update --init --recursive
 mkdir build
 cd build
-cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=On -DCMAKE_BUILT_TYPE=Debug ..
+cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=On -DCMAKE_BUILD_TYPE=Debug ..
 make -j$(nproc)
 ```
 The binaries will be in `Debug/bin`
