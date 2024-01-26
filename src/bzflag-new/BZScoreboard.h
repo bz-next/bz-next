@@ -56,9 +56,8 @@ class BZScoreboard {
         void renderTeamScores (float y, float x, float dy);
         void renderScoreboard();
         void drawRoamTarget(float x0, float y0, float x1, float y1);
-        void drawPlayerScore(const Player*,
-                            float x1, float x2, float x3, float xs, float y,
-                            int mottoLen, bool huntInd);
+        void drawPlayerScore(const Player*, int mottoLen, bool huntInd);
+        void renderTeamScores (int ind);
         static const char *sortLabels[SORT_MAXNUM+2];
         static int sortMode;
         static bool alwaysShowTeamScore;
@@ -72,6 +71,7 @@ class BZScoreboard {
         static int sortCompareI2(const void* _a, const void* _b);
         static Player** newSortedList(int sortType, bool obsLast, int *_numPlayers=NULL);
         void exitSelectState (void);
+        void sortTeamScores();
 
     private:
         ImVector<char*> items;
@@ -104,6 +104,9 @@ class BZScoreboard {
         float huntPlusesWidth;
         float huntedArrowWidth;
         float tkWarnRatio;
+
+        int teamCount;
+        int sortedTeamsForTeamScore[NumTeams];
 
         static std::string scoreSpacingLabel;
         static std::string scoreLabel;

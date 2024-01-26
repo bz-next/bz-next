@@ -35,6 +35,7 @@ SOFTWARE.
 #include "LocalPlayer.h"
 #include "World.h"
 #include "sound.h"
+#include <imgui.h>
 
 // because of the 'player' crap, we can't  #include "Roaming.h"  easily
 extern Player* getRoamTargetTank();
@@ -443,16 +444,319 @@ void BZScoreboard::add(const char* fmt, ...) {
     items.push_back(Strdup(buf));
 }
 
+ImU32 msgColorToImGuiColor(const GLfloat *mc) {
+    ImU32 r = (ImU32)(mc[0]*0xff);
+    ImU32 g = (ImU32)(mc[1]*0xff);
+    ImU32 b = (ImU32)(mc[2]*0xff);
+    return r | (g<<8) | (b<<16) | (0xff<<24);
+}
+
+void BZScoreboard::drawPlayerScore(const Player* player, int mottoLen, bool huntCursor)
+{
+    // score
+    char score[40], kills[40];
+
+    bool highlightTKratio = false;
+    if (tkWarnRatio > 0.0)
+    {
+        if (((player->getWins() > 0) && (player->getTKRatio() > tkWarnRatio)) ||
+                ((player->getWins() == 0) && (player->getTeamKills() >= 3)))
+            highlightTKratio = true;
+    }
+
+    if (World::getWorld()->allowRabbit())
+    {
+        sprintf(score, "%2d%% %4d %3d-%-3d%s[%2d]", player->getRabbitScore(),
+                player->getScore(), player->getWins(), player->getLosses(),
+                highlightTKratio ? ColorStrings[CyanColor].c_str() : "",
+                player->getTeamKills());
+    }
+    else if (World::getWorld()->allowTeams())
+    {
+        sprintf(score, "%4d %4d-%-4d%s[%2d]", player->getScore(),
+                player->getWins(), player->getLosses(),
+                highlightTKratio ? ColorStrings[CyanColor].c_str() : "",
+                player->getTeamKills());
+    }
+    else
+    {
+        sprintf(score, "%4d %4d-%-4d%s", player->getScore(),
+                player->getWins(), player->getLosses(),
+                highlightTKratio ? ColorStrings[CyanColor].c_str() : "");
+    }
+
+    // kills
+    if (LocalPlayer::getMyTank() != player)
+        sprintf(kills, "%3d~%-3d", player->getLocalWins(), player->getLocalLosses());
+    else
+        sprintf(kills, "%4d", player->getSelfKills());
+
+
+    // team color
+    TeamColor teamIndex = player->getTeam();
+    std::string teamColor;
+    if (player->getId() < 200)
+        teamColor = Team::getAnsiCode(teamIndex);
+    else
+    {
+        teamColor = ColorStrings[CyanColor];    // replay observers
+    }
+
+    // authentication status
+    std::string statusInfo;
+    if (BZDBCache::colorful)
+        statusInfo += ColorStrings[CyanColor];
+    else
+        statusInfo += teamColor;
+    if (player->isAdmin())
+        statusInfo += '@';
+    else if (player->isVerified())
+        statusInfo += '+';
+    else if (player->isRegistered())
+        statusInfo += '-';
+    else
+    {
+        statusInfo = " ";    // space placeholder
+    }
+
+    std::string playerInfo;
+    // team color
+    playerInfo += teamColor;
+    // Slot number only for admins (playerList perm check, in case they have
+    // hideAdmin)
+    LocalPlayer* localPlayer = LocalPlayer::getMyTank();
+    if (localPlayer->isAdmin() || localPlayer->hasPlayerList())
+    {
+        char slot[10];
+        sprintf(slot, "%3d",player->getId());
+        playerInfo += slot;
+        playerInfo += " - ";
+    }
+
+    if (roaming && BZDB.isTrue("showVelocities"))
+    {
+        float vel[3] = {0};
+        memcpy(vel,player->getVelocity(),sizeof(float)*3);
+
+        float linSpeed = sqrt(vel[0]*vel[0]+vel[1]*vel[1]);
+
+        float badFactor = 1.5f;
+        if (linSpeed > player->getMaxSpeed()*badFactor)
+            playerInfo += ColorStrings[RedColor];
+        if (linSpeed > player->getMaxSpeed())
+            playerInfo += ColorStrings[YellowColor];
+        else if (linSpeed < 0.0001f)
+            playerInfo += ColorStrings[GreyColor];
+        else
+            playerInfo += ColorStrings[WhiteColor];
+        playerInfo += TextUtils::format("%5.2f ",linSpeed);
+        playerInfo += teamColor;
+    }
+
+    // callsign
+    playerInfo += player->getCallSign();
+
+    // motto in parentheses
+    if (player->getMotto()[0] != '\0' && mottoLen>0)
+    {
+        playerInfo += " (";
+        playerInfo += TextUtils::str_trunc_continued (player->getMotto(), mottoLen);
+        playerInfo += ")";
+    }
+    // carried flag
+    bool coloredFlag = false;
+    FlagType* flagd = player->getFlag();
+    if (flagd != Flags::Null)
+    {
+        // color special flags
+        if (BZDBCache::colorful)
+        {
+            if ((flagd == Flags::ShockWave)
+                    ||  (flagd == Flags::Genocide)
+                    ||  (flagd == Flags::Laser)
+                    ||  (flagd == Flags::GuidedMissile))
+                playerInfo += ColorStrings[WhiteColor];
+            else if (flagd->flagTeam != NoTeam)
+            {
+                // use team color for team flags
+                playerInfo += Team::getAnsiCode(flagd->flagTeam);
+            }
+            coloredFlag = true;
+        }
+        playerInfo += "/";
+        playerInfo += (flagd->endurance == FlagNormal ? flagd->flagName : flagd->flagAbbv);
+        // back to original color
+        if (coloredFlag)
+            playerInfo += teamColor;
+    }
+
+    // status
+    if (player->isPaused())
+        playerInfo += "[p]";
+    else if (player->isNotResponding())
+        playerInfo += "[nr]";
+    else if (player->isAutoPilot())
+        playerInfo += "[auto]";
+
+#if DEBUG_SHOWRATIOS
+    if (player->getTeam() != ObserverTeam)
+    {
+        if (sortMode == SORT_NORMALIZED)
+            stringAppendNormalized (&playerInfo, player->getNormalizedScore());
+        else if (sortMode == SORT_MYRATIO && LocalPlayer::getMyTank() != player)
+            stringAppendNormalized (&playerInfo, player->getLocalNormalizedScore());
+        else if (sortMode == SORT_TKRATIO)
+            stringAppendNormalized (&playerInfo, player->getTKRatio());
+    }
+#endif
+
+    /*if (player == getRoamTargetTank())
+    {
+        const float w = fm.getStrLength(minorFontFace, minorFontSize, playerInfo);
+        const float h = fm.getStrHeight(minorFontFace, minorFontSize, playerInfo);
+        drawRoamTarget(x3, y, x3 + w, y + h);
+    }*/
+
+    // draw
+    if (player->getTeam() != ObserverTeam)
+    {
+        ImGui::PushStyleColor(ImGuiCol_Text, msgColorToImGuiColor(Team::getTankColor(teamIndex)));
+        ImGui::TableSetColumnIndex(0);
+        ImGui::Text(score);
+        ImGui::TableSetColumnIndex(1);
+        ImGui::Text(kills);
+        ImGui::PopStyleColor();
+    }
+    ImGui::TableSetColumnIndex(2);
+    std::string playerAndStatus = statusInfo + playerInfo;
+    ImGui::TextAnsiUnformatted(playerAndStatus.c_str(), playerAndStatus.c_str() + playerAndStatus.size());
+
+    // draw huntEnabled status
+    /*if (player->isHunted())
+    {
+        std::string huntStr = ColorStrings[WhiteColor];
+        huntStr += "Hunt->";
+        fm.drawString(xs - huntedArrowWidth, y, 0, minorFontFace, minorFontSize,
+                      huntStr.c_str());
+    }
+    else if (huntCursor && !huntAddMode)
+    {
+        std::string huntStr = ColorStrings[WhiteColor];
+        huntStr += ColorStrings[PulsatingColor];
+        huntStr += "->";
+        fm.drawString(xs - huntArrowWidth, y, 0, minorFontFace, minorFontSize,
+                      huntStr.c_str());
+    }
+    if (huntCursor && huntAddMode)
+    {
+        std::string huntStr = ColorStrings[WhiteColor];
+        huntStr += ColorStrings[PulsatingColor];
+        huntStr += "@>";
+        fm.drawString(xs - huntPlusesWidth, y, 0, minorFontFace, minorFontSize,
+                      huntStr.c_str());
+    }*/
+}
+
+void BZScoreboard::sortTeamScores()
+{
+    teamCount = 0;
+    memset(sortedTeamsForTeamScore, 0, sizeof(sortedTeamsForTeamScore));
+
+    if (World::getWorld()->allowRabbit())
+        return;
+
+    for (int i = RedTeam; i < NumTeams; i++)
+    {
+        if (!Team::isColorTeam(TeamColor(i))) continue;
+        const Team* team = World::getWorld()->getTeams() + i;
+        if (team->size == 0) continue;
+        sortedTeamsForTeamScore[teamCount++] = i;
+    }
+    qsort(sortedTeamsForTeamScore, teamCount, sizeof(int), teamScoreCompare);
+}
+
+void BZScoreboard::renderTeamScores (int ind)
+{
+    // print teams sorted by score
+
+    if (World::getWorld()->allowRabbit())
+        return;
+    
+    if (ind >= NumTeams || ind >= teamCount) return;
+
+    char score[44];
+    Team& team = World::getWorld()->getTeam(sortedTeamsForTeamScore[ind]);
+    sprintf(score, "%3d (%3d-%-3d) %3d", team.getWins() - team.getLosses(), team.getWins(), team.getLosses(), team.size);
+    ImGui::TableSetColumnIndex(3);
+    ImGui::PushStyleColor(ImGuiCol_Text, msgColorToImGuiColor(Team::getTankColor((TeamColor)sortedTeamsForTeamScore[ind])));
+    ImGui::Text(score);
+    ImGui::PopStyleColor();
+}
+
 void BZScoreboard::draw(const char* title, bool* p_open) {
     ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin(title, p_open)) {
         ImGui::End();
         return;
     }
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, -1));
-    for (const char* item : items) {
-        ImGui::TextAnsiUnformatted(item, item + strlen(item));
+
+    int numPlayers;
+    int mottoLen;
+    Player** players;
+    Player*  player;
+    if ( (players = newSortedList (sortMode, true, &numPlayers)) != NULL) {
+        LocalPlayer* myTank = LocalPlayer::getMyTank();
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, -1));
+        ImGui::PushStyleColor(ImGuiCol_Text, msgColorToImGuiColor(messageColor));
+        ImGui::BeginTable("scoreboard", 4);
+        ImGui::TableSetupColumn(scoreLabel.c_str());
+        ImGui::TableSetupColumn(killLabel.c_str());
+        ImGui::TableSetupColumn(playerLabel.c_str());
+        ImGui::TableSetupColumn("Team Score");
+        // Print hunt *SEL* column label if we're doing it that way
+        //if (huntState == HUNT_SELECTING)
+        //{ ... }
+        // more hunt logic here
+        mottoLen = BZDB.getIntClamped ("mottoDispLen", 0, 128);
+        huntSelectEvent = false;
+        huntPositionEvent = 0;
+        numHunted = 0;
+
+        const int maxLines = BZDB.evalInt("maxScoreboardLines");
+        int lines = 0;
+        int hiddenLines = 0;
+
+        ImGui::TableHeadersRow();
+
+        sortTeamScores();
+
+        int i = 0;
+        while ((player = players[i]) != NULL) {
+            ImGui::TableNextRow();
+
+            /*if ((maxLines > 0) && (lines >= maxLines)) {
+                hiddenLines++;
+            } else {*/
+            //ImGui::TableSetColumnIndex(0);
+            //ImGui::Text("Hello");
+            //ImGui::TableSetColumnIndex(1);
+            //ImGui::Text("Hello");
+            //ImGui::TableSetColumnIndex(2);
+            //ImGui::Text("Hello");
+                drawPlayerScore(player, mottoLen, false);
+                if (World::getWorld()->allowTeams()) {
+                    renderTeamScores(i);
+                } else {
+                    ImGui::TableSetColumnIndex(3);
+                    ImGui::Text("Placeholder");
+                }
+            //}
+            ++i;
+        }
+        ImGui::EndTable();
+        ImGui::PopStyleColor();
+        ImGui::PopStyleVar();
     }
-    ImGui::PopStyleVar();
+
     ImGui::End();
 }
