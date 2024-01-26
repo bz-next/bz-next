@@ -1203,6 +1203,7 @@ void        addMessage(const Player *_player, const std::string& msg,
                        int mode, bool highlight, const char* oldColor)
 {
     std::string fullMessage;
+    exit(1);    // dog help you if this function gets called from somewhere...
 
     if (BZDB.isTrue("colorful"))
     {
