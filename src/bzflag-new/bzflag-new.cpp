@@ -576,9 +576,9 @@ class BZFlagNew: public Platform::Sdl2Application {
         bool waitingDNS = false;
         Address serverNetworkAddress;
         bool justJoined = false;
-        ServerLink *_serverLink;
-        bool serverDied = true;
-        bool serverError = true;
+        ServerLink *_serverLink = NULL;
+        bool serverDied = false;
+        bool serverError = false;
         bool joiningGame = false;
         bool entered = false;
         LocalPlayer *myTank = NULL;
@@ -4125,6 +4125,20 @@ void BZFlagNew::leaveGame() {
     curMaxPlayers = 0;
     numFlags = 0;
     remotePlayers = NULL;
+
+    ServerLink::setServer(NULL);
+    delete _serverLink;
+    serverLink = NULL;
+    serverNetworkAddress = Address();
+
+    gameOver = false;
+    serverError = false;
+    serverDied = false;
+
+    // reset the BZDB variables
+    //BZDB.iterate(resetServerVar, NULL);
+
+    ::Flags::clearCustomFlags();
 }
 
 int main(int argc, char** argv)
