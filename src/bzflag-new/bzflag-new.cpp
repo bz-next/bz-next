@@ -1312,11 +1312,11 @@ int BZFlagNew::main() {
 
     startupInfo.useUDPconnection=true;
     startupInfo.team = ObserverTeam;
-    strcpy(startupInfo.callsign, "testingbz");
-    strcpy(startupInfo.serverName, "bzflag.allejo.io");
-    startupInfo.serverPort = 5198;
+    //strcpy(startupInfo.callsign, "testingbz");
+    //strcpy(startupInfo.serverName, "bzflag.allejo.io");
+    //startupInfo.serverPort = 5198;
 
-    startupInfo.autoConnect = true;
+    //startupInfo.autoConnect = true;
 
     Team::updateShotColors();
 
