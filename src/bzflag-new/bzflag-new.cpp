@@ -831,6 +831,9 @@ public:
     void start(char * hexDigest);
 private:
     void askToBZFS();
+    int curlProgressFunc(void* UNUSED(clientp),
+                     double dltotal, double dlnow,
+                     double UNUSED(ultotal), double UNUSED(ulnow));
     virtual void finalization(char *data, unsigned int length, bool good);
     BZFlagNew *_app;
 };
@@ -854,6 +857,21 @@ void WorldDownLoader::start(char * hexDigest)
     }
     else
         askToBZFS();
+}
+
+int WorldDownLoader::curlProgressFunc(void* UNUSED(clientp),
+                     double dltotal, double dlnow,
+                     double UNUSED(ultotal), double UNUSED(ulnow))
+{
+    // update the status
+    double percentage = 0.0;
+    if ((int)dltotal > 0)
+        percentage = 100.0 * dlnow / dltotal;
+    char buffer[128];
+    sprintf (buffer, "%2.1f%% (%i/%i)", percentage, (int)dlnow, (int)dltotal);
+    _app->console.addLog(buffer);
+
+    return 0;
 }
 
 void WorldDownLoader::finalization(char *data, unsigned int length, bool good)
