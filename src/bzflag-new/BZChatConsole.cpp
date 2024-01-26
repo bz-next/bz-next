@@ -56,6 +56,9 @@ void BZChatConsole::addLog(const char* fmt, ...) {
     va_end(args);
     items.push_back(Strdup(buf));
 }
+// Todo: Cull off-screen text entries for performance.
+// How to do this is described in the manual this code is based on, at
+// https://pthom.github.io/imgui_manual_online/
 void BZChatConsole::draw(const char* title, bool* p_open) {
     ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin(title, p_open)) {
