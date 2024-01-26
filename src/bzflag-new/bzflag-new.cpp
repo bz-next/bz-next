@@ -72,6 +72,10 @@
 #include <Magnum/Primitives/Cube.h>
 #include <Magnum/DebugTools/Profiler.h>
 #include <Magnum/ImGuiIntegration/Context.hpp>
+#include <Magnum/Types.h>
+
+#include "MagnumDefs.h"
+#include "WorldRenderer.h"
 
 #include "BZChatConsole.h"
 
@@ -81,7 +85,7 @@
 #include <sstream>
 #include <cstring>
 #include <functional>
-#include "Magnum/Types.h"
+
 #include "utime.h"
 
 #include "common.h"
@@ -166,7 +170,7 @@ void dumpResources()
 using namespace Magnum;
 using namespace Magnum::Math::Literals;
 
-typedef SceneGraph::Object<SceneGraph::MatrixTransformation3D> Object3D;
+/*typedef SceneGraph::Object<SceneGraph::MatrixTransformation3D> Object3D;
 typedef SceneGraph::Scene<SceneGraph::MatrixTransformation3D> Scene3D;
 
 class ColoredDrawable : public SceneGraph::Drawable3D {
@@ -472,7 +476,7 @@ void WorldRenderer::destroyWorldObject() {
     delete worldParent;
     worldParent = new Object3D{};
     worldDrawables = NULL;
-}
+}*/
 
 
 class BZFlagNew: public Platform::Sdl2Application {
@@ -1164,43 +1168,7 @@ void BZFlagNew::killAres()
 }
 
 void BZFlagNew::tickEvent() {
-    /*static bool haveWeDoneIt = false;
-    if (world != NULL && entered && !haveWeDoneIt) {
-
-        worldRenderer.createWorldObject();
-        haveWeDoneIt = true;
-    }*/
-    //static bool haveWeDoneIt2 = false;
-    /*if (entered && !haveWeDoneIt2) {
-        //tankObjs.resize(curMaxPlayers);
-        for (int i = 0; i < curMaxPlayers; ++i) {
-            Object3D *o = new Object3D{};
-            o->setParent(&_manipulator);
-            new ColoredDrawable(*o, _coloredShader, *_meshes[0], 0xEE1111_rgbf, _drawables);
-            tankObjs.push_back(o);
-        }
-        haveWeDoneIt2 = true;
-    }*/
-
-    /*if (entered) {
-        for (int i = 0; i < curMaxPlayers; ++i) {
-            if (remotePlayers[i]) {
-                const float *pos = remotePlayers[i]->getPosition();
-                //std::cout << i << " " << tankObjs.size() << " HERE" << std::endl;
-                tankObjs[i]->resetTransformation();
-                tankObjs[i]->translate(Vector3{{0.0f, 0.0f, 1.0f}});
-                tankObjs[i]->scale(Vector3{10.0, 10.0, 10.0});
-                tankObjs[i]->translate(Vector3{pos[0], pos[1], pos[2]});
-                
-                //Warning{} << Vector3{pos[0], pos[1], pos[2]};
-            }
-        }
-    }*/
-
     redraw();
-
-
-
 }
 
 void BZFlagNew::enteringServer(const void *buf) {
@@ -1909,6 +1877,7 @@ bool BZFlagNew::gotBlowedUp(BaseLocalPlayer* tank, BlowedUpReason reason, Player
         }
         //hud->setAlert(0, blowedUpNotice.c_str(), 4.0f, true);
         //controlPanel->addMessage(blowedUpNotice);
+        console.addLog(blowedUpNotice.c_str());
     }
 
     // make sure shot is terminated locally (if not globally) so it can't
@@ -4135,7 +4104,7 @@ void BZFlagNew::leaveGame() {
 
     ServerLink::setServer(NULL);
     delete _serverLink;
-    serverLink = NULL;
+    _serverLink = NULL;
     serverNetworkAddress = Address();
 
     gameOver = false;
