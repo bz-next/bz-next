@@ -11,6 +11,7 @@ Here I'm assuming you want a debug build, and want to generate a compile-command
 ```
 git clone https://github.com/guyfox2/bzflag-experiments.git
 cd bzflag-experiments
+git checkout magnum-experiment
 git submodule update --init --recursive
 mkdir build
 cd build
