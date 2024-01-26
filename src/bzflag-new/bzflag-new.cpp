@@ -86,6 +86,7 @@
 
 #include "common.h"
 
+#include "clientConfig.h"
 #include "Address.h"
 #include "StartupInfo.h"
 #include "StateDatabase.h"
@@ -354,11 +355,14 @@ Trade::MeshData WorldPrimitiveGenerator::wall() {
 class WorldRenderer {
     public:
         WorldRenderer();
+        ~WorldRenderer();
         // Assumes that world is already loaded and OBSTACLEMGR is ready to go
         void createWorldObject();
 
-        SceneGraph::DrawableGroup3D &getDrawableGroup();
+        SceneGraph::DrawableGroup3D *getDrawableGroup();
         Object3D *getWorldObject();
+
+        void destroyWorldObject();
     private:
         struct InstanceData {
             Matrix4 transformationMatrix;
@@ -367,14 +371,14 @@ class WorldRenderer {
         };
         std::map<std::string, std::list<GL::Mesh>> worldMeshes;
         Object3D *worldParent;
-        SceneGraph::DrawableGroup3D worldDrawables;
+        SceneGraph::DrawableGroup3D *worldDrawables;
         Shaders::PhongGL coloredShader;
         Shaders::PhongGL coloredShaderInstanced{Shaders::PhongGL::Configuration{}
             .setFlags(Shaders::PhongGL::Flag::InstancedTransformation|
                     Shaders::PhongGL::Flag::VertexColor)};
 };
 
-SceneGraph::DrawableGroup3D &WorldRenderer::getDrawableGroup()
+SceneGraph::DrawableGroup3D *WorldRenderer::getDrawableGroup()
 {
     return worldDrawables;
 }
@@ -385,15 +389,21 @@ Object3D *WorldRenderer::getWorldObject()
 }
 
 WorldRenderer::WorldRenderer() {
-    worldMeshes["cube"].push_back(MeshTools::compile(Primitives::cubeSolid()));
-    worldMeshes["pyr"].push_back(MeshTools::compile(WorldPrimitiveGenerator::pyrSolid()));
-
+    //worldMeshes["cube"].push_back(MeshTools::compile(Primitives::cubeSolid()));
+    //worldMeshes["pyr"].push_back(MeshTools::compile(WorldPrimitiveGenerator::pyrSolid()));
+    worldDrawables = NULL;
     worldParent = new Object3D{};
-    
+}
 
+WorldRenderer::~WorldRenderer() {
+    //worldMeshes["cube"].push_back(MeshTools::compile(Primitives::cubeSolid()));
+    //worldMeshes["pyr"].push_back(MeshTools::compile(WorldPrimitiveGenerator::pyrSolid()));
+    if (worldDrawables) delete worldDrawables;
+    delete worldParent;
 }
 
 void WorldRenderer::createWorldObject() {
+    worldDrawables = new SceneGraph::DrawableGroup3D{};
     // Perhaps do culling here in the future if necessary?
     // Could construct instance buffer per-frame.
     auto buildInstanceVectorFromList = [](const ObstacleList &l, Color3 color) {
@@ -432,7 +442,7 @@ void WorldRenderer::createWorldObject() {
             Shaders::PhongGL::NormalMatrix{},
             Shaders::PhongGL::Color3{});
         worldBoxMesh->setInstanceCount(instances.size());
-        new InstancedColoredDrawable(*worldCubes, coloredShaderInstanced, *worldBoxMesh, worldDrawables);
+        new InstancedColoredDrawable(*worldCubes, coloredShaderInstanced, *worldBoxMesh, *worldDrawables);
     }
     // Create world pyramids
     {
@@ -451,10 +461,16 @@ void WorldRenderer::createWorldObject() {
                 Shaders::PhongGL::NormalMatrix{},
                 Shaders::PhongGL::Color3{});
             worldPyrMesh->setInstanceCount(instances.size());
-            new InstancedColoredDrawable(*worldPyrs, coloredShaderInstanced, *worldPyrMesh, worldDrawables);
+            new InstancedColoredDrawable(*worldPyrs, coloredShaderInstanced, *worldPyrMesh, *worldDrawables);
         }
     }
+}
 
+void WorldRenderer::destroyWorldObject() {
+    delete worldDrawables;
+    delete worldParent;
+    worldParent = new Object3D{};
+    worldDrawables = NULL;
 }
 
 
@@ -468,6 +484,7 @@ class BZFlagNew: public Platform::Sdl2Application {
         void tickEvent() override;
 
         void drawEvent() override;
+
         void viewportEvent(ViewportEvent& e) override;
         void mousePressEvent(MouseEvent& e) override;
         void mouseReleaseEvent(MouseEvent& e) override;
@@ -478,12 +495,22 @@ class BZFlagNew: public Platform::Sdl2Application {
         void keyPressEvent(KeyEvent& event) override;
         void keyReleaseEvent(KeyEvent& event) override;
 
+        void exitEvent(ExitEvent& event) override;
+
+        void tryConnect(const std::string& callsign, const std::string& server, const std::string& port);
+
         // IMGUI
         void showMainMenuBar();
         void showMenuView();
 
         void maybeShowConsole();
         bool showConsole = true;
+
+        void maybeShowFPS();
+        bool showFPS = false;
+
+        void maybeShowConnect();
+        bool showConnect = true;
         
         Vector3 positionOnSphere(const Vector2i& position) const;
 
@@ -599,6 +626,8 @@ class BZFlagNew: public Platform::Sdl2Application {
         ImGuiIntegration::Context _imgui{NoCreate};
 
         BZChatConsole console;
+
+        bool isQuit = false;
 };
 
 BZFlagNew::BZFlagNew(const Arguments& arguments):
@@ -653,7 +682,7 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
 
     _meshes = Containers::Array<Containers::Optional<GL::Mesh>>{1};
 
-    worldRenderer.getWorldObject()->setParent(&_manipulator);
+    //worldRenderer.getWorldObject()->setParent(&_manipulator);
 
     _imgui = ImGuiIntegration::Context(Vector2{windowSize()}/dpiScaling(), windowSize(), framebufferSize());
 
@@ -675,6 +704,8 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
 
 void BZFlagNew::showMainMenuBar() {
     if (ImGui::BeginMainMenuBar()) {
+        if (ImGui::MenuItem("Connect", NULL, &showConnect)) {
+        }
         if (ImGui::BeginMenu("View")) {
             showMenuView();
             ImGui::EndMenu();
@@ -685,11 +716,39 @@ void BZFlagNew::showMainMenuBar() {
 
 void BZFlagNew::showMenuView() {
     if (ImGui::MenuItem("Console", NULL, &showConsole)) {}
+    if (ImGui::MenuItem("FPS", NULL, &showFPS)) {}
 }
 
 void BZFlagNew::maybeShowConsole() {
     if (showConsole)
         console.draw("Console", NULL);
+}
+
+void BZFlagNew::maybeShowFPS() {
+    if (showFPS) {
+        ImGui::Begin("FPS", NULL);
+        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
+            1000.0/Double(ImGui::GetIO().Framerate), Double(ImGui::GetIO().Framerate));
+        ImGui::End();
+    }
+}
+
+void BZFlagNew::maybeShowConnect() {
+
+    static char callsign[128];
+    static char hostname[128];
+    static char port[128];
+
+    if (!showConnect) return;
+
+    ImGui::Begin("Connect", &showConnect, ImGuiWindowFlags_AlwaysAutoResize);
+    ImGui::InputText("Callsign", callsign, IM_ARRAYSIZE(callsign));
+    ImGui::InputText("Hostname", hostname, IM_ARRAYSIZE(hostname));
+    ImGui::InputText("Port", port, IM_ARRAYSIZE(port));
+    if (ImGui::Button("Connect")) {
+        tryConnect(callsign, hostname, port);
+    }
+    ImGui::End();
 }
 
 void BZFlagNew::onConsoleText(const char* msg) {
@@ -702,19 +761,20 @@ void BZFlagNew::onConsoleText(const char* msg) {
         return;
     }*/
 
-    // Flawfinder: ignore
-    char buffer[MessageLen];
-    // Flawfinder: ignore
-    char buffer2[1 + MessageLen];
-    void* buf = buffer2;
+    if (entered) {
+        // Flawfinder: ignore
+        char buffer[MessageLen];
+        // Flawfinder: ignore
+        char buffer2[1 + MessageLen];
+        void* buf = buffer2;
 
-    buf = nboPackUByte(buf, AllPlayers);
-    // Flawfinder: ignore
-    strncpy(buffer, msg, MessageLen - 1);
-    buffer[MessageLen - 1] = '\0';
-    nboPackString(buffer2 + 1, buffer, MessageLen);
-    _serverLink->send(MsgMessage, sizeof(buffer2), buffer2);
-    std::cout << msg << std::endl;
+        buf = nboPackUByte(buf, AllPlayers);
+        // Flawfinder: ignore
+        strncpy(buffer, msg, MessageLen - 1);
+        buffer[MessageLen - 1] = '\0';
+        nboPackString(buffer2 + 1, buffer, MessageLen);
+        _serverLink->send(MsgMessage, sizeof(buffer2), buffer2);
+    }
 }
 
 void BZFlagNew::drawEvent() {
@@ -730,22 +790,8 @@ void BZFlagNew::drawEvent() {
 
     showMainMenuBar();
     maybeShowConsole();
-
-    /* 1. Show a simple window.
-       Tip: if we don't call ImGui::Begin()/ImGui::End() the widgets appear in
-       a window called "Debug" automatically */
-    {
-        ImGui::Text("Hello, world!");
-        //ImGui::SliderFloat("Float", &_floatValue, 0.0f, 1.0f);
-        //if(ImGui::ColorEdit3("Clear Color", _clearColor.data()))
-        //    GL::Renderer::setClearColor(_clearColor);
-        //if(ImGui::Button("Test Window"))
-        //    _showDemoWindow ^= true;
-        //if(ImGui::Button("Another Window"))
-        //    _showAnotherWindow ^= true;
-        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
-            1000.0/Double(ImGui::GetIO().Framerate), Double(ImGui::GetIO().Framerate));
-    }
+    maybeShowFPS();
+    maybeShowConnect();
 
     /* Update application cursor */
     _imgui.updateApplicationCursor(*this);
@@ -757,7 +803,8 @@ void BZFlagNew::drawEvent() {
     GL::Renderer::disable(GL::Renderer::Feature::ScissorTest);
     GL::Renderer::disable(GL::Renderer::Feature::Blending);
 
-    _camera->draw(worldRenderer.getDrawableGroup());
+    if (auto* dg = worldRenderer.getDrawableGroup())
+        _camera->draw(*dg);
 
         /* Set appropriate states. If you only draw ImGui, it is sufficient to
        just enable blending and scissor test in the constructor. */
@@ -991,6 +1038,7 @@ void BZFlagNew::loadCachedWorld() {
     worldBuilder = NULL;
 
     //HUDDialogStack::get()->setFailedMessage("Downloading files...");
+    console.addLog("Downloading files...");
 
     const bool doDownloads =  BZDB.isTrue("doDownloads");
     const bool updateDownloads =  BZDB.isTrue("updateDownloads");
@@ -1086,36 +1134,13 @@ void BZFlagNew::killAres()
 }
 
 void BZFlagNew::tickEvent() {
-    static bool haveWeDoneIt = false;
+    /*static bool haveWeDoneIt = false;
     if (world != NULL && entered && !haveWeDoneIt) {
 
-        /*_meshes[0] = MeshTools::compile(Primitives::cubeSolid());
-        const ObstacleList& l = OBSTACLEMGR.getBoxes();
-        std::cout << "Number of boxes: " << l.size() << std::endl;
-        for (int i = 0; i < l.size(); ++i) {
-            Object3D *obj = new Object3D{};
-            obj->setParent(&_manipulator);
-            const float *pos = l[i]->getPosition();
-            std::cout << "pos " << pos[0] << " " << pos[1] << " " << pos[2] << std::endl;
-            obj->rotateZ(Rad(l[i]->getRotation()));
-            const float *sz = l[i]->getSize();
-            obj->translate(Vector3{pos[0], pos[1], pos[2]});
-            obj->scaleLocal(Vector3{sz[0], sz[1], sz[2]});
-            new ColoredDrawable(*obj, _coloredShader, *_meshes[0], 0xCCAA22_rgbf, _drawables);
-        }*/
-
         worldRenderer.createWorldObject();
-        //_meshes[1] = MeshTools::compile(Primitives::cubeSolid());
-        /*Object3D *obj = new Object3D{};
-        obj->setParent(&_manipulator);
-        Object3D *obj2 = new Object3D{};
-        obj2->setParent(&_manipulator).translate(Vector3{4.0, 0.0, 0.0});
-        new ColoredDrawable(*obj, _coloredShader, *_meshes[0], 0x551122_rgbf, _drawables);
-        new ColoredDrawable(*obj2, _coloredShader, *_meshes[0], 0x5511FF_rgbf, _drawables);
-        haveWeDoneIt = true;*/
         haveWeDoneIt = true;
-    }
-    static bool haveWeDoneIt2 = false;
+    }*/
+    //static bool haveWeDoneIt2 = false;
     /*if (entered && !haveWeDoneIt2) {
         //tankObjs.resize(curMaxPlayers);
         for (int i = 0; i < curMaxPlayers; ++i) {
@@ -1511,6 +1536,23 @@ void BZFlagNew::textInputEvent(TextInputEvent& e) {
     if(_imgui.handleTextInputEvent(e)) return;
 }
 
+void BZFlagNew::exitEvent(ExitEvent& e) {
+    isQuit = true;
+}
+
+void BZFlagNew::tryConnect(const std::string& callsign, const std::string& server, const std::string& port)
+{
+    BZDB.set("callsign", callsign.c_str());
+    BZDB.set("server", server.c_str());
+    BZDB.set("port", port.c_str());
+
+    strcpy(startupInfo.callsign, callsign.c_str());
+    strcpy(startupInfo.serverName, server.c_str());
+    startupInfo.serverPort = std::atoi(port.c_str());
+
+    joinRequested = true;
+}
+
 Vector3 BZFlagNew::positionOnSphere(const Vector2i& position) const {
     const Vector2 positionNormalized = Vector2{position}/Vector2{_camera->viewport()} - Vector2{0.5f};
     const Float length = positionNormalized.length();
@@ -1551,22 +1593,22 @@ int BZFlagNew::main() {
     CommandsStandard::add();
     unsigned int i;
 
-    //initConfigData();
+    initConfigData();
     loadBZDBDefaults();
 
     ServerListCache::get()->loadCache();
 
-    BZDB.set("callsign", "testingbz");
-    BZDB.set("server", "1purplepanzer.mooo.com");
-    BZDB.set("port", "4100");
+    //BZDB.set("callsign", "testingbz");
+    //BZDB.set("server", "1purplepanzer.mooo.com");
+    //BZDB.set("port", "4100");
 
     startupInfo.useUDPconnection=true;
     startupInfo.team = ObserverTeam;
-    strcpy(startupInfo.callsign, "testingbz");
-    strcpy(startupInfo.serverName, "1purplepanzer.mooo.com");
-    startupInfo.serverPort = 4100;
+    //strcpy(startupInfo.callsign, "testingbz");
+    //strcpy(startupInfo.serverName, "1purplepanzer.mooo.com");
+    //startupInfo.serverPort = 4100;
 
-    startupInfo.autoConnect = true;
+    //startupInfo.autoConnect = true;
 
     Team::updateShotColors();
 
@@ -1603,6 +1645,9 @@ void BZFlagNew::joinInternetGame2()
     // make scene database
     //setSceneDatabase();
     //mainWindow->getWindow()->yieldCurrent();
+
+    worldRenderer.createWorldObject();
+    worldRenderer.getWorldObject()->setParent(&_manipulator);
 
     // make radar
     //  radar = new RadarRenderer(*sceneRenderer, *world);
@@ -2039,14 +2084,15 @@ void BZFlagNew::startPlaying()
 
     delete worldDownLoader;
 
-    // leaveGame();
+    leaveGame();
     World::done();
 }
 
 void BZFlagNew::playingLoop()
 {
         // main loop
-    while (!CommandsStandard::isQuit())
+    //while (!CommandsStandard::isQuit())
+    while (!isQuit)
     {
 
         BZDBCache::update();
@@ -2303,6 +2349,7 @@ void BZFlagNew::playingLoop()
         // handle incoming packets
         doMessages();
     }
+    std::cout << "Done playing" << std::endl;
 
 }
 
@@ -4127,6 +4174,10 @@ void BZFlagNew::sendFlagNegotiation() {
 void BZFlagNew::leaveGame() {
     entered = false;
     joiningGame = false;
+
+    // Clear the world scene
+    worldRenderer.destroyWorldObject();
+
     // my tank goes away
     const bool sayGoodbye = (myTank != NULL);
     LocalPlayer::setMyTank(NULL);
