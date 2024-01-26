@@ -831,15 +831,18 @@ public:
     void start(char * hexDigest);
 private:
     void askToBZFS();
-    int curlProgressFunc(void* UNUSED(clientp),
+    static int curlProgressFunc(void* UNUSED(clientp),
                      double dltotal, double dlnow,
                      double UNUSED(ultotal), double UNUSED(ulnow));
     virtual void finalization(char *data, unsigned int length, bool good);
-    BZFlagNew *_app;
+    static BZFlagNew *_app;
 };
 
-WorldDownLoader::WorldDownLoader(BZFlagNew *app) :
-    _app(app) {}
+BZFlagNew *WorldDownLoader::_app;
+
+WorldDownLoader::WorldDownLoader(BZFlagNew *app) {
+    _app = app;
+}
 
 void WorldDownLoader::start(char * hexDigest)
 {
@@ -2597,7 +2600,7 @@ void BZFlagNew::handleServerMessage(bool human, uint16_t code, uint16_t len, con
     {
         int32_t timeLeft;
         msg = nboUnpackInt(msg, timeLeft);
-        hud->setTimeLeft(timeLeft);
+        //hud->setTimeLeft(timeLeft);
         if (timeLeft == 0)
         {
             if (myTank->getTeam() != ObserverTeam)
@@ -2750,7 +2753,7 @@ void BZFlagNew::handleServerMessage(bool human, uint16_t code, uint16_t len, con
                 justJoined = false;
                 if (!myTank->isAutoPilot())
                     mainWindow->warpMouse();
-                hud->setAltitudeTape(World::getWorld()->allowJumping());
+                //hud->setAltitudeTape(World::getWorld()->allowJumping());
             }
 
             tank->setDeathEffect(NULL);
@@ -3946,129 +3949,7 @@ bool BZFlagNew::isKillable(const Player* target) {
 }
 
 void BZFlagNew::doMotion() {
-        float rotation = 0.0f, speed = 1.0f;
-    const int noMotionSize = hud->getNoMotionSize();
-    const int maxMotionSize = hud->getMaxMotionSize();
-
-    int keyboardRotation = myTank->getRotation();
-    int keyboardSpeed    = myTank->getSpeed();
-    /* see if controls are reversed */
-    if (myTank->getFlag() == ::Flags::ReverseControls)
-    {
-        keyboardRotation = -keyboardRotation;
-        keyboardSpeed    = -keyboardSpeed;
-    }
-
-    // mouse is default steering method; query mouse pos always, not doing so
-    // can lead to stuttering movement with X and software rendering (uncertain why)
-    int mx = 0, my = 0;
-    mainWindow->getMousePosition(mx, my);
-
-    // determine if joystick motion should be used instead of mouse motion
-    // when the player bumps the mouse, LocalPlayer::getInputMethod return Mouse;
-    // make it return Joystick when the user bumps the joystick
-    if (mainWindow->haveJoystick())
-    {
-        if (myTank->getInputMethod() == LocalPlayer::Joystick)
-        {
-            // if we're using the joystick right now, replace mouse coords with joystick coords
-            mainWindow->getJoyPosition(mx, my);
-        }
-        else
-        {
-            // if the joystick is not active, and we're not forced to some other input method,
-            // see if it's moved and autoswitch
-            if (BZDB.isTrue("allowInputChange"))
-            {
-                int jx = 0, jy = 0;
-                mainWindow->getJoyPosition(jx, jy);
-                // if we aren't using the joystick, but it's moving, start using it
-                if ((jx < -noMotionSize * 2) || (jx > noMotionSize * 2)
-                        || (jy < -noMotionSize * 2) || (jy > noMotionSize * 2))
-                    myTank->setInputMethod(LocalPlayer::Joystick); // joystick motion
-            } // allowInputChange
-        } // getInputMethod == Joystick
-    } // mainWindow->Joystick
-
-    /* see if controls are reversed */
-    if (myTank->getFlag() == ::Flags::ReverseControls)
-    {
-        mx = -mx;
-        my = -my;
-    }
-
-#if defined(FREEZING)
-    if (motionFreeze) return;
-#endif
-
-    /*if (myTank->isAutoPilot())
-        //doAutoPilot(rotation, speed);
-    else */if (myTank->getInputMethod() == LocalPlayer::Keyboard)
-    {
-
-        rotation = (float)keyboardRotation;
-        speed    = (float)keyboardSpeed;
-        if (speed < 0.0f)
-            speed /= 2.0;
-
-        rotation *= BZDB.eval("displayFOV") / 60.0f;
-        if (BZDB.isTrue("slowKeyboard"))
-        {
-            rotation *= 0.5f;
-            speed *= 0.5f;
-        }
-    }
-    else     // both mouse and joystick
-    {
-
-        // calculate desired rotation
-        if (keyboardRotation && !devDriving)
-        {
-            rotation = float(keyboardRotation);
-            rotation *= BZDB.eval("displayFOV") / 60.0f;
-            if (BZDB.isTrue("slowKeyboard"))
-                rotation *= 0.5f;
-        }
-        else if (mx < -noMotionSize)
-        {
-            rotation = float(-mx - noMotionSize) / float(maxMotionSize - noMotionSize);
-            if (rotation > 1.0f)
-                rotation = 1.0f;
-        }
-        else if (mx > noMotionSize)
-        {
-            rotation = -float(mx - noMotionSize) / float(maxMotionSize - noMotionSize);
-            if (rotation < -1.0f)
-                rotation = -1.0f;
-        }
-
-        // calculate desired speed
-        if (keyboardSpeed && !devDriving)
-        {
-            speed = float(keyboardSpeed);
-            if (speed < 0.0f)
-                speed *= 0.5f;
-            if (BZDB.isTrue("slowKeyboard"))
-                speed *= 0.5f;
-        }
-        else if (my < -noMotionSize)
-        {
-            speed = float(-my - noMotionSize) / float(maxMotionSize - noMotionSize);
-            if (speed > 1.0f)
-                speed = 1.0f;
-        }
-        else if (my > noMotionSize)
-        {
-            speed = -float(my - noMotionSize) / float(maxMotionSize - noMotionSize);
-            if (speed < -0.5f)
-                speed = -0.5f;
-        }
-        else
-            speed = 0.0f;
-    }
-
-    myTank->setDesiredAngVel(rotation);
-    myTank->setDesiredSpeed(speed);
+        // Implement based on playing.cxx
 }
 
 void BZFlagNew::joinInternetGame()

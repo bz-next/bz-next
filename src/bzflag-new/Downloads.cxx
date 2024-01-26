@@ -116,7 +116,7 @@ CachedTexture::CachedTexture(const std::string &texUrl) : cURLManager()
         timeRequest = cached;
         std::string msg = ColorStrings[GreyColor];
         msg     += "downloading: " + url;
-        addMessage(NULL, msg);
+        //addMessage(NULL, msg);
         if (cached)
         {
             // use the cached file -- just in case
@@ -262,7 +262,7 @@ void Downloads::startDownloads(bool doDownloads, bool updateDownloads,
                     MATERIALMGR.setTextureLocal(texUrl, "");
                     std::string msg = ColorStrings[GreyColor];
                     msg += "not downloading: " + texUrl;
-                    addMessage(NULL, msg);
+                    //addMessage(NULL, msg);
                 }
             }
         }
