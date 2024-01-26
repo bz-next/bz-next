@@ -393,7 +393,7 @@ WorldRenderer::WorldRenderer() {
     //worldMeshes["pyr"].push_back(MeshTools::compile(WorldPrimitiveGenerator::pyrSolid()));
     worldDrawables = NULL;
     worldParent = new Object3D{};
-    worldParent->scale({0.01, 0.01, 0.01});
+    worldParent->scale({0.005, 0.005, 0.005});
 }
 
 WorldRenderer::~WorldRenderer() {
