@@ -569,6 +569,11 @@ class BZFlagNew: public Platform::Sdl2Application {
         void handleServerMessage(bool human, uint16_t code, uint16_t len, const void* msg);
         bool processWorldChunk(const void *buf, uint16_t len, int bytesLeft);
 
+        // Here there be dragons... BZFlag has a lot of global state.
+        // I've tried to toss as much as possible under the application object,
+        // but there are still some important global objects, like ::World()
+        // Managing the state of even these objects is a mess. A lot of this
+        // needs to be encapsulated. Expect bugs...
         WorldDownLoader *worldDownLoader;
         double lastObserverUpdateTime = -1;
         StartupInfo startupInfo;
