@@ -207,7 +207,10 @@ ActionBinding.cxx
     WorldPlayer.cxx
     WorldPlayer.h
     BZChatConsole.cpp
-    ImGuiANSITextRenderer.cpp)
+    ImGuiANSITextRenderer.cpp
+    WorldRenderer.cpp
+    WorldPrimitiveGenerator.cpp
+    Drawables.cpp)
 target_link_libraries(bzflag-new PRIVATE
     Corrade::Main
     Magnum::Application
