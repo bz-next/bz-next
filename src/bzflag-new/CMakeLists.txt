@@ -210,7 +210,8 @@ ActionBinding.cxx
     ImGuiANSITextRenderer.cpp
     WorldRenderer.cpp
     WorldPrimitiveGenerator.cpp
-    Drawables.cpp)
+    Drawables.cpp
+    BZScoreboard.cpp)
 target_link_libraries(bzflag-new PRIVATE
     Corrade::Main
     Magnum::Application
