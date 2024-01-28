@@ -21,12 +21,6 @@ void BZMaterialBrowser::draw(const char *title, bool *p_open) {
     }
     ImGui::Begin(title, p_open, ImGuiWindowFlags_AlwaysAutoResize);
     ImGui::Combo("Material Name", &itemCurrent, names_cc.c_str(), names_cc.size());
-    /*
-    if (names_cc.size() >= 0) {
-        GL::Texture2D *tex = tm.getTexture(names[itemCurrent].c_str());
-        auto size = tex->imageSize(0);
-        ImGuiIntegration::image(*tex, {(float)size.x(), (float)size.y()});
-    }*/
     ImGui::Separator();
     if (names.size() >= 0 && itemCurrent < names.size()) {
         const MagnumBZMaterial *mat = MAGNUMMATERIALMGR.findMaterial(names[itemCurrent]);

@@ -29,6 +29,8 @@
 // system headers
 #include <vector>
 #include <string>
+#include <cctype>
+#include <algorithm>
 
 // common implementation headers
 
@@ -267,7 +269,19 @@ GL::Texture2D* MagnumTextureManager::loadTexture(FileTextureInit &init, bool rep
     // TODO: Support other file types JUST BY NOT REQUIRING THIS EXTENSION!!!
     // The current code is dumb in that it appends the extension last minute based on what exists...
     // Textures should be specified WITH extensions.
-    filename += ".png";
+    bool addpng = true;
+    if (filename.size() > 4) {
+        std::string ext = filename.substr(filename.size()-4);
+        std::cout << "ext " << ext << std::endl;
+        // convert ext to lowercase
+        std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){return std::tolower(c);});
+        if (ext == ".png") {
+            addpng = false;
+            std::cout << "Detected png" << std::endl;
+        }
+    }
+    if (addpng)
+        filename += ".png";
 
     std::cout << "load Texture " << filename << std::endl;
 
