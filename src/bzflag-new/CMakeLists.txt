@@ -31,9 +31,9 @@ cmake_minimum_required(VERSION 3.5)
 
 set_directory_properties(PROPERTIES CORRADE_USE_PEDANTIC_FLAGS ON)
 
-#corrade_add_resource(TexturedQuad_RESOURCES resources.conf)
+corrade_add_resource(BZNEW_RESOURCES resources/resources.conf)
 
-add_executable(bzflag-new WIN32 bzflag-new.cpp ${TexturedQuad_RESOURCES}
+add_executable(bzflag-new WIN32 bzflag-new.cpp ${BZNEW_RESOURCES}
 ActionBinding.cxx
     ActionBinding.h
     AutoPilot.cxx
@@ -213,7 +213,8 @@ ActionBinding.cxx
     Drawables.cpp
     BZScoreboard.cpp
     BZTextureBrowser.cpp
-    BZMaterialBrowser.cpp)
+    BZMaterialBrowser.cpp
+    BZMaterialViewer.cpp)
 target_link_libraries(bzflag-new PRIVATE
     Corrade::Main
     Magnum::Application
