@@ -42,7 +42,7 @@
 World*          World::playingField = NULL;
 BundleMgr*      World::bundleMgr;
 std::string     World::locale("");
-int         World::flagTexture(-1);
+//int         World::flagTexture(-1);
 
 
 World::World() :
@@ -101,12 +101,12 @@ World::~World()
 void            World::init()
 {
     TextureManager &tm = TextureManager::instance();
-    flagTexture = tm.getTextureID( "flag" );
+    //flagTexture = tm.getTextureID( "flag" );
 }
 
 void            World::done()
 {
-    flagTexture = 0;
+    //flagTexture = 0;
 }
 
 void            World::loadCollisionManager()
@@ -125,10 +125,10 @@ void            World::checkCollisionManager()
     return;
 }
 
-void            World::setFlagTexture(FlagSceneNode* flag)
-{
+//void            World::setFlagTexture(FlagSceneNode* flag)
+//{
     //flag->setTexture(flagTexture);
-}
+//}
 
 void            World::setWorld(World* _playingField)
 {

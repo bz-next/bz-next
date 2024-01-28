@@ -1708,7 +1708,7 @@ void            LocalPlayer::setFlag(FlagType* flag)
                                                  BZDBCache::tankHeight));
             antidoteFlag = new FlagSceneNode(flagAntidotePos);
             antidoteFlag->setColor(1.0f, 1.0f, 0.0f);
-            World::setFlagTexture(antidoteFlag);
+            //World::setFlagTexture(antidoteFlag);
         }
     }
     else

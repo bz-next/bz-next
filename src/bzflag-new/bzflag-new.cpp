@@ -268,6 +268,8 @@ class BZFlagNew: public Platform::Sdl2Application {
         void handleServerMessage(bool human, uint16_t code, uint16_t len, const void* msg);
         bool processWorldChunk(const void *buf, uint16_t len, int bytesLeft);
 
+        static void resetServerVar(const std::string& name, void*);
+
         // Here there be dragons... BZFlag has a lot of global state.
         // I've tried to toss as much as possible under the application object,
         // but there are still some important global objects, like ::World()
@@ -539,6 +541,8 @@ void BZFlagNew::drawEvent() {
     //_profiler.printStatistics(10);
 }
 
+/* This whole class is an extremely dirty hack just to get a basic client working.
+   It should be replaced with something that isn't insane. */
 class WorldDownLoader : cURLManager
 {
 public:
@@ -3816,9 +3820,19 @@ void BZFlagNew::leaveGame() {
     serverDied = false;
 
     // reset the BZDB variables
-    //BZDB.iterate(resetServerVar, NULL);
+    BZDB.iterate(BZFlagNew::resetServerVar, NULL);
 
     ::Flags::clearCustomFlags();
+}
+
+void BZFlagNew::resetServerVar(const std::string& name, void*)
+{
+    // reset server-side variables
+    if (BZDB.getPermission(name) == StateDatabase::Locked)
+    {
+        const std::string defval = BZDB.getDefault(name);
+        BZDB.set(name, defval);
+    }
 }
 
 int main(int argc, char** argv)
