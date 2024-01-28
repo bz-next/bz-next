@@ -15,6 +15,7 @@
 #include <Magnum/Shaders/VertexColorGL.h>
 #include "Magnum/Shaders/Shaders.h"
 #include "MagnumTextureManager.h"
+#include <Magnum/Shaders/PhongGL.h>
 
 class MatViewerShader: public Magnum::GL::AbstractShaderProgram {
     public:
@@ -51,9 +52,8 @@ class BZMaterialViewer {
 
     Magnum::GL::Texture2D tex;
     Magnum::GL::Mesh mesh;
-    Magnum::GL::Mesh testtri;
     MatViewerShader shader;
-    Magnum::Shaders::VertexColorGL2D vshader;
+    Magnum::Shaders::PhongGL phong;
     
 
     void renderPreview();

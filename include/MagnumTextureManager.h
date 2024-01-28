@@ -20,6 +20,7 @@
 #include <Corrade/PluginManager/Manager.h>
 #include <Corrade/Containers/Pointer.h>
 #include <Magnum/Trade/AbstractImporter.h>
+#include <Magnum/Trade/AbstractImageConverter.h>
 
 #include "Singleton.h"
 
@@ -85,6 +86,8 @@ private:
 
     Magnum::PluginManager::Manager<Magnum::Trade::AbstractImporter> manager;
     Corrade::Containers::Pointer<Magnum::Trade::AbstractImporter> importer;
+    Magnum::PluginManager::Manager<Magnum::Trade::AbstractImageConverter> converterManager;
+    Corrade::Containers::Pointer<Magnum::Trade::AbstractImageConverter> converter;
 };
 
 
