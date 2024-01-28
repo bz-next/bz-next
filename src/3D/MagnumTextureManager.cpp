@@ -24,6 +24,8 @@
 // BZFlag common header
 #include "Magnum/GL/GL.h"
 #include "Magnum/GL/Sampler.h"
+#include "Magnum/Trade/AbstractImageConverter.h"
+#include "Magnum/Trade/Trade.h"
 #include "common.h"
 
 // system headers
@@ -73,6 +75,7 @@ MagnumTextureManager::MagnumTextureManager()
     }
 
     importer = manager.loadAndInstantiate("AnyImageImporter");
+    converter = converterManager.loadAndInstantiate("AnyImageConverter");
 }
 
 MagnumTextureManager::~MagnumTextureManager()
@@ -305,13 +308,35 @@ GL::Texture2D* MagnumTextureManager::loadTexture(FileTextureInit &init, bool rep
         logDebugMessage(2,"Image not found or unloadable: %s\n", filename.c_str());
         return NULL;
     }
+    if (image->format() != PixelFormat::RGBA8Unorm) {
+        auto data = image->data();
+        switch (image->format()) {
+            case Magnum::PixelFormat::RG8Unorm:
+            {
+                Containers::Array<char> rgbaData{data.size()*2};
+                int j = 0;
+                for (int i = 0; i < data.size(); i += 2) {
+                    rgbaData[j++] = data[i];
+                    rgbaData[j++] = data[i];
+                    rgbaData[j++] = data[i];
+                    rgbaData[j++] = data[i+1];
+                }
+                image = Trade::ImageData2D{PixelFormat::RGBA8Unorm, image->size(), std::move(rgbaData)};
+                break;
+            }
+            default:
+                Warning{} << "Unsupported pixel format " << image->format();
+                break;
+        }
+    }
+
     GL::Texture2D *texture = new GL::Texture2D{};
     texture->setWrapping(GL::SamplerWrapping::ClampToEdge)
         .setMagnificationFilter(GL::SamplerFilter::Linear)
         .setMinificationFilter(GL::SamplerFilter::Linear)
         .setStorage(1, GL::textureFormat(image->format()), image->size())
         .setSubImage(0, {}, *image);
-
+    Warning{} << image->format();
     return texture;
 }
 
