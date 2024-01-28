@@ -2293,10 +2293,10 @@ static void     handleServerMessage(bool human, uint16_t code,
                     if (myTank->getFlag() == Flags::Colorblindness)
                     {
                         static float cbColor[4] = {1,1,1,1};
-                        EFFECTS.addSpawnEffect(cbColor, pos);
+                        //EFFECTS.addSpawnEffect(cbColor, pos);
                     }
-                    else
-                        EFFECTS.addSpawnEffect(tank->getColor(), pos);
+                   // else
+                        //EFFECTS.addSpawnEffect(tank->getColor(), pos);
                 }
             }
             tank->setStatus(PlayerState::Alive);
@@ -2398,7 +2398,7 @@ static void     handleServerMessage(bool human, uint16_t code,
 
             // TODO hook this back up for 2.4.4 or later
             TankDeathOverride* death = NULL;
-            EFFECTS.addDeathEffect(victimPlayer->getColor(), pos, victimPlayer->getAngle(),reason,victimPlayer,flagType);
+            //EFFECTS.addDeathEffect(victimPlayer->getColor(), pos, victimPlayer->getAngle(),reason,victimPlayer,flagType);
 
             victimPlayer->setDeathEffect(death);
 
@@ -2728,8 +2728,8 @@ static void     handleServerMessage(bool human, uint16_t code,
 
                 // todo hook this back up for 2.4.4. or later
                 TankDeathOverride *death = NULL;
-                EFFECTS.addDeathEffect(remotePlayers[i]->getColor(), pos, remotePlayers[i]->getAngle(),GotCaptured,remotePlayers[i],
-                                       NULL);
+                //EFFECTS.addDeathEffect(remotePlayers[i]->getColor(), pos, remotePlayers[i]->getAngle(),GotCaptured,remotePlayers[i],
+                //                       NULL);
 
                 remotePlayers[i]->setDeathEffect(death);
 
@@ -2819,7 +2819,7 @@ static void     handleServerMessage(bool human, uint16_t code,
                     // if you are driving with a tank in observer mode
                     // and do not want local shot effects,
                     // disable shot effects for that specific tank
-                    if ((ROAM.getMode() != Roaming::roamViewFP)
+                    /*if ((ROAM.getMode() != Roaming::roamViewFP)
                             || (!ROAM.getTargetTank())
                             || (shooterid != ROAM.getTargetTank()->getId())
                             || BZDB.isTrue("enableLocalShotEffect"))
@@ -2827,7 +2827,7 @@ static void     handleServerMessage(bool human, uint16_t code,
                         EFFECTS.addShotEffect(shooter->getColor(), shotPos,
                                               shooter->getAngle(),
                                               shooter->getVelocity());
-                    }
+                    }*/
                 }
             }
             else
@@ -3574,7 +3574,7 @@ void            addShotExplosion(const float* pos)
 
 void            addShotPuff(const float* pos, float azimuth, float elevation)
 {
-    bool useClasicPuff  = false;
+    /*bool useClasicPuff  = false;
 
     if (BZDB.evalInt("gmPuffEffect") == 1)
         useClasicPuff = true;
@@ -3586,7 +3586,7 @@ void            addShotPuff(const float* pos, float azimuth, float elevation)
     }
 
     float rots[2] = {azimuth,elevation};
-    EFFECTS.addGMPuffEffect(pos, rots, NULL);
+    EFFECTS.addGMPuffEffect(pos, rots, NULL);*/
 }
 
 // process pending input events
@@ -3797,7 +3797,7 @@ static bool     gotBlowedUp(BaseLocalPlayer* tank,
 
         // todo hook this back up for 2.4.4. or later
         TankDeathOverride *death = NULL;
-        EFFECTS.addDeathEffect(tank->getColor(), tank->getPosition(), tank->getAngle(),reason,tank, flagType);
+        //EFFECTS.addDeathEffect(tank->getColor(), tank->getPosition(), tank->getAngle(),reason,tank, flagType);
 
         tank->setDeathEffect(death);
         tank->explodeTank();

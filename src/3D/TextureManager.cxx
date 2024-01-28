@@ -93,7 +93,7 @@ int TextureManager::getTextureID( const char* name, bool reportFail )
         OpenGLTexture *image = loadTexture(texInfo, reportFail);
         if (!image)
         {
-            logDebugMessage(2,"Image not found or unloadable: %s\n", name);
+            logDebugMessage(2,"Old! Image not found or unloadable: %s\n", name);
             return -1;
         }
         return addTexture(name, image);

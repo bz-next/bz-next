@@ -125,7 +125,7 @@ public:
 
     static void     init();
     static void     done();
-    static void     setFlagTexture(FlagSceneNode*);
+    //static void     setFlagTexture(FlagSceneNode*);
 
     void        makeLinkMaterial();
 
@@ -191,7 +191,7 @@ private:
     static World*   playingField;
     static BundleMgr    *bundleMgr;
     static std::string  locale;
-    static int flagTexture;
+    //static int flagTexture;
 };
 
 

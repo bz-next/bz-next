@@ -100,7 +100,7 @@ World::~World()
 
 void            World::init()
 {
-    TextureManager &tm = TextureManager::instance();
+    //TextureManager &tm = TextureManager::instance();
     //flagTexture = tm.getTextureID( "flag" );
 }
 

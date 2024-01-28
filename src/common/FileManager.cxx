@@ -12,6 +12,7 @@
 
 // interface header
 #include "FileManager.h"
+#include "bzfio.h"
 
 // system headers
 #include <string>
@@ -195,6 +196,60 @@ std::string         FileManager::catPath(
     return c;
 }
 
+std::string FileManager::getFullFilePath(const std::string &name) {
+        // choose open mode
+    std::ios::openmode mode = std::ios::in;
+    mode |= std::ios::binary;
+
+    const bool relative = !isAbsolute(name);
+
+    std::string filename;
+
+    if (relative)
+    {
+        // try directory stored in DB
+        if (BZDB.isSet("directory"))
+        {
+            filename = catPath(BZDB.get("directory"), name);
+            std::ifstream* stream = new std::ifstream(filename.c_str(), mode);
+            if (stream && *stream)
+                return filename;
+            delete stream;
+        }
+
+
+        // try data directory
+        {
+            filename = catPath(dataPath, name);
+            std::ifstream* stream = new std::ifstream(filename.c_str(), mode);
+            if (stream && *stream)
+                return filename;
+            delete stream;
+        }
+    }
+
+    // try current directory (or absolute path)
+    {
+        std::ifstream* stream = new std::ifstream(name.c_str(), mode);
+        if (stream && *stream)
+            return name;
+        delete stream;
+    }
+
+    // try install directory
+#if defined(INSTALL_DATA_DIR)
+    if (relative)
+    {
+        filename = catPath(INSTALL_DATA_DIR, name);
+        std::ifstream* stream = new std::ifstream(filename.c_str(), mode);
+        if (stream && *stream)
+            return filename;
+        delete stream;
+    }
+#endif
+    logDebugMessage(1, "Could not locate file %s", name.c_str());
+    return name;
+}
 
 // Local Variables: ***
 // mode: C++ ***
