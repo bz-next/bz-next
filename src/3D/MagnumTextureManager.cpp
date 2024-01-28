@@ -32,39 +32,39 @@
 
 // common implementation headers
 
-#include "bzfgl.h"
 #include "TextUtils.h"
 #include "global.h"
 #include "MediaFile.h"
 #include "ErrorHandler.h"
-#include "OpenGLTexture.h"
 #include "OSFile.h"
+#include "CacheManager.h"
+#include "FileManager.h"
 
 /*const int NO_VARIANT = (-1); */
 
 using namespace Magnum;
 
-static GL::Texture2D *noiseProc(ProcTextureInit &init);
+static GL::Texture2D *magnumNoiseProc(MagnumProcTextureInit &init);
 
-ProcTextureInit procLoader[1];
+MagnumProcTextureInit magnumProcLoader[1];
 
 
 MagnumTextureManager::MagnumTextureManager()
 {
     // fill out the standard proc textures
-    procLoader[0].name = "noise";
-    procLoader[0].proc = noiseProc;
+    magnumProcLoader[0].name = "noise";
+    magnumProcLoader[0].proc = magnumNoiseProc;
 
     lastImageID = -1;
     lastBoundID = -1;
 
     int i, numTextures;
-    numTextures = bzcountof(procLoader);
+    numTextures = bzcountof(magnumProcLoader);
 
     for (i = 0; i < numTextures; i++)
     {
-        procLoader[i].manager = this;
-        procLoader[i].proc(procLoader[i]);
+        magnumProcLoader[i].manager = this;
+        magnumProcLoader[i].proc(magnumProcLoader[i]);
     }
 
     importer = manager.loadAndInstantiate("AnyImageImporter");
@@ -75,7 +75,7 @@ MagnumTextureManager::~MagnumTextureManager()
     // we are done remove all textures
     for (TextureNameMap::iterator it = textureNames.begin(); it != textureNames.end(); ++it)
     {
-        ImageInfo &tex = it->second;
+        MagnumImageInfo &tex = it->second;
         if (tex.texture != NULL)
             delete tex.texture;
     }
@@ -105,14 +105,14 @@ Magnum::GL::Texture2D *MagnumTextureManager::getTexture( const char* name, bool 
         //texInfo.filter = OpenGLTexture::LinearMipmapLinear;
 
         //OpenGLTexture *image = loadTexture(texInfo, reportFail);
-        if (!importer || !importer->openFile(filename)) {
-            logDebugMessage(2,"Image not found or unloadable: %s\n", name);
+        /*if (!importer || !importer->openFile(filename)) {
+            logDebugMessage(2,"Image not found or unloadable: %s\n", filename.c_str());
             return NULL;
         }
         Containers::Optional<Trade::ImageData2D> image = importer->image2D(0);
         if (!image)
         {
-            logDebugMessage(2,"Image not found or unloadable: %s\n", name);
+            logDebugMessage(2,"Image not found or unloadable: %s\n", filename.c_str());
             return NULL;
         }
         GL::Texture2D *texture = new GL::Texture2D{};
@@ -120,7 +120,8 @@ Magnum::GL::Texture2D *MagnumTextureManager::getTexture( const char* name, bool 
             .setMagnificationFilter(GL::SamplerFilter::Linear)
             .setMinificationFilter(GL::SamplerFilter::Linear)
             .setStorage(1, GL::textureFormat(image->format()), image->size())
-            .setSubImage(0, {}, *image);
+            .setSubImage(0, {}, *image);*/
+        GL::Texture2D *texture = loadTexture(texInfo, reportFail);
         return addTexture(name, texture);
     }
     return NULL;
@@ -143,7 +144,7 @@ bool MagnumTextureManager::removeTexture(const std::string& name)
         return false;
 
     // delete the OpenGLTexture
-    ImageInfo& info = it->second;
+    MagnumImageInfo& info = it->second;
     delete info.texture;
     info.texture = NULL;
 
@@ -174,7 +175,7 @@ bool MagnumTextureManager::reloadTextureImage(const std::string& name)
     if (it == textureNames.end())
         return false;
 
-    ImageInfo& info = it->second;
+    MagnumImageInfo& info = it->second;
     GL::Texture2D* oldTex = info.texture;
     // TODO: We are assuming linear mipmap linear for now
     //OpenGLTexture::Filter filter = oldTex->getFilter();
@@ -198,138 +199,28 @@ bool MagnumTextureManager::reloadTextureImage(const std::string& name)
     return true;
 }
 
-/*
-bool MagnumTextureManager::bind ( int id )
-{
-    TextureIDMap::iterator it = textureIDs.find(id);
-    if (it == textureIDs.end())
-    {
-        logDebugMessage(1,"Unable to bind texture (by id): %d\n", id);
-        return false;
-    }
-
-    if (id != lastBoundID)
-    {
-        it->second->texture->execute();
-        lastBoundID = id;
-    }
-    return true;
-}
-
-
-bool MagnumTextureManager::bind ( const char* name )
-{
-    std::string nameStr = name;
-
-    TextureNameMap::iterator it = textureNames.find(nameStr);
-    if (it == textureNames.end())
-    {
-        logDebugMessage(1,"Unable to bind texture (by name): %s\n", name);
-        return false;
-    }
-
-    int id = it->second.id;
-    if (id != lastBoundID)
-    {
-        it->second.texture->execute();
-        lastBoundID = id;
-    }
-    return true;
-}
-
-
-OpenGLTexture::Filter MagnumTextureManager::getMaxFilter ( void )
-{
-    return OpenGLTexture::getMaxFilter();
-}
-
-
-std::string MagnumTextureManager::getMaxFilterName ( void )
-{
-    OpenGLTexture::Filter maxFilter = OpenGLTexture::getMaxFilter();
-    std::string name = OpenGLTexture::getFilterName(maxFilter);
-    return name;
-}
-
-
-void MagnumTextureManager::setMaxFilter(std::string filter)
-{
-    const char** names = OpenGLTexture::getFilterNames();
-    for (int i = 0; i < OpenGLTexture::getFilterCount(); i++)
-    {
-        if (filter == names[i])
-        {
-            setMaxFilter((OpenGLTexture::Filter) i);
-            return;
-        }
-    }
-    logDebugMessage(1,"setMaxFilter(): bad filter = %s\n", filter.c_str());
-}
-
-
-void MagnumTextureManager::setMaxFilter (OpenGLTexture::Filter filter )
-{
-    OpenGLTexture::setMaxFilter(filter);
-    updateTextureFilters();
-    return;
-}
-
-
 void MagnumTextureManager::updateTextureFilters()
 {
     // reset all texture filters to the current maxFilter
     TextureNameMap::iterator itr = textureNames.begin();
     while (itr != textureNames.end())
     {
-        OpenGLTexture* texture = itr->second.texture;
+        /*OpenGLTexture* texture = itr->second.texture;
         // getting, then setting re-clamps the filter level
         OpenGLTexture::Filter current = texture->getFilter();
         texture->setFilter(current);
-        ++itr;
+        ++itr;*/
+        // TODO: Implement this using the magnum texture class
     }
 
     // rebuild proc textures
+    /*
     for (int i = 0; i < (int)bzcountof(procLoader); i++)
     {
         procLoader[i].manager = this;
         procLoader[i].proc(procLoader[i]);
-    }
+    }*/
 }
-
-
-float MagnumTextureManager::GetAspectRatio ( int id )
-{
-    TextureIDMap::iterator it = textureIDs.find(id);
-    if (it == textureIDs.end())
-        return 0.0;
-
-    return (float)it->second->y/(float)it->second->x;
-}
-
-const ImageInfo& MagnumTextureManager::getInfo ( int id )
-{
-    static ImageInfo   crapInfo;
-    crapInfo.id = -1;
-    TextureIDMap::iterator it = textureIDs.find(id);
-    if (it == textureIDs.end())
-        return crapInfo;
-
-    return *(it->second);
-}
-const ImageInfo& MagnumTextureManager::getInfo ( const char* name )
-{
-    static ImageInfo crapInfo;
-    crapInfo.id = -1;
-    std::string nameStr = name;
-
-    TextureNameMap::iterator it = textureNames.find(nameStr);
-    if (it == textureNames.end())
-        return crapInfo;
-
-    return it->second;
-}
-
-*/
 
 GL::Texture2D *MagnumTextureManager::addTexture( const char* name, GL::Texture2D *texture )
 {
@@ -344,7 +235,7 @@ GL::Texture2D *MagnumTextureManager::addTexture( const char* name, GL::Texture2D
         logDebugMessage(3,"Texture %s already exists, overwriting\n", name);
         delete it->second.texture;
     }
-    ImageInfo info;
+    MagnumImageInfo info;
     info.name = name;
     info.texture = texture;
 
@@ -357,14 +248,26 @@ GL::Texture2D *MagnumTextureManager::addTexture( const char* name, GL::Texture2D
 
 GL::Texture2D* MagnumTextureManager::loadTexture(FileTextureInit &init, bool reportFail)
 {
+    
+    std::string filename = init.name;
+    if (CACHEMGR.isCacheFileType(init.name))
+        filename = CACHEMGR.getLocalName(filename);
 
-    OSFile osFilename(init.name); // convert to native format
-    const std::string filename = osFilename.getOSName();
+    // TODO: Support other file types JUST BY NOT REQUIRING THIS EXTENSION!!!
+    // The current code is dumb in that it appends the extension last minute based on what exists...
+    // Textures should be specified WITH extensions.
+    filename += ".png";
+
+    std::cout << "load Texture " << filename << std::endl;
 
     FileTextureInit texInfo;
     texInfo.name = filename;
 
-    if (!importer || !importer->openFile(filename)) {
+    std::string fullfilepath = FileManager::instance().getFullFilePath(filename);
+
+    std::cout << "the full path is " << fullfilepath << std::endl;
+
+    if (!importer || !importer->openFile(fullfilepath)) {
         logDebugMessage(2,"Image not found or unloadable: %s\n", filename.c_str());
         return NULL;
     }
@@ -385,28 +288,9 @@ GL::Texture2D* MagnumTextureManager::loadTexture(FileTextureInit &init, bool rep
 }
 
 
-void MagnumTextureManager::setTextureFilter(int texId, OpenGLTexture::Filter filter)
-{
-    // TODO: Support other filter modes
-    // we only use linear mipmap linear for now...
-    /*
-    TextureIDMap::iterator it = textureIDs.find(texId);
-    if (it == textureIDs.end())
-    {
-        logDebugMessage(1,"setTextureFilter() Couldn't find texid: %i\n", texId);
-        return;
-    }
-
-    ImageInfo& image = *(it->second);
-    OpenGLTexture* texture = image.texture;
-    texture->setFilter(filter);*/
-    logDebugMessage(2,"Unimplemented MagnumTextureManager::setTextureFilter");
-    return;
-}
-
 /* --- Procs --- */
 
-GL::Texture2D *noiseProc(ProcTextureInit &init)
+GL::Texture2D *magnumNoiseProc(MagnumProcTextureInit &init)
 {
     size_t noiseSize = 128;
     const size_t size = 4 * noiseSize * noiseSize;

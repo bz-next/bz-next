@@ -80,6 +80,8 @@
 #include "BZChatConsole.h"
 #include "BZScoreboard.h"
 
+#include "MagnumTextureManager.h"
+
 #include <ctime>
 #include <cassert>
 #include <imgui.h>
@@ -409,6 +411,7 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
 
     setMinimalLoopPeriod(0);
     //setSwapInterval(0);
+
 }
 
 void BZFlagNew::showMainMenuBar() {
@@ -1323,6 +1326,10 @@ int BZFlagNew::main() {
     //startupInfo.autoConnect = true;
 
     Team::updateShotColors();
+
+    // TM test
+    //MagnumTextureManager &tm = MagnumTextureManager::instance();
+    //GL::Texture2D *tex = tm.getTexture("green_bolt");
 
     startPlaying();
 

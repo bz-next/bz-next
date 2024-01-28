@@ -36,7 +36,7 @@ GuidedMissileStrategy::GuidedMissileStrategy(ShotPath* _path) :
     renderTimes(0),
     needUpdate(true)
 {
-    ptSceneNode = new BoltSceneNode(_path->getPosition(),_path->getVelocity(),false);
+    /*ptSceneNode = new BoltSceneNode(_path->getPosition(),_path->getVelocity(),false);
     TextureManager &tm = TextureManager::instance();
     int texture = tm.getTextureID("missile");
 
@@ -47,7 +47,7 @@ GuidedMissileStrategy::GuidedMissileStrategy(ShotPath* _path) :
         ptSceneNode->setColor(1.0f, 0.2f, 0.0f);
         ptSceneNode->setTeamColor(Team::getShotColor(_path->getTeam()));
         ptSceneNode->setFlares(true);
-    }
+    }*/
 
     // get initial shot info
     FiringInfo& f = getFiringInfo(_path);
@@ -105,7 +105,7 @@ GuidedMissileStrategy::GuidedMissileStrategy(ShotPath* _path) :
 
 GuidedMissileStrategy::~GuidedMissileStrategy()
 {
-    delete ptSceneNode;
+    //delete ptSceneNode;
 }
 
 // NOTE -- ray is base of shot segment and normalized direction of flight.
@@ -451,8 +451,8 @@ void GuidedMissileStrategy::readUpdate(uint16_t code, const void* msg)
 
 void GuidedMissileStrategy::addShot(SceneDatabase* scene, bool)
 {
-    ptSceneNode->move(getPath().getPosition(), getPath().getVelocity());
-    scene->addDynamicNode(ptSceneNode);
+    //ptSceneNode->move(getPath().getPosition(), getPath().getVelocity());
+    //scene->addDynamicNode(ptSceneNode);
 }
 
 void GuidedMissileStrategy::expire()

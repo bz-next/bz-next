@@ -795,7 +795,7 @@ void            LocalPlayer::doUpdateMotion(float dt)
     if (justLanded)
     {
         setLandingSpeed(oldVelocity[2]);
-        EFFECTS.addLandEffect(getColor(),newPos,getAngle());
+        //EFFECTS.addLandEffect(getColor(),newPos,getAngle());
     }
     if (gettingSound)
     {
@@ -1285,8 +1285,8 @@ bool            LocalPlayer::fireShot()
     server->sendPlayerUpdate(this);
     server->sendBeginShot(firingInfo);
 
-    if (BZDB.isTrue("enableLocalShotEffect") && SceneRenderer::instance().useQuality() >= 2)
-        EFFECTS.addShotEffect(getColor(), firingInfo.shot.pos, getAngle(), getVelocity());
+    /*if (BZDB.isTrue("enableLocalShotEffect") && SceneRenderer::instance().useQuality() >= 2)
+        EFFECTS.addShotEffect(getColor(), firingInfo.shot.pos, getAngle(), getVelocity());*/
 
     if (gettingSound)
     {

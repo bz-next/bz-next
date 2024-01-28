@@ -10,6 +10,8 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+#include "MagnumTextureManager.h"
+
 /* interface header */
 #include "Downloads.h"
 
@@ -18,7 +20,6 @@
 #include "CacheManager.h"
 #include "BzMaterial.h"
 #include "AnsiCodes.h"
-#include "TextureManager.h"
 #include "cURLManager.h"
 
 /* local implementation headers */
@@ -152,7 +153,7 @@ void CachedTexture::finalization(char *data, unsigned int length, bool good)
             rec.date = filetime;
             CACHEMGR.addFile(rec, data);
             const std::string localname = CACHEMGR.getLocalName(url);
-            TextureManager& TEXMGR = TextureManager::instance();
+            MagnumTextureManager& TEXMGR = MagnumTextureManager::instance();
             if (TEXMGR.isLoaded(localname))
             {
                 TEXMGR.reloadTextureImage(localname); // reload with the new image
@@ -295,7 +296,7 @@ void Downloads::removeTextures()
     BzMaterialManager::TextureSet::iterator set_it;
     MATERIALMGR.makeTextureList(set, false /* ignore referencing */);
 
-    TextureManager& TEXMGR = TextureManager::instance();
+    MagnumTextureManager& TEXMGR = MagnumTextureManager::instance();
 
     for (set_it = set.begin(); set_it != set.end(); ++set_it)
     {

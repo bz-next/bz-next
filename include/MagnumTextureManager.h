@@ -20,7 +20,6 @@
 #include <Corrade/Containers/Pointer.h>
 #include <Magnum/Trade/AbstractImporter.h>
 
-#include "OpenGLTexture.h"
 #include "Singleton.h"
 
 struct FileTextureInit
@@ -35,15 +34,15 @@ typedef  struct
 {
     Magnum::GL::Texture2D *texture;
     std::string   name;
-} ImageInfo;
+} MagnumImageInfo;
 
 class MagnumTextureManager;
 
-struct ProcTextureInit
+struct MagnumProcTextureInit
 {
     std::string       name;
     MagnumTextureManager    *manager;
-    Magnum::GL::Texture2D           *(*proc)(ProcTextureInit &init);
+    Magnum::GL::Texture2D           *(*proc)(MagnumProcTextureInit &init);
 };
 
 
@@ -60,22 +59,6 @@ public:
     bool reloadTextureImage(const std::string& name);
 
     void updateTextureFilters();
-    void setTextureFilter(int texId, OpenGLTexture::Filter filter);
-    OpenGLTexture::Filter getTextureFilter(int texId);
-
-    // Now defunct, get the texture and associate it with the mesh instead
-    bool bind ( int id );
-    bool bind ( const char* name );
-
-    const ImageInfo& getInfo ( int id );
-    const ImageInfo& getInfo ( const char* name );
-
-    OpenGLTexture::Filter getMaxFilter ( void );
-    std::string getMaxFilterName ( void );
-    void setMaxFilter ( OpenGLTexture::Filter filter );
-    void setMaxFilter ( std::string filter );
-
-    float GetAspectRatio ( int id );
 
 protected:
     friend class Singleton<MagnumTextureManager>;
@@ -89,8 +72,8 @@ private:
     Magnum::GL::Texture2D *addTexture( const char*, Magnum::GL::Texture2D *texture );
     Magnum::GL::Texture2D* loadTexture( FileTextureInit &init, bool reportFail = true );
 
-    typedef std::map<std::string, ImageInfo> TextureNameMap;
-    typedef std::map<int, ImageInfo*> TextureIDMap;
+    typedef std::map<std::string, MagnumImageInfo> TextureNameMap;
+    typedef std::map<int, MagnumImageInfo*> TextureIDMap;
 
     int       lastImageID;
     int       lastBoundID;

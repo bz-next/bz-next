@@ -241,7 +241,7 @@ target_link_libraries(bzflag-new PRIVATE
     bzgeometry
     bzogl)
 target_compile_options(bzflag-new PRIVATE -w)
-add_dependencies(bzflag-new Magnum::AnyImageImporter Magnum::AnySceneImporter Magnum::ObjImporter)
+add_dependencies(bzflag-new Magnum::AnyImageImporter MagnumPlugins::PngImporter Magnum::AnySceneImporter Magnum::ObjImporter)
 
 install(TARGETS bzflag-new DESTINATION ${MAGNUM_BINARY_INSTALL_DIR})
 

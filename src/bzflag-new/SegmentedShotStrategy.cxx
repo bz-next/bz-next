@@ -54,7 +54,7 @@ SegmentedShotStrategy::SegmentedShotStrategy(ShotPath* _path, bool useSuperTextu
     }
 
     // initialize scene nodes
-    boltSceneNode = new BoltSceneNode(_path->getPosition(), _path->getVelocity(), useSuperTexture);
+    /*boltSceneNode = new BoltSceneNode(_path->getPosition(), _path->getVelocity(), useSuperTexture);
 
     const float* c = Team::getShotColor(team);
     if (faint)
@@ -63,23 +63,23 @@ SegmentedShotStrategy::SegmentedShotStrategy(ShotPath* _path, bool useSuperTextu
         boltSceneNode->setTextureColor(1.0f, 1.0f, 1.0f, 0.3f);
     }
     else
-        boltSceneNode->setColor(c[0], c[1], c[2], 1.0f);
+        boltSceneNode->setColor(c[0], c[1], c[2], 1.0f);*/
 
-    TextureManager &tm = TextureManager::instance();
-    std::string imageName = Team::getImagePrefix(team);
-    if (useSuperTexture)
+    //TextureManager &tm = TextureManager::instance();
+    //std::string imageName = Team::getImagePrefix(team);
+    /*if (useSuperTexture)
         imageName += BZDB.get("superPrefix");
-    imageName += BZDB.get("boltTexture");
+    imageName += BZDB.get("boltTexture");*/
 
-    int texture = tm.getTextureID(imageName.c_str());
-    if (texture >= 0)
-        boltSceneNode->setTexture(texture);
+    //int texture = tm.getTextureID(imageName.c_str());
+    //if (texture >= 0)
+    //    boltSceneNode->setTexture(texture);
 }
 
 SegmentedShotStrategy::~SegmentedShotStrategy()
 {
     // free scene nodes
-    delete boltSceneNode;
+    //delete boltSceneNode;
 }
 
 void  SegmentedShotStrategy::update(float dt)
@@ -120,7 +120,7 @@ void  SegmentedShotStrategy::update(float dt)
                     rots[0] = atan2f(dir[1], dir[0]);
                     rots[1] = atan2f(dir[2], horiz);
 
-                    EFFECTS.addRicoEffect(pos, rots);
+                    //EFFECTS.addRicoEffect(pos, rots);
                     break;
                 }
                 case ShotPathSegment::Boundary:
@@ -139,7 +139,7 @@ void  SegmentedShotStrategy::update(float dt)
                     rots[1] = atan2f(dir[2], horiz);
 
                     const float* pos = segments[segment].ray.getOrigin();
-                    EFFECTS.addShotTeleportEffect(pos, rots);
+                    //EFFECTS.addShotTeleportEffect(pos, rots);
                 }
                 break;
                 }
@@ -304,7 +304,7 @@ float  SegmentedShotStrategy::checkHit(const BaseLocalPlayer* tank,
 void  SegmentedShotStrategy::addShot(SceneDatabase* scene, bool colorblind)
 {
     const ShotPath& shotPath = getPath();
-    boltSceneNode->move(shotPath.getPosition(), shotPath.getVelocity());
+    /*boltSceneNode->move(shotPath.getPosition(), shotPath.getVelocity());
     if (boltSceneNode->getColorblind() != colorblind)
     {
         boltSceneNode->setColorblind(colorblind);
@@ -313,14 +313,14 @@ void  SegmentedShotStrategy::addShot(SceneDatabase* scene, bool colorblind)
         const float* c = Team::getShotColor(currentTeam);
         boltSceneNode->setColor(c[0], c[1], c[2]);
 
-        TextureManager &tm = TextureManager::instance();
+        //TextureManager &tm = TextureManager::instance();
         std::string imageName = Team::getImagePrefix(currentTeam);
-        imageName += BZDB.get("boltTexture");
-        int texture = tm.getTextureID(imageName.c_str());
-        if (texture >= 0)
-            boltSceneNode->setTexture(texture);
-    }
-    scene->addDynamicNode(boltSceneNode);
+        //imageName += BZDB.get("boltTexture");
+        //int texture = tm.getTextureID(imageName.c_str());
+        //if (texture >= 0)
+        //    boltSceneNode->setTexture(texture);
+    }*/
+    //scene->addDynamicNode(boltSceneNode);
 }
 
 void  SegmentedShotStrategy::radarRender() const
@@ -668,12 +668,12 @@ ThiefStrategy::ThiefStrategy(ShotPath *_path) :
 
     // make thief scene nodes
     const int numSegments = getSegments().size();
-    thiefNodes = new LaserSceneNode*[numSegments];
+    //thiefNodes = new LaserSceneNode*[numSegments];
 
-    TextureManager &tm = TextureManager::instance();
-    int texture = tm.getTextureID("thief");
+    //TextureManager &tm = TextureManager::instance();
+    //int texture = tm.getTextureID("thief");
 
-    for (int i = 0; i < numSegments; i++)
+    /*for (int i = 0; i < numSegments; i++)
     {
         const ShotPathSegment& segm = getSegments()[i];
         const float t = float(segm.end - segm.start);
@@ -684,24 +684,24 @@ ThiefStrategy::ThiefStrategy(ShotPath *_path) :
         dir[1] = t * rawdir[1];
         dir[2] = t * rawdir[2];
         thiefNodes[i] = new LaserSceneNode(ray.getOrigin(), dir);
-        if (texture >= 0)
-            thiefNodes[i]->setTexture(texture);
+        //if (texture >= 0)
+        //    thiefNodes[i]->setTexture(texture);
 
         if (i == 0)
             thiefNodes[i]->setFirst();
 
         thiefNodes[i]->setColor(0, 1, 1);
         thiefNodes[i]->setCenterColor(0, 0, 0);
-    }
+    }*/
     setCurrentSegment(numSegments - 1);
 }
 
 ThiefStrategy::~ThiefStrategy()
 {
-    const int numSegments = getSegments().size();
+    /*const int numSegments = getSegments().size();
     for (int i = 0; i < numSegments; i++)
         delete thiefNodes[i];
-    delete[] thiefNodes;
+    delete[] thiefNodes;*/
 }
 
 void  ThiefStrategy::update(float dt)
@@ -714,8 +714,8 @@ void  ThiefStrategy::addShot(SceneDatabase* scene, bool)
 {
     // laser is so fast we always show every segment
     const int numSegments = getSegments().size();
-    for (int i = 0; i < numSegments; i++)
-        scene->addDynamicNode(thiefNodes[i]);
+    //for (int i = 0; i < numSegments; i++)
+    //    scene->addDynamicNode(thiefNodes[i]);
 }
 
 void  ThiefStrategy::radarRender() const
@@ -841,7 +841,7 @@ LaserStrategy::LaserStrategy(ShotPath* _path) :
     const LocalPlayer* myTank = LocalPlayer::getMyTank();
     TeamColor tmpTeam = (myTank->getFlag() == Flags::Colorblindness) ? RogueTeam : team;
 
-    TextureManager &tm = TextureManager::instance();
+    /*TextureManager &tm = TextureManager::instance();
     std::string imageName = Team::getImagePrefix(tmpTeam);
     imageName += BZDB.get("laserTexture");
     int texture = tm.getTextureID(imageName.c_str());
@@ -865,16 +865,16 @@ LaserStrategy::LaserStrategy(ShotPath* _path) :
 
         if (i == 0)
             laserNodes[i]->setFirst();
-    }
+    }*/
     setCurrentSegment(numSegments - 1);
 }
 
 LaserStrategy::~LaserStrategy()
 {
-    const int numSegments = getSegments().size();
+    /*const int numSegments = getSegments().size();
     for (int i = 0; i < numSegments; i++)
         delete laserNodes[i];
-    delete[] laserNodes;
+    delete[] laserNodes;*/
 }
 
 void  LaserStrategy::update(float dt)
@@ -887,8 +887,8 @@ void  LaserStrategy::addShot(SceneDatabase* scene, bool)
 {
     // laser is so fast we always show every segment
     const int numSegments = getSegments().size();
-    for (int i = 0; i < numSegments; i++)
-        scene->addDynamicNode(laserNodes[i]);
+    //for (int i = 0; i < numSegments; i++)
+    //    scene->addDynamicNode(laserNodes[i]);
 }
 
 void  LaserStrategy::radarRender() const

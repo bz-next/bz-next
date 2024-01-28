@@ -64,6 +64,8 @@ public:
     {
         dataPath = s;
     }
+
+    std::string getFullFilePath(const std::string &name);
 protected:
     friend class Singleton<FileManager>;
     FileManager();
