@@ -358,7 +358,7 @@ class BZFlagNew: public Platform::Sdl2Application {
 
 BZFlagNew::BZFlagNew(const Arguments& arguments):
     Platform::Application{arguments, Configuration{}
-        .setTitle("BZFlag Magnum Test")
+        .setTitle("BZFlag Experimental Client")
         .setWindowFlags(Configuration::WindowFlag::Resizable)},
     motd(NULL),
     ServerAccessList("ServerAccess.txt", NULL)

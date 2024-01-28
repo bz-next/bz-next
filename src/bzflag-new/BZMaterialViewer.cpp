@@ -84,20 +84,6 @@ BZMaterialViewer::BZMaterialViewer() {
             MatViewerShader::TextureCoordinates{})
         .setIndexBuffer(GL::Buffer{indices}, 0,
             GL::MeshIndexType::UnsignedInt);
-    
-    struct TriangleVertex {
-        Vector2 position;
-        Color3 color;
-    };
-    const TriangleVertex vertices2[]{
-        {{-0.5f, -0.5f}, 0xff0000_rgbf},    /* Left vertex, red color */
-        {{ 0.5f, -0.5f}, 0x00ff00_rgbf},    /* Right vertex, green color */
-        {{ 0.0f,  0.5f}, 0x0000ff_rgbf}     /* Top vertex, blue color */
-    };
-    testtri.setCount(Containers::arraySize(vertices2))
-         .addVertexBuffer(GL::Buffer{vertices2}, 0,
-            Shaders::VertexColorGL2D::Position{},
-            Shaders::VertexColorGL2D::Color3{});
 }
 
 void BZMaterialViewer::draw(const char *title, bool *p_open) {
@@ -134,8 +120,9 @@ void BZMaterialViewer::renderPreview() {
         if (mat) {
             GL::Texture2D *t = tm.getTexture(mat->getTexture(0).c_str());
             if (t) {
-                shader.setColor(0xffb2b2_rgbf).bindTexture(*t).draw(mesh);
-                
+                const float *cp = mat->getDiffuse();
+                Magnum::Color3 color{cp[0], cp[1], cp[2]};
+                shader.setColor(color).bindTexture(*t).draw(mesh);
             }
         }
     }
