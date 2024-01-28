@@ -23,6 +23,8 @@
 #include "ObstacleMgr.h"
 #include "BaseBuilding.h"
 
+#include "MagnumBZMaterial.h"
+
 /* compression library header */
 #include <zlib.h>
 
@@ -93,8 +95,8 @@ const void* WorldBuilder::unpack(const void* buf)
     buf = TEXMATRIXMGR.unpack(buf);
 
     // unpack materials
-    MATERIALMGR.clear();
-    buf = MATERIALMGR.unpack(buf);
+    MAGNUMMATERIALMGR.clear();
+    buf = MAGNUMMATERIALMGR.unpack(buf);
 
     // unpack physics drivers
     PHYDRVMGR.clear();
@@ -118,7 +120,7 @@ const void* WorldBuilder::unpack(const void* buf)
     {
         int32_t matindex;
         buf = nboUnpackInt(buf, matindex);
-        world->waterMaterial = MATERIALMGR.getMaterial(matindex);
+        world->waterMaterial = MAGNUMMATERIALMGR.getMaterial(matindex);
     }
 
     uint32_t i, count;

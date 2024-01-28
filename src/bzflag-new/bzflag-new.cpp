@@ -83,6 +83,7 @@
 #include "MagnumTextureManager.h"
 
 #include "BZTextureBrowser.h"
+#include "BZMaterialBrowser.h"
 
 #include <ctime>
 #include <cassert>
@@ -218,6 +219,9 @@ class BZFlagNew: public Platform::Sdl2Application {
 
         void maybeShowTMBrowser();
         bool showTMBrowser = true;
+
+        void maybeShowMATBrowser();
+        bool showMATBrowser = true;
         
         Vector3 positionOnSphere(const Vector2i& position) const;
 
@@ -342,6 +346,7 @@ class BZFlagNew: public Platform::Sdl2Application {
         BZChatConsole console;
         BZScoreboard scoreboard;
         BZTextureBrowser tmBrowser;
+        BZMaterialBrowser matBrowser;
 
         bool isQuit = false;
 };
@@ -436,6 +441,7 @@ void BZFlagNew::showMenuView() {
     if (ImGui::MenuItem("Scoreboard", NULL, &showScoreboard)) {}
     if (ImGui::MenuItem("Console", NULL, &showConsole)) {}
     if (ImGui::MenuItem("Texture Manager", NULL, &showTMBrowser)) {}
+    if (ImGui::MenuItem("Material Manager", NULL, &showMATBrowser)) {}
     if (ImGui::MenuItem("FPS", NULL, &showFPS)) {}
 }
 
@@ -486,6 +492,13 @@ void BZFlagNew::maybeShowTMBrowser()
     }
 }
 
+void BZFlagNew::maybeShowMATBrowser()
+{
+    if (showMATBrowser) {
+        matBrowser.draw("Material Manager", &showMATBrowser);
+    }
+}
+
 void BZFlagNew::onConsoleText(const char* msg) {
     // local commands:
     // /set lists all BZDB variables
@@ -529,6 +542,7 @@ void BZFlagNew::drawEvent() {
     maybeShowConnect();
     maybeShowScoreboard();
     maybeShowTMBrowser();
+    maybeShowMATBrowser();
 
     /* Update application cursor */
     _imgui.updateApplicationCursor(*this);
