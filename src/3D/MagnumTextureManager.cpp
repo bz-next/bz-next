@@ -64,7 +64,10 @@ MagnumTextureManager::MagnumTextureManager()
     for (i = 0; i < numTextures; i++)
     {
         magnumProcLoader[i].manager = this;
-        magnumProcLoader[i].proc(magnumProcLoader[i]);
+        
+        addTexture(
+            magnumProcLoader[i].name.c_str(),
+            magnumProcLoader[i].proc(magnumProcLoader[i]));
     }
 
     importer = manager.loadAndInstantiate("AnyImageImporter");
@@ -80,6 +83,14 @@ MagnumTextureManager::~MagnumTextureManager()
             delete tex.texture;
     }
     textureNames.clear();
+}
+
+std::vector<std::string> MagnumTextureManager::getTextureNames() {
+    std::vector<std::string> keys;
+    for (const auto& e: textureNames) {
+        keys.push_back(e.first);
+    }
+    return keys;
 }
 
 Magnum::GL::Texture2D *MagnumTextureManager::getTexture( const char* name, bool reportFail )
@@ -303,7 +314,7 @@ GL::Texture2D *magnumNoiseProc(MagnumProcTextureInit &init)
         noise[i+2] = n;
         noise[i+3] = n;
     }
-    Trade::ImageData2D image{PixelFormat::RGB8Unorm, {(int)noiseSize, (int)noiseSize}, std::move(noise)};
+    Trade::ImageData2D image{PixelFormat::RGBA8Unorm, {(int)noiseSize, (int)noiseSize}, std::move(noise)};
     GL::Texture2D *texture = new GL::Texture2D{};
     texture->setWrapping(GL::SamplerWrapping::ClampToEdge)
         .setMagnificationFilter(GL::SamplerFilter::Linear)

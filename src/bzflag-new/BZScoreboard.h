@@ -1,3 +1,6 @@
+#ifndef BZSCOREBOARD_H
+#define BZSCOREBOARD_H
+
 #include <functional>
 #include <cstring>
 #include <cctype>
@@ -108,3 +111,5 @@ class BZScoreboard {
         static std::string teamCountSpacingLabel;
         int numHunted;
 };
+
+#endif

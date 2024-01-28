@@ -14,6 +14,7 @@
 
 #include <string>
 #include <map>
+#include <vector>
 
 #include <Magnum/GL/Texture.h>
 #include <Corrade/PluginManager/Manager.h>
@@ -57,6 +58,8 @@ public:
     bool removeTexture(const std::string& name);
     bool reloadTextures();
     bool reloadTextureImage(const std::string& name);
+
+    std::vector<std::string> getTextureNames();
 
     void updateTextureFilters();
 
