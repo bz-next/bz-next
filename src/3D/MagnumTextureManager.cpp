@@ -263,6 +263,9 @@ GL::Texture2D* MagnumTextureManager::loadTexture(FileTextureInit &init, bool rep
 {
     
     std::string filename = init.name;
+    if (filename == "") {
+        return NULL;
+    }
     if (CACHEMGR.isCacheFileType(init.name))
         filename = CACHEMGR.getLocalName(filename);
 
