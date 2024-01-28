@@ -35,6 +35,8 @@
 #include "WallObstacle.h"
 #include "MeshObstacle.h"
 
+#include "MagnumBZMaterial.h"
+
 //
 // World
 //
@@ -88,7 +90,7 @@ World::~World()
     links.clear();
     DYNCOLORMGR.clear();
     TEXMATRIXMGR.clear();
-    MATERIALMGR.clear();
+    MAGNUMMATERIALMGR.clear();
     PHYDRVMGR.clear();
     TRANSFORMMGR.clear();
     OBSTACLEMGR.clear();
@@ -618,7 +620,7 @@ void        World::makeLinkMaterial()
 {
     const std::string name = "LinkMaterial";
 
-    linkMaterial = MATERIALMGR.findMaterial(name);
+    linkMaterial = MAGNUMMATERIALMGR.findMaterial(name);
     if (linkMaterial != NULL)
         return;
 
@@ -653,7 +655,7 @@ void        World::makeLinkMaterial()
         texmatId = TEXMATRIXMGR.addMatrix (texmat);
     }
 
-    BzMaterial mat;
+    MagnumBZMaterial mat;
     const float color[4] = {0.0f, 0.0f, 0.0f, 0.5f};
     mat.setDiffuse(color);
     mat.setDynamicColor(dyncolId);
@@ -661,7 +663,7 @@ void        World::makeLinkMaterial()
     mat.setTextureMatrix(texmatId);
     mat.setNoLighting(true);
     mat.setName(name);
-    linkMaterial = MATERIALMGR.addMaterial(&mat);
+    linkMaterial = MAGNUMMATERIALMGR.addMaterial(&mat);
 
     return;
 }
@@ -951,7 +953,7 @@ static void writeDefaultOBJMaterials(std::ostream& out)
         {"basewall_team4",  "purple_basewall.png",  {1.0f, 0.8f, 1.0f, 1.0f}}
     };
     const int count = sizeof(defaultMats) / sizeof(defaultMats[0]);
-    BzMaterial mat;
+    MagnumBZMaterial mat;
     for (int i = 0; i < count; i++)
     {
         const MatProps& mp = defaultMats[i];
@@ -1106,7 +1108,7 @@ bool World::writeWorld(const std::string& filename, std::string& fullname)
 
     // Write materials
     if (!saveAsOBJ)
-        MATERIALMGR.print(out, indent);
+        MAGNUMMATERIALMGR.print(out, indent);
     else
     {
         const std::string mtlname = filename + ".mtl";
@@ -1119,7 +1121,7 @@ bool World::writeWorld(const std::string& filename, std::string& fullname)
             *mtlStream << "# BZFlag client: saved world on " << ctime(&nowTime);
             *mtlStream << std::endl;
             writeDefaultOBJMaterials(*mtlStream);
-            MATERIALMGR.printMTL(*mtlStream, "");
+            MAGNUMMATERIALMGR.printMTL(*mtlStream, "");
             delete mtlStream;
         }
     }
@@ -1137,7 +1139,7 @@ bool World::writeWorld(const std::string& filename, std::string& fullname)
             out << indent << "waterLevel" << std::endl;
             out << indent << "  height " << waterLevel << std::endl;
             out << indent << "  matref ";
-            MATERIALMGR.printReference(out, waterMaterial);
+            MAGNUMMATERIALMGR.printReference(out, waterMaterial);
             out << std::endl;
             out << indent << "end" << std::endl << std::endl;
         }

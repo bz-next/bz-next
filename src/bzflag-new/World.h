@@ -30,6 +30,8 @@
 #include "Weapon.h"
 #include "EntryZone.h"
 
+#include "MagnumBZMaterial.h"
+
 class FlagSceneNode;
 class MeshDrawInfo;
 
@@ -56,8 +58,8 @@ public:
     bool        allowHandicap() const;
     bool        allowTeams() const;
     float       getWaterLevel() const;
-    const BzMaterial*   getWaterMaterial() const;
-    const BzMaterial*   getLinkMaterial() const;
+    const MagnumBZMaterial*   getWaterMaterial() const;
+    const MagnumBZMaterial*   getLinkMaterial() const;
     float       getLinearAcceleration() const;
     float       getAngularAcceleration() const;
     float       getFlagShakeTimeout() const;
@@ -159,8 +161,8 @@ private:
     float       shakeTimeout;
     int         shakeWins;
     float       waterLevel;
-    const BzMaterial*   waterMaterial;
-    const BzMaterial*   linkMaterial;
+    const MagnumBZMaterial*   waterMaterial;
+    const MagnumBZMaterial*   linkMaterial;
 
     typedef struct
     {
@@ -259,12 +261,12 @@ inline float        World::getWaterLevel() const
     return waterLevel;
 }
 
-inline const BzMaterial*    World::getWaterMaterial() const
+inline const MagnumBZMaterial*    World::getWaterMaterial() const
 {
     return waterMaterial;
 }
 
-inline const BzMaterial*    World::getLinkMaterial() const
+inline const MagnumBZMaterial*    World::getLinkMaterial() const
 {
     return linkMaterial;
 }

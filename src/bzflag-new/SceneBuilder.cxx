@@ -292,17 +292,17 @@ void SceneDatabaseBuilder::addWaterLevel(SceneDatabase* db,
     t[1][0] = t[2][0] = t[2][1] = t[3][1] = 2.0f;
 
     // get the material
-    const BzMaterial* mat = world->getWaterMaterial();
-    const bool noRadar = mat->getNoRadar();
-    const bool noShadow = mat->getNoShadow();
+    //const BzMaterial* mat = world->getWaterMaterial();
+    //const bool noRadar = mat->getNoRadar();
+    //const bool noShadow = mat->getNoShadow();
 
-    MeshPolySceneNode* node =
-        new MeshPolySceneNode(plane, noRadar, noShadow, v, n, t);
+    //MeshPolySceneNode* node =
+    //    new MeshPolySceneNode(plane, noRadar, noShadow, v, n, t);
 
     // setup the material
-    MeshSceneNodeGenerator::setupNodeMaterial(node, mat);
+    //MeshSceneNodeGenerator::setupNodeMaterial(node, mat);
 
-    db->addStaticNode(node, false);
+    //db->addStaticNode(node, false);
 
     return;
 }
@@ -611,7 +611,7 @@ void SceneDatabaseBuilder::addTeleporter(SceneDatabase* db,
         const Teleporter& o,
         const World* world)
 {
-    // this assumes teleporters have fourteen parts:  12 border sides, 2 faces
+    /*// this assumes teleporters have fourteen parts:  12 border sides, 2 faces
     int part = 0;
     WallSceneNode* node;
     ObstacleSceneNodeGenerator* nodeGen = new TeleporterSceneNodeGenerator(&o);
@@ -686,7 +686,7 @@ void SceneDatabaseBuilder::addTeleporter(SceneDatabase* db,
     MeshSceneNodeGenerator::setupNodeMaterial(linkNode, mat);
     db->addStaticNode(linkNode, false);
 
-    delete nodeGen;
+    delete nodeGen;*/
 }
 
 // Local Variables: ***

@@ -18,7 +18,7 @@ void BZTextureBrowser::draw(const char *title, bool *p_open) {
     for (const auto& e: names) {
         names_cc+= e + std::string("\0", 1);
     }
-    ImGui::Begin("Texture Manager", p_open, ImGuiWindowFlags_AlwaysAutoResize);
+    ImGui::Begin(title, p_open, ImGuiWindowFlags_AlwaysAutoResize);
     if (names_cc.size() >= 0) {
         ImGui::Combo("Texture Name", &itemCurrent, names_cc.c_str(), names_cc.size());
     } else {

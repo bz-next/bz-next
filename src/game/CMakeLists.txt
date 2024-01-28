@@ -20,6 +20,7 @@ add_library(bzgame
     ServerList.cxx
     StartupInfo.cxx
     TextureMatrix.cxx
+    MagnumBZMaterial.cpp
 )
 
 target_link_libraries(bzgame bzcommon)

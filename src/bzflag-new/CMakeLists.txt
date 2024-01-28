@@ -212,7 +212,8 @@ ActionBinding.cxx
     WorldPrimitiveGenerator.cpp
     Drawables.cpp
     BZScoreboard.cpp
-    BZTextureBrowser.cpp)
+    BZTextureBrowser.cpp
+    BZMaterialBrowser.cpp)
 target_link_libraries(bzflag-new PRIVATE
     Corrade::Main
     Magnum::Application
