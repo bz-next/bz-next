@@ -82,6 +82,8 @@
 
 #include "MagnumTextureManager.h"
 
+#include "BZTextureBrowser.h"
+
 #include <ctime>
 #include <cassert>
 #include <imgui.h>
@@ -213,6 +215,9 @@ class BZFlagNew: public Platform::Sdl2Application {
 
         void maybeShowScoreboard();
         bool showScoreboard = true;
+
+        void maybeShowTMBrowser();
+        bool showTMBrowser = true;
         
         Vector3 positionOnSphere(const Vector2i& position) const;
 
@@ -336,6 +341,7 @@ class BZFlagNew: public Platform::Sdl2Application {
 
         BZChatConsole console;
         BZScoreboard scoreboard;
+        BZTextureBrowser tmBrowser;
 
         bool isQuit = false;
 };
@@ -429,6 +435,7 @@ void BZFlagNew::showMainMenuBar() {
 void BZFlagNew::showMenuView() {
     if (ImGui::MenuItem("Scoreboard", NULL, &showScoreboard)) {}
     if (ImGui::MenuItem("Console", NULL, &showConsole)) {}
+    if (ImGui::MenuItem("Texture Manager", NULL, &showTMBrowser)) {}
     if (ImGui::MenuItem("FPS", NULL, &showFPS)) {}
 }
 
@@ -468,7 +475,14 @@ void BZFlagNew::maybeShowConnect() {
 
 void BZFlagNew::maybeShowScoreboard() {
     if (showScoreboard) {
-        scoreboard.draw("Scoreboard", NULL);
+        scoreboard.draw("Scoreboard", &showScoreboard);
+    }
+}
+
+void BZFlagNew::maybeShowTMBrowser()
+{
+    if (showTMBrowser) {
+        tmBrowser.draw("Texture Manager", &showTMBrowser);
     }
 }
 
@@ -514,6 +528,7 @@ void BZFlagNew::drawEvent() {
     maybeShowFPS();
     maybeShowConnect();
     maybeShowScoreboard();
+    maybeShowTMBrowser();
 
     /* Update application cursor */
     _imgui.updateApplicationCursor(*this);
@@ -1328,8 +1343,11 @@ int BZFlagNew::main() {
     Team::updateShotColors();
 
     // TM test
-    //MagnumTextureManager &tm = MagnumTextureManager::instance();
-    //GL::Texture2D *tex = tm.getTexture("green_bolt");
+    MagnumTextureManager &tm = MagnumTextureManager::instance();
+    tm.getTexture("boxwall");
+    tm.getTexture("moon");
+    tm.getTexture("mountain1");
+    tm.getTexture("tetrawall");
 
     startPlaying();
 
