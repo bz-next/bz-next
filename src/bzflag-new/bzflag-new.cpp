@@ -86,6 +86,8 @@
 #include "BZMaterialBrowser.h"
 #include "BZMaterialViewer.h"
 
+#include "WorldSceneBuilder.h"
+
 #include <ctime>
 #include <cassert>
 #include <imgui.h>
@@ -346,6 +348,7 @@ class BZFlagNew: public Platform::Sdl2Application {
         std::vector<Object3D *> tankObjs;
 
         WorldRenderer worldRenderer;
+        WorldSceneBuilder worldSceneBuilder;
         //std::vector<ColoredDrawable *> tankDrawables;
         ImGuiIntegration::Context _imgui{NoCreate};
 
@@ -1413,6 +1416,12 @@ void BZFlagNew::joinInternetGame2()
     //setSceneDatabase();
     //mainWindow->getWindow()->yieldCurrent();
 
+    const ObstacleList& boxes = OBSTACLEMGR.getBoxes();
+    for (int i = 0; i < boxes.size(); ++i) {
+        worldSceneBuilder.addBox(*((BoxBuilding*) boxes[i]));
+    }
+
+    
     worldRenderer.createWorldObject();
     worldRenderer.getWorldObject()->setParent(&_manipulator);
 
