@@ -331,7 +331,7 @@ GL::Texture2D* MagnumTextureManager::loadTexture(FileTextureInit &init, bool rep
     }
 
     GL::Texture2D *texture = new GL::Texture2D{};
-    texture->setWrapping(GL::SamplerWrapping::ClampToEdge)
+    texture->setWrapping(GL::SamplerWrapping::MirroredRepeat)
         .setMagnificationFilter(GL::SamplerFilter::Linear)
         .setMinificationFilter(GL::SamplerFilter::Linear)
         .setStorage(1, GL::textureFormat(image->format()), image->size())
@@ -358,7 +358,7 @@ GL::Texture2D *magnumNoiseProc(MagnumProcTextureInit &init)
     }
     Trade::ImageData2D image{PixelFormat::RGBA8Unorm, {(int)noiseSize, (int)noiseSize}, std::move(noise)};
     GL::Texture2D *texture = new GL::Texture2D{};
-    texture->setWrapping(GL::SamplerWrapping::ClampToEdge)
+    texture->setWrapping(GL::SamplerWrapping::MirroredRepeat)
         .setMagnificationFilter(GL::SamplerFilter::Linear)
         .setMinificationFilter(GL::SamplerFilter::Linear)
         .setStorage(1, GL::textureFormat(image.format()), image.size())
