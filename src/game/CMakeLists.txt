@@ -23,4 +23,4 @@ add_library(bzgame
     MagnumBZMaterial.cpp
 )
 
-target_link_libraries(bzgame bzcommon)
+target_link_libraries(bzgame bzcommon Magnum::GL)

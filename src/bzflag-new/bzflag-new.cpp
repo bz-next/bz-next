@@ -74,6 +74,7 @@
 #include <Magnum/ImGuiIntegration/Context.hpp>
 #include <Magnum/Types.h>
 
+#include "MagnumBZMaterial.h"
 #include "MagnumDefs.h"
 #include "WorldRenderer.h"
 
@@ -372,6 +373,8 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
 
     loggingCallback = &blc;
     debugLevel = 4;
+
+    MAGNUMMATERIALMGR.loadDefaultMaterials();
 
     Utility::Arguments args;
     args/*.addArgument("file").setHelp("file", "file to load")*/
