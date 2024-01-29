@@ -54,6 +54,7 @@ class BZMaterialViewer {
     Magnum::GL::Mesh mesh;
     MatViewerShader shader;
     Magnum::Shaders::PhongGL phong;
+    Magnum::Shaders::PhongGL phongUntex;
     
 
     void renderPreview();
