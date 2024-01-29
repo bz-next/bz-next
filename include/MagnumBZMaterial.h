@@ -200,6 +200,9 @@ class MagnumBZMaterialManager
 public:
     MagnumBZMaterialManager();
     ~MagnumBZMaterialManager();
+
+    void loadDefaultMaterials();
+
     void update();
     void clear();
     const MagnumBZMaterial* addMaterial(const MagnumBZMaterial* material);

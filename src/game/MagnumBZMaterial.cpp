@@ -12,7 +12,9 @@
 
 #include <string.h>
 
+#include "MagnumTextureManager.h"
 #include "MagnumBZMaterial.h"
+
 #include "TextureMatrix.h"
 #include "DynamicColor.h"
 #include "Pack.h"
@@ -24,6 +26,21 @@
 
 MagnumBZMaterialManager MAGNUMMATERIALMGR;
 
+void MagnumBZMaterialManager::loadDefaultMaterials() {
+    auto &tm = MagnumTextureManager::instance();
+    tm.getTexture("boxwall");
+    tm.getTexture("roof");
+
+    auto *boxwallmat = new MagnumBZMaterial();
+    boxwallmat->setName("boxWallMaterial");
+    boxwallmat->addTexture("boxwall");
+    MAGNUMMATERIALMGR.addMaterial(boxwallmat);
+
+    auto *roofmat = new MagnumBZMaterial();
+    roofmat->setName("boxTopMaterial");
+    roofmat->addTexture("roof");
+    MAGNUMMATERIALMGR.addMaterial(roofmat);
+}
 
 MagnumBZMaterialManager::MagnumBZMaterialManager()
 {
