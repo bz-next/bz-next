@@ -1,5 +1,6 @@
 #include "WorldRenderer.h"
 #include "Drawables.h"
+#include "MagnumBZMaterial.h"
 #include "WorldPrimitiveGenerator.h"
 
 #include "Obstacle.h"
@@ -7,6 +8,7 @@
 #include "ObstacleMgr.h"
 
 #include "Corrade/Containers/ArrayView.h"
+#include "WorldSceneBuilder.h"
 #include <Magnum/Trade/MeshData.h>
 #include <Magnum/MeshTools/Compile.h>
 #include <Magnum/Primitives/Cube.h>
@@ -103,6 +105,28 @@ void WorldRenderer::createWorldObject() {
             worldPyrMesh->setInstanceCount(instances.size());
             new InstancedColoredDrawable(*worldPyrs, coloredShaderInstanced, *worldPyrMesh, *worldDrawables);
         }
+    }
+}
+
+void WorldRenderer::test(const WorldSceneBuilder *sb) {
+    worldDrawables = new SceneGraph::DrawableGroup3D{};
+    worldParent = new Object3D{};
+    worldParent->scale({0.05, 0.05, 0.05});
+
+    // Create world boxes
+    {
+        Object3D *worldBoxes = new Object3D;
+        worldMeshes["boxwalls"].push_back(MeshTools::compile(sb->compileMatMesh("boxWallMaterial")));
+        GL::Mesh *worldBoxWallsMesh = &worldMeshes["boxwalls"].back();
+        worldBoxes->setParent(worldParent);
+        new BZMaterialDrawable(*worldBoxes, matShader, matShaderUntex, *worldBoxWallsMesh, MAGNUMMATERIALMGR.findMaterial("boxWallMaterial"), *worldDrawables);
+    }
+    {
+        Object3D *worldBoxes = new Object3D;
+        worldMeshes["boxtops"].push_back(MeshTools::compile(sb->compileMatMesh("boxTopMaterial")));
+        GL::Mesh *worldBoxTopsMesh = &worldMeshes["boxtops"].back();
+        worldBoxes->setParent(worldParent);
+        new BZMaterialDrawable(*worldBoxes, matShader, matShaderUntex, *worldBoxTopsMesh, MAGNUMMATERIALMGR.findMaterial("boxTopMaterial"), *worldDrawables);
     }
 }
 

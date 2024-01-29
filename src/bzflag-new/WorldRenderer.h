@@ -12,6 +12,8 @@
 #include <Magnum/SceneGraph/Scene.h>
 #include <Magnum/Shaders/PhongGL.h>
 
+#include "WorldSceneBuilder.h"
+
 #include <map>
 #include <list>
 
@@ -21,7 +23,7 @@ class WorldRenderer {
         ~WorldRenderer();
         // Assumes that world is already loaded and OBSTACLEMGR is ready to go
         void createWorldObject();
-        void addMesh();
+        void test(const WorldSceneBuilder *sb);
 
         Magnum::SceneGraph::DrawableGroup3D *getDrawableGroup();
         Object3D *getWorldObject();
@@ -40,4 +42,21 @@ class WorldRenderer {
         Magnum::Shaders::PhongGL coloredShaderInstanced{Magnum::Shaders::PhongGL::Configuration{}
             .setFlags(Magnum::Shaders::PhongGL::Flag::InstancedTransformation|
                     Magnum::Shaders::PhongGL::Flag::VertexColor)};
+        Magnum::Shaders::PhongGL matShader{Magnum::Shaders::PhongGL::Configuration{}
+            .setFlags(
+                Magnum::Shaders::PhongGL::Flag::DiffuseTexture |
+                Magnum::Shaders::PhongGL::Flag::AmbientTexture |
+                Magnum::Shaders::PhongGL::Flag::UniformBuffers |
+                Magnum::Shaders::PhongGL::Flag::AlphaMask |
+                Magnum::Shaders::PhongGL::Flag::TextureTransformation)
+            .setMaterialCount(1)
+            .setLightCount(1)
+            .setDrawCount(1)};
+        Magnum::Shaders::PhongGL matShaderUntex{Magnum::Shaders::PhongGL::Configuration{}
+            .setFlags(
+                Magnum::Shaders::PhongGL::Flag::UniformBuffers |
+                Magnum::Shaders::PhongGL::Flag::AlphaMask)
+            .setMaterialCount(1)
+            .setLightCount(1)
+            .setDrawCount(1)};
 };

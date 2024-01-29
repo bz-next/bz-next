@@ -8,7 +8,7 @@ add_library(bz3D
     MagnumTextureManager.cpp
 )
 
-add_dependencies(bz3D Magnum::AnyImageImporter)
+add_dependencies(bz3D Magnum::AnyImageImporter MagnumPlugins::PngImporter)
 
 target_link_libraries(bz3D PRIVATE
     Corrade::Main

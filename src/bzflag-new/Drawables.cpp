@@ -6,6 +6,7 @@
 #include "Magnum/Shaders/PhongGL.h"
 #include "Magnum/Shaders/Phong.h"
 #include "Magnum/Shaders/Generic.h"
+#include <Magnum/GL/Mesh.h>
 
 #include "MagnumTextureManager.h"
 
@@ -92,6 +93,7 @@ void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::C
 
         GL::Texture2D *t = tm.getTexture(_mat->getTexture(0).c_str());
         if (t) {
+                
                 textureTransformationUniform.setData({
                     Shaders::TextureTransformationUniform{}
                         .setTextureMatrix(Matrix3{})
@@ -134,5 +136,7 @@ void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::C
                 .bindDrawBuffer(drawUniform)
                 .draw(_mesh);
         }
+    } else {
+        Warning{} << "Missing mat";
     }
 }

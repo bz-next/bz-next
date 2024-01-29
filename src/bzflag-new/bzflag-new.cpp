@@ -374,8 +374,6 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
     loggingCallback = &blc;
     debugLevel = 4;
 
-    MAGNUMMATERIALMGR.loadDefaultMaterials();
-
     Utility::Arguments args;
     args/*.addArgument("file").setHelp("file", "file to load")*/
         .addOption("importer", "AnySceneImporter").setHelp("importer", "importer plugin to use")
@@ -1385,6 +1383,8 @@ int BZFlagNew::main() {
     tm.getTexture("mountain1");
     tm.getTexture("tetrawall");
 
+    MAGNUMMATERIALMGR.loadDefaultMaterials();
+
     startPlaying();
 
     killAres();
@@ -1425,7 +1425,8 @@ void BZFlagNew::joinInternetGame2()
     }
 
     
-    worldRenderer.createWorldObject();
+    //worldRenderer.createWorldObject();
+    worldRenderer.test(&worldSceneBuilder);
     worldRenderer.getWorldObject()->setParent(&_manipulator);
 
     // make radar
