@@ -364,9 +364,10 @@ class BZFlagNew: public Platform::Sdl2Application {
 };
 
 BZFlagNew::BZFlagNew(const Arguments& arguments):
-    Platform::Application{arguments, Configuration{}
+    Platform::Sdl2Application{arguments, Configuration{}
         .setTitle("BZFlag Experimental Client")
-        .setWindowFlags(Configuration::WindowFlag::Resizable)},
+        .setWindowFlags(Configuration::WindowFlag::Resizable),
+        GLConfiguration{}.setSampleCount(16)},
     motd(NULL),
     ServerAccessList("ServerAccess.txt", NULL)
 {
@@ -434,7 +435,6 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
 
     setMinimalLoopPeriod(0);
     //setSwapInterval(0);
-
 }
 
 void BZFlagNew::showMainMenuBar() {
@@ -1427,6 +1427,10 @@ void BZFlagNew::joinInternetGame2()
     const ObstacleList& pyrs = OBSTACLEMGR.getPyrs();
     for (int i = 0; i < pyrs.size(); ++i) {
         worldSceneBuilder.addPyr(*((PyramidBuilding*) pyrs[i]));
+    }
+    const ObstacleList& bases = OBSTACLEMGR.getBases();
+    for (int i = 0; i < bases.size(); ++i) {
+        worldSceneBuilder.addBase(*((BaseBuilding*) bases[i]));
     }
 
     

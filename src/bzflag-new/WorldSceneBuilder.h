@@ -9,8 +9,10 @@
 
 #include <Magnum/Trade/MeshData.h>
 
+
 #include "BoxBuilding.h"
 #include "PyramidBuilding.h"
+#include "BaseBuilding.h"
 
 // The approach here results in multiple copies of map mesh data in RAM
 // This is inefficient, but hopefully a map isn't so big that this leads
@@ -35,7 +37,9 @@ class WorldSceneBuilder {
     public:
     void addBox(BoxBuilding& o);
     void addPyr(PyramidBuilding& o);
+    void addBase(BaseBuilding& o);
     Magnum::Trade::MeshData compileMatMesh(std::string matname) const;
+    std::vector<std::string> getMaterialList() const;
     private:
     std::vector<WorldObject> worldObjects;
 };
