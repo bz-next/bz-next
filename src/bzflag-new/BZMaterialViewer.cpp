@@ -1,5 +1,6 @@
 #include "BZMaterialViewer.h"
 #include "Corrade/Containers/ArrayView.h"
+#include "DynamicColor.h"
 #include "Magnum/GL/AbstractFramebuffer.h"
 #include "Magnum/GL/DefaultFramebuffer.h"
 #include "Magnum/GL/Framebuffer.h"
@@ -205,10 +206,17 @@ void BZMaterialViewer::renderPreview() {
     if (itemCurrent < names.size()) {
         const MagnumBZMaterial *mat = MAGNUMMATERIALMGR.findMaterial(names[itemCurrent].c_str());
         if (mat) {
+            Color3 dyncol;
+            if (mat->getDynamicColor() != -1) {
+                auto * dc = DYNCOLORMGR.getColor(mat->getDynamicColor());
+                if (dc) {
+                    dyncol = toMagnumColor(dc->getColor());
+                }
+            }
             materialUniform.setData({
                 Shaders::PhongMaterialUniform{}
                     .setDiffuseColor(Color4{toMagnumColor(mat->getDiffuse()), 0.0f})
-                    .setAmbientColor(toMagnumColor(mat->getAmbient()) + toMagnumColor(mat->getEmission()))
+                    .setAmbientColor(toMagnumColor(mat->getAmbient()) + toMagnumColor(mat->getEmission()) + dyncol)
                     .setSpecularColor(Color4{toMagnumColor(mat->getSpecular()), 0.0f})
                     .setShininess(mat->getShininess())
                     .setAlphaMask(mat->getAlphaThreshold())
