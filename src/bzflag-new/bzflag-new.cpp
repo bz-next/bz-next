@@ -134,6 +134,8 @@
 #include "AnsiCodes.h"
 #include "PhysicsDriver.h"
 #include "ObstacleMgr.h"
+#include "TextureMatrix.h"
+#include "DynamicColor.h"
 
 // defaults for bzdb
 #include "defaultBZDB.h"
@@ -2064,6 +2066,11 @@ void BZFlagNew::playingLoop()
             world->updateAnimations(dt);
 
         // draw frame
+        // update the dynamic colors
+        DYNCOLORMGR.update();
+
+        // update the texture matrices
+        TEXMATRIXMGR.update();
         mainLoopIteration();
 
         // updateSound()

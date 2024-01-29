@@ -4,6 +4,7 @@
 #include "Magnum/GL/DefaultFramebuffer.h"
 #include "Magnum/GL/Framebuffer.h"
 #include "Magnum/GL/GL.h"
+#include "Magnum/Math/Tags.h"
 #include "Magnum/Mesh.h"
 #include "Magnum/Shaders/PhongGL.h"
 #include "Magnum/Tags.h"
@@ -40,6 +41,8 @@
 #include <Magnum/MeshTools/Interleave.h>
 #include <Magnum/Trade/MeshData.h>
 
+#include "TextureMatrix.h"
+
 using namespace Magnum;
 using namespace Magnum::Math::Literals;
 
@@ -67,7 +70,7 @@ MatViewerShader::MatViewerShader() {
 BZMaterialViewer::BZMaterialViewer() :
     phong {
         Shaders::PhongGL::Configuration{}
-            .setFlags(Shaders::PhongGL::Flag::DiffuseTexture | Shaders::PhongGL::Flag::AmbientTexture | Shaders::PhongGL::Flag::UniformBuffers | Shaders::PhongGL::Flag::AlphaMask)
+            .setFlags(Shaders::PhongGL::Flag::DiffuseTexture | Shaders::PhongGL::Flag::AmbientTexture | Shaders::PhongGL::Flag::UniformBuffers | Shaders::PhongGL::Flag::AlphaMask | Shaders::PhongGL::Flag::TextureTransformation)
             .setMaterialCount(1)
             .setLightCount(1)
             .setDrawCount(1)
@@ -154,7 +157,11 @@ Color3 toMagnumColor(const float *cp) {
     return Color3{cp[0], cp[1], cp[2]};
 }
 
+#define MAGNUMROWCOL(r, c) (r+c*3)
+#define INTROWCOL(r, c) (r+c*4)
+
 void BZMaterialViewer::renderPreview() {
+    static float tt = 0.0;
     GL::Renderbuffer depthStencil;
     depthStencil.setStorage(GL::RenderbufferFormat::Depth24Stencil8, bufsize);
     GL::Framebuffer framebuffer{ {{}, bufsize} };
@@ -169,7 +176,7 @@ void BZMaterialViewer::renderPreview() {
 
     std::vector<std::string> names = MAGNUMMATERIALMGR.getMaterialNames();
 
-    GL::Buffer projectionUniform, lightUniform, materialUniform, transformationUniform, drawUniform;
+    GL::Buffer projectionUniform, lightUniform, materialUniform, transformationUniform, drawUniform, textureTransformationUniform;
     Math::Matrix4<float> normalMat;
 
     Matrix4 transformationMatrix = Matrix4::translation(Vector3::zAxis(-2.0f));
@@ -206,8 +213,33 @@ void BZMaterialViewer::renderPreview() {
                     .setShininess(mat->getShininess())
                     .setAlphaMask(mat->getAlphaThreshold())
             });
+
             GL::Texture2D *t = tm.getTexture(mat->getTexture(0).c_str());
             if (t) {
+                    textureTransformationUniform.setData({
+                        Shaders::TextureTransformationUniform{}
+                            .setTextureMatrix(Matrix3{})
+                    });
+                if (mat->getTextureMatrix(0) != -1) {
+                    const TextureMatrix *texmat_internal = TEXMATRIXMGR.getMatrix(mat->getTextureMatrix(0));
+                    Matrix3 texmat;
+                    
+                    auto &tmd = texmat.data();
+                    const float *tmid = texmat_internal->getMatrix();
+
+                    // BZFlag TextureMatrix packs the data weirdly
+                    tmd[MAGNUMROWCOL(0, 0)] = tmid[INTROWCOL(0, 0)];
+                    tmd[MAGNUMROWCOL(0, 1)] = tmid[INTROWCOL(0, 1)];
+                    tmd[MAGNUMROWCOL(1, 0)] = tmid[INTROWCOL(1, 0)];
+                    tmd[MAGNUMROWCOL(1, 1)] = tmid[INTROWCOL(1, 1)];
+                    tmd[MAGNUMROWCOL(0, 2)] = tmid[INTROWCOL(0, 3)];
+                    tmd[MAGNUMROWCOL(1, 2)] = tmid[INTROWCOL(1, 3)];
+                    
+                    textureTransformationUniform.setData({
+                        Shaders::TextureTransformationUniform{}
+                            .setTextureMatrix(texmat)
+                    });
+                }
                 phong.bindDiffuseTexture(*t)
                     .bindAmbientTexture(*t)
                     .bindLightBuffer(lightUniform)
@@ -215,6 +247,7 @@ void BZMaterialViewer::renderPreview() {
                     .bindMaterialBuffer(materialUniform)
                     .bindTransformationBuffer(transformationUniform)
                     .bindDrawBuffer(drawUniform)
+                    .bindTextureTransformationBuffer(textureTransformationUniform)
                     .draw(mesh);
             } else {
                 phongUntex
