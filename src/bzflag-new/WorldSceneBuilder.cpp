@@ -1,6 +1,7 @@
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/GrowableArray.h>
 #include <Magnum/MeshTools/Interleave.h>
+#include <Magnum/MeshTools/Copy.h>
 
 #include "MagnumTextureManager.h"
 #include "WorldPrimitiveGenerator.h"
@@ -283,6 +284,7 @@ Trade::MeshData WorldSceneBuilder::compileMatMesh(std::string matname) const {
                 Containers::arrayAppend(texcoords, md.textureCoordinates2DAsArray());
                 Containers::arrayAppend(normals, md.normalsAsArray());
                 Containers::Array<UnsignedInt> inds{md.indicesAsArray()};
+
                 for (auto &i: inds) {
                     i += indOffset;
                 }
@@ -292,11 +294,12 @@ Trade::MeshData WorldSceneBuilder::compileMatMesh(std::string matname) const {
             }
         }
     }
+
     Containers::Array<char> meshdata = MeshTools::interleave(positions, texcoords, normals);
     Containers::StridedArrayView1D<const VertexData> dataview = Containers::arrayCast<const VertexData>(meshdata);
-    return Trade::MeshData {MeshPrimitive::Triangles, Trade::DataFlags{}, std::move(indices), Trade::MeshIndexData{indices}, std::move(meshdata), {
+    return MeshTools::copy(Trade::MeshData {MeshPrimitive::Triangles, Trade::DataFlags{}, indices, Trade::MeshIndexData{indices}, std::move(meshdata), {
         Trade::MeshAttributeData{Trade::MeshAttribute::Position, dataview.slice(&VertexData::position)},
         Trade::MeshAttributeData{Trade::MeshAttribute::TextureCoordinates, dataview.slice(&VertexData::texcoord)},
         Trade::MeshAttributeData{Trade::MeshAttribute::Normal, dataview.slice(&VertexData::normal)}
-        }, static_cast<UnsignedInt>(vertexCount)};
+        }, static_cast<UnsignedInt>(vertexCount)});
 }

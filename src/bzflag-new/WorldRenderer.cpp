@@ -119,21 +119,22 @@ void WorldRenderer::test(const WorldSceneBuilder *sb) {
         worldMeshes["boxwalls"].push_back(MeshTools::compile(sb->compileMatMesh("boxWallMaterial")));
         GL::Mesh *worldBoxWallsMesh = &worldMeshes["boxwalls"].back();
         worldBoxes->setParent(worldParent);
-        new BZMaterialDrawable(*worldBoxes, matShader, matShaderUntex, *worldBoxWallsMesh, MAGNUMMATERIALMGR.findMaterial("boxWallMaterial"), *worldDrawables);
+        new BZMaterialDrawable(*worldBoxes, matShader, matShaderUntex, *worldBoxWallsMesh, "boxWallMaterial", *worldDrawables);
     }
     {
         Object3D *worldBoxes = new Object3D;
         worldMeshes["boxtops"].push_back(MeshTools::compile(sb->compileMatMesh("boxTopMaterial")));
         GL::Mesh *worldBoxTopsMesh = &worldMeshes["boxtops"].back();
         worldBoxes->setParent(worldParent);
-        new BZMaterialDrawable(*worldBoxes, matShader, matShaderUntex, *worldBoxTopsMesh, MAGNUMMATERIALMGR.findMaterial("boxTopMaterial"), *worldDrawables);
+        new BZMaterialDrawable(*worldBoxes, matShader, matShaderUntex, *worldBoxTopsMesh, "boxTopMaterial", *worldDrawables);
     }
     {
         Object3D *worldPyrs = new Object3D;
+
         worldMeshes["pyrs"].push_back(MeshTools::compile(sb->compileMatMesh("pyrWallMaterial")));
         GL::Mesh *worldPyrsMesh = &worldMeshes["pyrs"].back();
         worldPyrs->setParent(worldParent);
-        new BZMaterialDrawable(*worldPyrs, matShader, matShaderUntex, *worldPyrsMesh, MAGNUMMATERIALMGR.findMaterial("pyrWallMaterial"), *worldDrawables);
+        new BZMaterialDrawable(*worldPyrs, matShader, matShaderUntex, *worldPyrsMesh, "pyrWallMaterial", *worldDrawables);
     }
 }
 
