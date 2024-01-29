@@ -182,7 +182,7 @@ void BZMaterialViewer::renderPreview() {
     lightUniform.setData({
         Shaders::PhongLightUniform{}
             .setPosition({0.0, 0.0, 1.0, 0.0})
-            .setColor({0.01, 0.01, 0.01})
+            .setColor({1.0, 1.0, 1.0})
     });
     transformationUniform.setData({
         Shaders::TransformationUniform3D{}
