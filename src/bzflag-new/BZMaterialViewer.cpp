@@ -5,10 +5,8 @@
 #include "Magnum/GL/DefaultFramebuffer.h"
 #include "Magnum/GL/Framebuffer.h"
 #include "Magnum/GL/GL.h"
-#include "Magnum/Math/Tags.h"
 #include "Magnum/Mesh.h"
 #include "Magnum/Shaders/PhongGL.h"
-#include "Magnum/Tags.h"
 #include "MagnumBZMaterial.h"
 #include <imgui.h>
 

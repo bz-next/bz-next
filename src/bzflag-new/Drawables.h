@@ -9,6 +9,8 @@
 #include <Magnum/Mesh.h>
 #include <Magnum/Math/Color.h>
 
+#include "MagnumBZMaterial.h"
+
 class ColoredDrawable : public Magnum::SceneGraph::Drawable3D {
     public:
         explicit ColoredDrawable(Object3D& object, Magnum::Shaders::PhongGL& shader, Magnum::GL::Mesh& mesh, const Magnum::Color4& color, Magnum::SceneGraph::DrawableGroup3D& group) :
@@ -56,4 +58,23 @@ class TexturedDrawable : public Magnum::SceneGraph::Drawable3D {
         Magnum::Shaders::PhongGL& _shader;
         Magnum::GL::Mesh& _mesh;
         Magnum::GL::Texture2D &_texture;
+};
+
+class BZMaterialDrawable : public Magnum::SceneGraph::Drawable3D {
+    public:
+        explicit BZMaterialDrawable(Object3D& object, Magnum::Shaders::PhongGL& shader, Magnum::Shaders::PhongGL& shaderUntex, Magnum::GL::Mesh& mesh, const MagnumBZMaterial* mat, Magnum::SceneGraph::DrawableGroup3D& group) :
+            Magnum::SceneGraph::Drawable3D{object, &group},
+            _shader(shader),
+            _shaderUntex(shaderUntex),
+            _mesh(mesh),
+            _mat(mat)
+        {}
+
+    private:
+        void draw(const Magnum::Matrix4& transformationMatrix, Magnum::SceneGraph::Camera3D& camera) override;
+
+        Magnum::Shaders::PhongGL &_shader;
+        Magnum::Shaders::PhongGL &_shaderUntex;
+        Magnum::GL::Mesh& _mesh;
+        const MagnumBZMaterial *_mat;
 };
