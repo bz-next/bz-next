@@ -40,6 +40,11 @@ void MagnumBZMaterialManager::loadDefaultMaterials() {
     roofmat->setName("boxTopMaterial");
     roofmat->addTexture("roof");
     MAGNUMMATERIALMGR.addMaterial(roofmat);
+
+    auto *pyrmat = new MagnumBZMaterial();
+    pyrmat->setName("pyrWallMaterial");
+    pyrmat->addTexture("pyrwall");
+    MAGNUMMATERIALMGR.addMaterial(pyrmat);
 }
 
 MagnumBZMaterialManager::MagnumBZMaterialManager()
