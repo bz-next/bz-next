@@ -65,9 +65,16 @@ MatViewerShader::MatViewerShader() {
 }
 
 BZMaterialViewer::BZMaterialViewer() :
-    phong{
+    phong {
         Shaders::PhongGL::Configuration{}
             .setFlags(Shaders::PhongGL::Flag::DiffuseTexture | Shaders::PhongGL::Flag::AmbientTexture | Shaders::PhongGL::Flag::UniformBuffers | Shaders::PhongGL::Flag::AlphaMask)
+            .setMaterialCount(1)
+            .setLightCount(1)
+            .setDrawCount(1)
+    },
+    phongUntex {
+        Shaders::PhongGL::Configuration{}
+            .setFlags(Shaders::PhongGL::Flag::UniformBuffers | Shaders::PhongGL::Flag::AlphaMask)
             .setMaterialCount(1)
             .setLightCount(1)
             .setDrawCount(1)
@@ -165,7 +172,7 @@ void BZMaterialViewer::renderPreview() {
     GL::Buffer projectionUniform, lightUniform, materialUniform, transformationUniform, drawUniform;
     Math::Matrix4<float> normalMat;
 
-    Matrix4 transformationMatrix = Matrix4::translation(Vector3::zAxis(-4.0f));
+    Matrix4 transformationMatrix = Matrix4::translation(Vector3::zAxis(-2.0f));
     Matrix4 projectionMatrix = Matrix4::perspectiveProjection(35.0_degf, 1.0f, 0.001f, 100.0f);
 
     projectionUniform.setData({
@@ -175,7 +182,7 @@ void BZMaterialViewer::renderPreview() {
     lightUniform.setData({
         Shaders::PhongLightUniform{}
             .setPosition({0.0, 0.0, 1.0, 0.0})
-            .setColor({1.0, 1.0, 1.0})
+            .setColor({0.01, 0.01, 0.01})
     });
     transformationUniform.setData({
         Shaders::TransformationUniform3D{}
@@ -194,16 +201,13 @@ void BZMaterialViewer::renderPreview() {
             materialUniform.setData({
                 Shaders::PhongMaterialUniform{}
                     .setDiffuseColor(Color4{toMagnumColor(mat->getDiffuse()), 0.0f})
-                    .setAmbientColor(toMagnumColor(mat->getAmbient()))
+                    .setAmbientColor(toMagnumColor(mat->getAmbient()) + toMagnumColor(mat->getEmission()))
                     .setSpecularColor(Color4{toMagnumColor(mat->getSpecular()), 0.0f})
                     .setShininess(mat->getShininess())
                     .setAlphaMask(mat->getAlphaThreshold())
             });
             GL::Texture2D *t = tm.getTexture(mat->getTexture(0).c_str());
             if (t) {
-                /*const float *cp = mat->getDiffuse();
-                Magnum::Color3 color{cp[0], cp[1], cp[2]};
-                shader.setColor(color).bindTexture(*t).draw(mesh);*/
                 phong.bindDiffuseTexture(*t)
                     .bindAmbientTexture(*t)
                     .bindLightBuffer(lightUniform)
@@ -212,15 +216,14 @@ void BZMaterialViewer::renderPreview() {
                     .bindTransformationBuffer(transformationUniform)
                     .bindDrawBuffer(drawUniform)
                     .draw(mesh);
-
-                /*phong.setDiffuseColor(0x2f83cc_rgbf)
-                    .setShininess(200.0f)
-                    .setLightPosition({5.0f, 5.0f, 7.0f})
-                    .setTransformationMatrix(transformationMatrix)
-                    .setNormalMatrix(transformationMatrix.rotation())
-                    .setProjectionMatrix(projectionMatrix)
-                    .bindDiffuseTexture(*t)
-                    .draw(mesh);*/
+            } else {
+                phongUntex
+                    .bindLightBuffer(lightUniform)
+                    .bindProjectionBuffer(projectionUniform)
+                    .bindMaterialBuffer(materialUniform)
+                    .bindTransformationBuffer(transformationUniform)
+                    .bindDrawBuffer(drawUniform)
+                    .draw(mesh);
             }
         }
     }
