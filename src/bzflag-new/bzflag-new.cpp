@@ -76,6 +76,7 @@
 
 #include "MagnumBZMaterial.h"
 #include "MagnumDefs.h"
+#include "PyramidBuilding.h"
 #include "WorldRenderer.h"
 
 #include "BZChatConsole.h"
@@ -1422,6 +1423,10 @@ void BZFlagNew::joinInternetGame2()
     const ObstacleList& boxes = OBSTACLEMGR.getBoxes();
     for (int i = 0; i < boxes.size(); ++i) {
         worldSceneBuilder.addBox(*((BoxBuilding*) boxes[i]));
+    }
+    const ObstacleList& pyrs = OBSTACLEMGR.getPyrs();
+    for (int i = 0; i < pyrs.size(); ++i) {
+        worldSceneBuilder.addPyr(*((PyramidBuilding*) pyrs[i]));
     }
 
     

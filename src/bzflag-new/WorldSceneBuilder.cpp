@@ -133,6 +133,136 @@ void WorldSceneBuilder::addBox(BoxBuilding& o) {
     worldObjects.emplace_back(std::move(boxObj));
 }
 
+void WorldSceneBuilder::addPyr(PyramidBuilding& o) {
+    WorldObject pyrObj;
+    // The old code mapped textures straight to the pyr without a material
+    // Instead, we assume we have a material called pyrWallMaterial
+    const MagnumBZMaterial *pyrWallMat = MAGNUMMATERIALMGR.findMaterial("pyrWallMaterial");
+    float texFactor = BZDB.eval("pyrWallTexRepeat");
+
+    // The original pyramid code uses the box texture size as a magic texture scaling parameter...
+    // needless to say, this should be changed
+    auto * bwtex = MagnumTextureManager::instance().getTexture("boxwall");
+    float boxTexWidth, boxTexHeight;
+    boxTexWidth = boxTexHeight = 0.2f * BZDB.eval(StateDatabase::BZDB_BOXHEIGHT);
+    if (bwtex)
+        boxTexWidth = (float)bwtex->imageSize(0)[0] / (float)bwtex->imageSize(0)[1] * boxTexHeight;
+
+    float base[3], sCorner[3], tCorner[3];
+    float sEdge[3], tEdge[3];
+    float uRepeats, vRepeats;
+    bool isQuad = false;
+
+    auto computeEdges =
+        [&base, &sCorner, &tCorner, &sEdge, &tEdge, &uRepeats, &vRepeats, texFactor, &isQuad, boxTexHeight]
+        (const PyramidBuilding& pyramid, int faceNum) {
+        if (pyramid.getZFlip()) {
+            switch (faceNum) {
+            case 1:
+                pyramid.getCorner(4, base);
+                pyramid.getCorner(1, sCorner);
+                pyramid.getCorner(0, tCorner);
+                isQuad = false;
+                break;
+            case 2:
+                pyramid.getCorner(4, base);
+                pyramid.getCorner(2, sCorner);
+                pyramid.getCorner(1, tCorner);
+                isQuad = false;
+                break;
+            case 3:
+                pyramid.getCorner(4, base);
+                pyramid.getCorner(3, sCorner);
+                pyramid.getCorner(2, tCorner);
+                isQuad = false;
+                break;
+            case 4:
+                pyramid.getCorner(4, base);
+                pyramid.getCorner(0, sCorner);
+                pyramid.getCorner(3, tCorner);
+                isQuad = false;
+                break;
+            case 5:
+                pyramid.getCorner(0, base);
+                pyramid.getCorner(1, sCorner);
+                pyramid.getCorner(3, tCorner);
+                isQuad = true;
+                break;
+            }
+        } else {
+            switch (faceNum) {
+            case 1:
+                pyramid.getCorner(0, base);
+                pyramid.getCorner(1, sCorner);
+                pyramid.getCorner(4, tCorner);
+                isQuad = false;
+                break;
+            case 2:
+                pyramid.getCorner(1, base);
+                pyramid.getCorner(2, sCorner);
+                pyramid.getCorner(4, tCorner);
+                isQuad = false;
+                break;
+            case 3:
+                pyramid.getCorner(2, base);
+                pyramid.getCorner(3, sCorner);
+                pyramid.getCorner(4, tCorner);
+                isQuad = false;
+                break;
+            case 4:
+                pyramid.getCorner(3, base);
+                pyramid.getCorner(0, sCorner);
+                pyramid.getCorner(4, tCorner);
+                isQuad = false;
+                break;
+            case 5:
+                if ((pyramid.getPosition()[2] > 0.0f))
+                {
+                    pyramid.getCorner(0, base);
+                    pyramid.getCorner(3, sCorner);
+                    pyramid.getCorner(1, tCorner);
+                    isQuad = true;
+                } else {
+                    return false;
+                }
+                break;
+            }
+        }
+        sEdge[0] = sCorner[0] - base[0];
+        sEdge[1] = sCorner[1] - base[1];
+        sEdge[2] = sCorner[2] - base[2];
+        tEdge[0] = tCorner[0] - base[0];
+        tEdge[1] = tCorner[1] - base[1];
+        tEdge[2] = tCorner[2] - base[2];
+
+        uRepeats = -texFactor*boxTexHeight;
+        vRepeats = -texFactor*boxTexHeight;
+
+        const float sLength = sqrtf(float(sEdge[0] * sEdge[0] +
+                                    sEdge[1] * sEdge[1] + sEdge[2] * sEdge[2]));
+        const float tLength = sqrtf(float(tEdge[0] * tEdge[0] +
+                                        tEdge[1] * tEdge[1] + tEdge[2] * tEdge[2]));
+        if (uRepeats < 0.0f) {
+            uRepeats = - sLength / uRepeats;
+        }
+        if (vRepeats < 0.0f) {
+            vRepeats = - tLength / vRepeats;
+        }
+        return true;
+    };
+
+    for (int i = 1; i <= 5; ++i) {
+        if (computeEdges(o, i)) {
+            pyrObj.addMatMesh(
+                "pyrWallMaterial",
+                isQuad ?
+                    WorldPrimitiveGenerator::quad(base, sEdge, tEdge, 0.0f, 0.0f, uRepeats, vRepeats) :
+                    WorldPrimitiveGenerator::tri(base, sEdge, tEdge, 0.0f, 0.0f, uRepeats, vRepeats));
+        }
+    }
+    worldObjects.emplace_back(std::move(pyrObj));
+}
+
 Trade::MeshData WorldSceneBuilder::compileMatMesh(std::string matname) const {
     struct VertexData {
         Vector3 position;

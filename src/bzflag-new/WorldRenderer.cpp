@@ -128,6 +128,13 @@ void WorldRenderer::test(const WorldSceneBuilder *sb) {
         worldBoxes->setParent(worldParent);
         new BZMaterialDrawable(*worldBoxes, matShader, matShaderUntex, *worldBoxTopsMesh, MAGNUMMATERIALMGR.findMaterial("boxTopMaterial"), *worldDrawables);
     }
+    {
+        Object3D *worldPyrs = new Object3D;
+        worldMeshes["pyrs"].push_back(MeshTools::compile(sb->compileMatMesh("pyrWallMaterial")));
+        GL::Mesh *worldPyrsMesh = &worldMeshes["pyrs"].back();
+        worldPyrs->setParent(worldParent);
+        new BZMaterialDrawable(*worldPyrs, matShader, matShaderUntex, *worldPyrsMesh, MAGNUMMATERIALMGR.findMaterial("pyrWallMaterial"), *worldDrawables);
+    }
 }
 
 void WorldRenderer::destroyWorldObject() {
