@@ -4,6 +4,7 @@
 #include <Magnum/MeshTools/Duplicate.h>
 #include <Magnum/MeshTools/GenerateFlatNormals.h>
 #include <Magnum/MeshTools/Interleave.h>
+#include <Magnum/MeshTools/Copy.h>
 
 using namespace Magnum;
 using namespace Magnum::Math::Literals;
@@ -138,7 +139,7 @@ Trade::MeshData WorldPrimitiveGenerator::quad(const float base[3], const float u
         {plane[0], plane[1], plane[2]},
         {plane[0], plane[1], plane[2]}
     };
-    static const UnsignedInt indices[]{        /* 3--1 1 */
+    const UnsignedInt indices[]{        /* 3--1 1 */
         0, 1, 2,                        /* | / /| */
         2, 1, 3                         /* |/ / | */
     };
@@ -158,11 +159,11 @@ Trade::MeshData WorldPrimitiveGenerator::quad(const float base[3], const float u
     data = MeshTools::interleave(posview, texview, normview);
     Containers::StridedArrayView1D<const VertexData> dataview = Containers::arrayCast<const VertexData>(data);
 
-    return Trade::MeshData {MeshPrimitive::Triangles, Trade::DataFlags{}, indices, Trade::MeshIndexData{indices}, std::move(data), {
+    return MeshTools::copy(Trade::MeshData {MeshPrimitive::Triangles, Trade::DataFlags{}, indices, Trade::MeshIndexData{indices}, std::move(data), {
         Trade::MeshAttributeData{Trade::MeshAttribute::Position, dataview.slice(&VertexData::position)},
         Trade::MeshAttributeData{Trade::MeshAttribute::TextureCoordinates, dataview.slice(&VertexData::texcoord)},
         Trade::MeshAttributeData{Trade::MeshAttribute::Normal, dataview.slice(&VertexData::normal)}
-    }, static_cast<UnsignedInt>(dataview.size())};
+    }, static_cast<UnsignedInt>(dataview.size())});
 
 }
 
@@ -199,7 +200,7 @@ Trade::MeshData WorldPrimitiveGenerator::tri(const float base[3], const float uE
         {plane[0], plane[1], plane[2]},
         {plane[0], plane[1], plane[2]}
     };
-    static const UnsignedInt indices[]{
+    const UnsignedInt indices[]{
         0, 1, 2,
     };
 
@@ -218,9 +219,9 @@ Trade::MeshData WorldPrimitiveGenerator::tri(const float base[3], const float uE
     data = MeshTools::interleave(posview, texview, normview);
     Containers::StridedArrayView1D<const VertexData> dataview = Containers::arrayCast<const VertexData>(data);
 
-    return Trade::MeshData {MeshPrimitive::Triangles, Trade::DataFlags{}, indices, Trade::MeshIndexData{indices}, std::move(data), {
+    return MeshTools::copy(Trade::MeshData {MeshPrimitive::Triangles, Trade::DataFlags{}, indices, Trade::MeshIndexData{indices}, std::move(data), {
         Trade::MeshAttributeData{Trade::MeshAttribute::Position, dataview.slice(&VertexData::position)},
         Trade::MeshAttributeData{Trade::MeshAttribute::TextureCoordinates, dataview.slice(&VertexData::texcoord)},
         Trade::MeshAttributeData{Trade::MeshAttribute::Normal, dataview.slice(&VertexData::normal)}
-    }, static_cast<UnsignedInt>(dataview.size())};
+    }, static_cast<UnsignedInt>(dataview.size())});
 }

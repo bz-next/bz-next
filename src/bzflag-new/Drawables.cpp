@@ -8,6 +8,7 @@
 #include "Magnum/Shaders/Generic.h"
 #include <Magnum/GL/Mesh.h>
 
+#include "MagnumBZMaterial.h"
 #include "MagnumTextureManager.h"
 
 #include "DynamicColor.h"
@@ -50,6 +51,8 @@ void TexturedDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::Cam
 void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::Camera3D& camera) {
     MagnumTextureManager &tm = MagnumTextureManager::instance();
     GL::Buffer projectionUniform, lightUniform, materialUniform, transformationUniform, drawUniform, textureTransformationUniform;
+
+    const MagnumBZMaterial *mat = MAGNUMMATERIALMGR.findMaterial(_matName);
     
     projectionUniform.setData({
         Shaders::ProjectionUniform3D{}
@@ -74,32 +77,32 @@ void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::C
         return Color3{cp[0], cp[1], cp[2]};
     };
 
-    if (_mat) {
+    if (mat) {
         Color3 dyncol;
-        if (_mat->getDynamicColor() != -1) {
-            auto * dc = DYNCOLORMGR.getColor(_mat->getDynamicColor());
+        if (mat->getDynamicColor() != -1) {
+            auto * dc = DYNCOLORMGR.getColor(mat->getDynamicColor());
             if (dc) {
                 dyncol = toMagnumColor(dc->getColor());
             }
         }
         materialUniform.setData({
             Shaders::PhongMaterialUniform{}
-                .setDiffuseColor(Color4{toMagnumColor(_mat->getDiffuse()), 0.0f})
-                .setAmbientColor(toMagnumColor(_mat->getAmbient()) + toMagnumColor(_mat->getEmission()) + dyncol)
-                .setSpecularColor(Color4{toMagnumColor(_mat->getSpecular()), 0.0f})
-                .setShininess(_mat->getShininess())
-                .setAlphaMask(_mat->getAlphaThreshold())
+                .setDiffuseColor(Color4{toMagnumColor(mat->getDiffuse()), 0.0f})
+                .setAmbientColor(toMagnumColor(mat->getAmbient()) + toMagnumColor(mat->getEmission()) + dyncol)
+                .setSpecularColor(Color4{toMagnumColor(mat->getSpecular()), 0.0f})
+                .setShininess(mat->getShininess())
+                .setAlphaMask(mat->getAlphaThreshold())
         });
 
-        GL::Texture2D *t = tm.getTexture(_mat->getTexture(0).c_str());
+        GL::Texture2D *t = tm.getTexture(mat->getTexture(0).c_str());
         if (t) {
                 
                 textureTransformationUniform.setData({
                     Shaders::TextureTransformationUniform{}
                         .setTextureMatrix(Matrix3{})
                 });
-            if (_mat->getTextureMatrix(0) != -1) {
-                const TextureMatrix *texmat_internal = TEXMATRIXMGR.getMatrix(_mat->getTextureMatrix(0));
+            if (mat->getTextureMatrix(0) != -1) {
+                const TextureMatrix *texmat_internal = TEXMATRIXMGR.getMatrix(mat->getTextureMatrix(0));
                 Matrix3 texmat;
                 
                 auto &tmd = texmat.data();
