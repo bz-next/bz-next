@@ -1,3 +1,6 @@
+#include <Corrade/Containers/Array.h>
+#include <Corrade/Containers/GrowableArray.h>
+#include <Magnum/MeshTools/Interleave.h>
 
 #include "MagnumTextureManager.h"
 #include "WorldPrimitiveGenerator.h"
@@ -11,6 +14,7 @@
 #include <utility>
 
 using namespace Magnum;
+using namespace Corrade;
 
 void WorldObject::addMatMesh(std::string materialname, Trade::MeshData&& md) {
     matMeshes.emplace_back(std::make_pair(materialname, std::move(md)));
@@ -110,4 +114,35 @@ void WorldSceneBuilder::addBox(BoxBuilding& o) {
                 "boxTopMaterial",
                 WorldPrimitiveGenerator::quad(base, sEdge, tEdge, 0.0f, 0.0f, uRepeats, vRepeats));
     }
+    worldObjects.emplace_back(std::move(boxObj));
+}
+
+Trade::MeshData WorldSceneBuilder::compileMatMesh(std::string matname) {
+    struct VertexData {
+        Vector3 position;
+        Vector2 texcoord;
+        Vector3 normal;
+    };
+    Containers::Array<char> meshdata;
+    Containers::Array<UnsignedInt> indices;
+    int vertexCount;
+    for (const auto& o: worldObjects) {
+        for (const auto& mm: o.getMatMeshes()) {
+            if (mm.first == matname) {
+                const auto& md = mm.second;
+                Containers::ArrayView<const Vector3> posview{md.positions3DAsArray()};
+                Containers::ArrayView<const Vector2> texview{md.textureCoordinates2DAsArray()};
+                Containers::ArrayView<const Vector3> normview{md.normalsAsArray()};
+                Containers::arrayAppend(meshdata, MeshTools::interleave(posview, texview, normview));
+                Containers::arrayAppend(indices, md.indicesAsArray());
+                vertexCount += md.vertexCount();
+            }
+        }
+    }
+    Containers::StridedArrayView1D<const VertexData> dataview = Containers::arrayCast<const VertexData>(meshdata);
+    return Trade::MeshData {MeshPrimitive::Triangles, Trade::DataFlags{}, indices, Trade::MeshIndexData{indices}, std::move(meshdata), {
+        Trade::MeshAttributeData{Trade::MeshAttribute::Position, dataview.slice(&VertexData::position)},
+        Trade::MeshAttributeData{Trade::MeshAttribute::TextureCoordinates, dataview.slice(&VertexData::texcoord)},
+        Trade::MeshAttributeData{Trade::MeshAttribute::Normal, dataview.slice(&VertexData::normal)}
+        }, static_cast<UnsignedInt>(dataview.size())};
 }

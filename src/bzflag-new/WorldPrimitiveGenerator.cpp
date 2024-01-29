@@ -158,7 +158,7 @@ Trade::MeshData WorldPrimitiveGenerator::quad(const float base[3], const float u
     data = MeshTools::interleave(posview, texview, normview);
     Containers::StridedArrayView1D<const VertexData> dataview = Containers::arrayCast<const VertexData>(data);
 
-    Trade::MeshData mdata{MeshPrimitive::Triangles, Trade::DataFlags{}, indices, Trade::MeshIndexData{indices}, std::move(data), {
+    return Trade::MeshData {MeshPrimitive::Triangles, Trade::DataFlags{}, indices, Trade::MeshIndexData{indices}, std::move(data), {
         Trade::MeshAttributeData{Trade::MeshAttribute::Position, dataview.slice(&VertexData::position)},
         Trade::MeshAttributeData{Trade::MeshAttribute::TextureCoordinates, dataview.slice(&VertexData::texcoord)},
         Trade::MeshAttributeData{Trade::MeshAttribute::Normal, dataview.slice(&VertexData::normal)}
