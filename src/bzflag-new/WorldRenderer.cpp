@@ -1,5 +1,6 @@
 #include "WorldRenderer.h"
 #include "Drawables.h"
+#include "Magnum/Trade/MaterialData.h"
 #include "MagnumBZMaterial.h"
 #include "WorldPrimitiveGenerator.h"
 
@@ -114,7 +115,7 @@ void WorldRenderer::test(const WorldSceneBuilder *sb) {
     worldParent->scale({0.05, 0.05, 0.05});
 
     // Create world boxes
-    {
+    /*{
         Object3D *worldBoxes = new Object3D;
         worldMeshes["boxwalls"].push_back(MeshTools::compile(sb->compileMatMesh("boxWallMaterial")));
         GL::Mesh *worldBoxWallsMesh = &worldMeshes["boxwalls"].back();
@@ -135,6 +136,14 @@ void WorldRenderer::test(const WorldSceneBuilder *sb) {
         GL::Mesh *worldPyrsMesh = &worldMeshes["pyrs"].back();
         worldPyrs->setParent(worldParent);
         new BZMaterialDrawable(*worldPyrs, matShader, matShaderUntex, *worldPyrsMesh, "pyrWallMaterial", *worldDrawables);
+    }*/
+    std::vector<std::string> matnames = sb->getMaterialList();
+    for (const auto& matname: matnames) {
+        Object3D *matobjs = new Object3D;
+        worldMeshes["mat_"+matname].push_back(MeshTools::compile(sb->compileMatMesh(matname)));
+        GL::Mesh *m = &worldMeshes["mat_"+matname].back();
+        matobjs->setParent(worldParent);
+        new BZMaterialDrawable(*matobjs, matShader, matShaderUntex, *m, matname, *worldDrawables);
     }
 }
 

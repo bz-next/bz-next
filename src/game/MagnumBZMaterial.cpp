@@ -45,6 +45,16 @@ void MagnumBZMaterialManager::loadDefaultMaterials() {
     pyrmat->setName("pyrWallMaterial");
     pyrmat->addTexture("pyrwall");
     MAGNUMMATERIALMGR.addMaterial(pyrmat);
+
+    auto *basewall = new MagnumBZMaterial();
+    basewall->setName("baseWallMaterial");
+    basewall->addTexture("red_basewall");
+    MAGNUMMATERIALMGR.addMaterial(basewall);
+
+    auto *basetop = new MagnumBZMaterial();
+    basetop->setName("baseTopMaterial");
+    basetop->addTexture("red_basetop");
+    MAGNUMMATERIALMGR.addMaterial(basetop);
 }
 
 MagnumBZMaterialManager::MagnumBZMaterialManager()

@@ -346,9 +346,11 @@ GL::Texture2D* MagnumTextureManager::loadTexture(FileTextureInit &init, bool rep
     GL::Texture2D *texture = new GL::Texture2D{};
     texture->setWrapping(GL::SamplerWrapping::Repeat)
         .setMagnificationFilter(GL::SamplerFilter::Linear)
-        .setMinificationFilter(GL::SamplerFilter::Linear)
+        .setMinificationFilter(GL::SamplerFilter::Linear, GL::SamplerMipmap::Linear)
+        .setMaxAnisotropy(GL::Sampler::maxMaxAnisotropy())
         .setStorage(1, GL::textureFormat(image->format()), image->size())
-        .setSubImage(0, {}, *image);
+        .setSubImage(0, {}, *image)
+        .generateMipmap();
     Warning{} << image->format();
     return texture;
 }
