@@ -308,7 +308,7 @@ GL::Texture2D* MagnumTextureManager::loadTexture(FileTextureInit &init, bool rep
         logDebugMessage(2,"Image not found or unloadable: %s\n", filename.c_str());
         return NULL;
     }
-    if (image->format() != PixelFormat::RGBA8Unorm) {
+    if (image->format() != PixelFormat::RGBA8Unorm && image->format() != PixelFormat::RGB8Unorm) {
         auto data = image->data();
         switch (image->format()) {
             case Magnum::PixelFormat::RG8Unorm:

@@ -69,6 +69,7 @@ void MagnumBZMaterialManager::clear()
     for (unsigned int i = 0; i < materials.size(); i++)
         delete materials[i];
     materials.clear();
+    loadDefaultMaterials();
     return;
 }
 

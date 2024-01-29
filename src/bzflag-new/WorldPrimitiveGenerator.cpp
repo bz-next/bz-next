@@ -105,9 +105,9 @@ Trade::MeshData WorldPrimitiveGenerator::wall() {
 Trade::MeshData WorldPrimitiveGenerator::quad(const float base[3], const float uEdge[3], const float vEdge[3], float uOffset, float vOffset, float uRepeats, float vRepeats) {
     const Vector3 vertices[]{
         {{base[0] + uEdge[0], base[1] + uEdge[1], base[2] + uEdge[2]}}, /* Bottom right */
-        {{base[0] + + uEdge[0] + vEdge[0], base[1] + uEdge[1] + vEdge[1], base[2] + uEdge[2] + vEdge[2]}}, /* Top right */
+        {{base[0] + uEdge[0] + vEdge[0], base[1] + uEdge[1] + vEdge[1], base[2] + uEdge[2] + vEdge[2]}}, /* Top right */
         {{base[0], base[1], base[2]}}, /* Bottom left */
-        {{base[0] + uEdge[0], base[1] + uEdge[1], base[2] + uEdge[2]}}  /* Top left */
+        {{base[0] + vEdge[0], base[1] + vEdge[1], base[2] + vEdge[2]}}  /* Top left */
     };
     const Vector2 texcoords[]{
         {uOffset + uRepeats, 0.0f},
@@ -138,7 +138,7 @@ Trade::MeshData WorldPrimitiveGenerator::quad(const float base[3], const float u
         {plane[0], plane[1], plane[2]},
         {plane[0], plane[1], plane[2]}
     };
-    const UnsignedInt indices[]{        /* 3--1 1 */
+    static const UnsignedInt indices[]{        /* 3--1 1 */
         0, 1, 2,                        /* | / /| */
         2, 1, 3                         /* |/ / | */
     };

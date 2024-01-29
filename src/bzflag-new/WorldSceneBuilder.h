@@ -33,7 +33,7 @@ class WorldObject {
 class WorldSceneBuilder {
     public:
     void addBox(BoxBuilding& o);
-    Magnum::Trade::MeshData compileMatMesh(std::string matname);
+    Magnum::Trade::MeshData compileMatMesh(std::string matname) const;
     private:
     std::vector<WorldObject> worldObjects;
 };
