@@ -83,6 +83,11 @@ void MagnumBZMaterialManager::loadDefaultMaterials() {
     cautionMat->setName("cautionMaterial");
     cautionMat->addTexture("caution");
     MAGNUMMATERIALMGR.addMaterial(cautionMat);
+
+    auto *teleLink = new MagnumBZMaterial();
+    teleLink->setName("TeleLinkMaterial");
+    teleLink->addTexture("telelink");
+    MAGNUMMATERIALMGR.addMaterial(teleLink);
 }
 
 MagnumBZMaterialManager::MagnumBZMaterialManager()
