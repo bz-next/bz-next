@@ -241,6 +241,8 @@ class BZFlagNew: public Platform::Sdl2Application {
 
         void maybeShowGLInfo();
         bool showGLInfo = false;
+
+        bool showGrid = false;
         
         Vector3 positionOnSphere(const Vector2i& position) const;
 
@@ -399,7 +401,7 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
     
     (*(_camera = new SceneGraph::Camera3D{_cameraObject}))
         .setAspectRatioPolicy(SceneGraph::AspectRatioPolicy::Extend)
-        .setProjectionMatrix(Matrix4::perspectiveProjection(35.0_degf, 1.0f, 0.01f, 1000.0f))
+        .setProjectionMatrix(Matrix4::perspectiveProjection(35.0_degf, 1.0f, 0.1f, 1000.0f))
         .setViewport(GL::defaultFramebuffer.viewport().size());
     
     _manipulator.setParent(&_scene);
@@ -470,6 +472,7 @@ void BZFlagNew::showMainMenuBar() {
 void BZFlagNew::showMenuView() {
     if (ImGui::MenuItem("Scoreboard", NULL, &showScoreboard)) {}
     if (ImGui::MenuItem("Console", NULL, &showConsole)) {}
+    if (ImGui::MenuItem("Grid", NULL, &showGrid)) {}
 }
 
 void BZFlagNew::showMenuTools() {
@@ -481,6 +484,13 @@ void BZFlagNew::showMenuTools() {
 void BZFlagNew::showMenuDebug() {
     if (ImGui::MenuItem("Profiler", NULL, &showProfiler)) {}
     if (ImGui::MenuItem("GL Info", NULL, &showGLInfo)) {}
+    ImGui::Separator();
+    if (ImGui::MenuItem("Recompile World Mesh")) {
+        worldRenderer.destroyWorldObject();
+        worldRenderer.createWorldObject(&worldSceneBuilder);
+        worldRenderer.getWorldObject()->setParent(&_manipulator);
+    }
+
 }
 
 void BZFlagNew::maybeShowConsole() {
@@ -612,6 +622,9 @@ void BZFlagNew::drawEvent() {
     GL::Renderer::disable(GL::Renderer::Feature::ScissorTest);
     GL::Renderer::disable(GL::Renderer::Feature::Blending);
 
+    if (showGrid)
+        if (auto* dg = worldRenderer.getDebugDrawableGroup())
+            _camera->draw(*dg);
     if (auto* dg = worldRenderer.getDrawableGroup())
         _camera->draw(*dg);
     GL::Renderer::enable(GL::Renderer::Feature::Blending);
@@ -1426,6 +1439,9 @@ int BZFlagNew::main() {
 
     MAGNUMMATERIALMGR.loadDefaultMaterials();
 
+    worldRenderer.createWorldObject(&worldSceneBuilder);
+    worldRenderer.getWorldObject()->setParent(&_manipulator);
+
     startPlaying();
 
     killAres();
@@ -1461,6 +1477,8 @@ void BZFlagNew::joinInternetGame2()
     // make scene database
     //setSceneDatabase();
     //mainWindow->getWindow()->yieldCurrent();
+
+    worldRenderer.destroyWorldObject();
 
     const ObstacleList& boxes = OBSTACLEMGR.getBoxes();
     for (int i = 0; i < boxes.size(); ++i) {
@@ -3899,6 +3917,9 @@ void BZFlagNew::leaveGame() {
 
     // Clear the world scene
     worldRenderer.destroyWorldObject();
+
+    // Reset the scene builder
+    worldSceneBuilder.reset();
 
     // my tank goes away
     const bool sayGoodbye = (myTank != NULL);

@@ -7,6 +7,7 @@
 #include "Magnum/Shaders/Phong.h"
 #include "Magnum/Shaders/Generic.h"
 #include <Magnum/GL/Mesh.h>
+#include <Magnum/GL/DefaultFramebuffer.h>
 
 #include "MagnumBZMaterial.h"
 #include "MagnumTextureManager.h"
@@ -142,4 +143,13 @@ void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::C
     } else {
         Warning{} << "Missing mat" << _matName.c_str();
     }
+}
+
+void DebugLineDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::Camera3D& camera) {
+    _shader
+        .setColor(_color)
+        .setViewportSize(Vector2{GL::defaultFramebuffer.viewport().size()})
+        .setTransformationProjectionMatrix(camera.projectionMatrix()*transformationMatrix)
+        .setWidth(2.0f)
+        .draw(_mesh);
 }
