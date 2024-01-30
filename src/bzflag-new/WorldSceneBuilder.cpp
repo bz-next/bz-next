@@ -741,8 +741,12 @@ void WorldSceneBuilder::addTeleporter(const Teleporter& o) {
 
         teleObj.addMatMesh("LinkMaterial",
             WorldPrimitiveGenerator::quad(verts[0], sEdge, tEdge, 0, 0, xtxcd, ytxcd));
+        // Flip s edge around
+        sEdge[0] = -(verts[1][0] - verts[0][0]);
+        sEdge[1] = -(verts[1][1] - verts[0][1]);
+        sEdge[2] = -(verts[1][2] - verts[0][2]);
         teleObj.addMatMesh("LinkMaterial",
-            WorldPrimitiveGenerator::quad(verts[0], tEdge, sEdge, 0, 0, xtxcd, ytxcd));
+            WorldPrimitiveGenerator::quad(verts[1], sEdge, tEdge, 0, 0, xtxcd, ytxcd));
     }
     worldObjects.emplace_back(std::move(teleObj));
 }
