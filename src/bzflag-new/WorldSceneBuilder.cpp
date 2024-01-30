@@ -497,6 +497,252 @@ void WorldSceneBuilder::addWall(WallObstacle& o) {
     worldObjects.emplace_back(std::move(wallObj));
 }
 
+void WorldSceneBuilder::addTeleporter(const Teleporter& o) {
+    static const float texCoords[][4][2] =
+    {
+        {{ 0.0f, 0.0f }, { 0.5f, 0.0f }, { 0.5f, 9.5f }, { 0.0f, 9.5f }},
+        {{ 0.5f, 0.0f }, { 1.0f, 0.0f }, { 1.0f, 9.5f }, { 0.5f, 9.5f }},
+        {{ 0.0f, 0.0f }, { 0.5f, 0.0f }, { 0.5f, 9.0f }, { 0.0f, 9.0f }},
+        {{ 0.5f, 0.0f }, { 1.0f, 0.0f }, { 1.0f, 9.0f }, { 0.5f, 9.0f }},
+        {{ 0.5f, 0.0f }, { 1.0f, 0.0f }, { 1.0f, 9.0f }, { 0.5f, 9.0f }},
+        {{ 0.0f, 0.0f }, { 0.5f, 0.0f }, { 0.5f, 9.0f }, { 0.0f, 9.0f }},
+        {{ 0.5f, 0.0f }, { 1.0f, 0.0f }, { 1.0f, 9.0f }, { 0.5f, 9.0f }},
+        {{ 0.0f, 0.0f }, { 0.5f, 0.0f }, { 0.5f, 9.0f }, { 0.0f, 9.0f }},
+        {{ 0.0f, 0.0f }, { 0.0f, 0.0f }, { 0.5f, 5.0f }, { 0.5f, 5.0f }},
+        {{ 0.0f, 0.0f }, { 0.0f, 0.0f }, { 0.5f, 4.0f }, { 0.5f, 4.0f }},
+        {{ 0.0f, 0.0f }, { 5.0f, 0.0f }, { 5.0f, 0.5f }, { 0.0f, 0.5f }},
+        {{ 0.0f, 0.5f }, { 5.0f, 0.5f }, { 5.0f, 1.0f }, { 0.0f, 1.0f }}
+    };
+    WorldObject teleObj;
+    const MagnumBZMaterial *cautionMat = MAGNUMMATERIALMGR.findMaterial("cautionMaterial");
+    const MagnumBZMaterial *linkMat = MAGNUMMATERIALMGR.findMaterial("LinkMaterial");
+
+    auto &tm = MagnumTextureManager::instance();
+
+    int numParts = o.isHorizontal() ? 18 : 14;
+
+    float base[3], sCorner[3], tCorner[3];
+    float sEdge[3], tEdge[3];
+    float uRepeats, vRepeats;
+    float u, v, uc, vc;
+
+    auto computeEdges =
+        [&base, &sCorner, &tCorner, &sEdge, &tEdge, &uRepeats, &vRepeats, &u, &v, &uc, &vc]
+        (const Teleporter& tele, int faceNum) {
+        const float *pos = tele.getPosition ();
+        const float c = cosf (tele.getRotation ());
+        const float s = sinf (tele.getRotation ());
+        const float h = tele.getBreadth () - tele.getBorder ();
+        const float b = 0.5f * tele.getBorder ();
+        const float d = h + b;
+        const float z = tele.getHeight () - tele.getBorder ();
+        GLfloat x[2], y[2];
+        x[0] = c;
+        x[1] = s;
+        y[0] = -s;
+        y[1] = c;
+        if (tele.isHorizontal()) return false; // Horizontal teleporters not implemented yet
+        switch (faceNum) {
+        case 1: // top
+            base[0] = pos[0] + d * y[0] + b * x[0] + b * y[0];
+            base[1] = pos[1] + d * y[1] + b * x[1] + b * y[1];
+            base[2] = pos[2];
+            sEdge[0] = -2.0f * b * x[0];
+            sEdge[1] = -2.0f * b * x[1];
+            sEdge[2] = 0.0f;
+            tEdge[0] = 0.0f;
+            tEdge[1] = 0.0f;
+            tEdge[2] = z + 2.0f * b;
+            break;
+        case 2:
+            base[0] = pos[0] - d * y[0] - b * x[0] - b * y[0];
+            base[1] = pos[1] - d * y[1] - b * x[1] - b * y[1];
+            base[2] = pos[2];
+            sEdge[0] = 2.0f * b * x[0];
+            sEdge[1] = 2.0f * b * x[1];
+            sEdge[2] = 0.0f;
+            tEdge[0] = 0.0f;
+            tEdge[1] = 0.0f;
+            tEdge[2] = z + 2.0f * b;
+            break;
+        case 3:
+            base[0] = pos[0] + d * y[0] - b * x[0] - b * y[0];
+            base[1] = pos[1] + d * y[1] - b * x[1] - b * y[1];
+            base[2] = pos[2];
+            sEdge[0] = 2.0f * b * x[0];
+            sEdge[1] = 2.0f * b * x[1];
+            sEdge[2] = 0.0f;
+            tEdge[0] = 0.0f;
+            tEdge[1] = 0.0f;
+            tEdge[2] = z;
+            break;
+        case 4:
+            base[0] = pos[0] - d * y[0] + b * x[0] + b * y[0];
+            base[1] = pos[1] - d * y[1] + b * x[1] + b * y[1];
+            base[2] = pos[2];
+            sEdge[0] = -2.0f * b * x[0];
+            sEdge[1] = -2.0f * b * x[1];
+            sEdge[2] = 0.0f;
+            tEdge[0] = 0.0f;
+            tEdge[1] = 0.0f;
+            tEdge[2] = z;
+            break;
+        case 5:                         //This is the top polygon
+            base[0] = pos[0] + d * y[0] + b * x[0] - b * y[0];
+            base[1] = pos[1] + d * y[1] + b * x[1] - b * y[1];
+            base[2] = pos[2];
+            sEdge[0] = 2.0f * b * y[0];
+            sEdge[1] = 2.0f * b * y[1];
+            sEdge[2] = 0.0f;
+            tEdge[0] = 0.0f;
+            tEdge[1] = 0.0f;
+            tEdge[2] = z;
+            break;
+        case 6:                         //This is the bottom polygon
+            base[0] = pos[0] - d * y[0] - b * x[0] + b * y[0];
+            base[1] = pos[1] - d * y[1] - b * x[1] + b * y[1];
+            base[2] = pos[2];
+            sEdge[0] = -2.0f * b * y[0];
+            sEdge[1] = -2.0f * b * y[1];
+            sEdge[2] = 0.0f;
+            tEdge[0] = 0.0f;
+            tEdge[1] = 0.0f;
+            tEdge[2] = z;
+            break;
+        case 7:
+            base[0] = pos[0] + d * y[0] - b * x[0] + b * y[0];
+            base[1] = pos[1] + d * y[1] - b * x[1] + b * y[1];
+            base[2] = pos[2];
+            sEdge[0] = -2.0f * b * y[0];
+            sEdge[1] = -2.0f * b * y[1];
+            sEdge[2] = 0.0f;
+            tEdge[0] = 0.0f;
+            tEdge[1] = 0.0f;
+            tEdge[2] = z;
+            break;
+        case 8:
+            base[0] = pos[0] - d * y[0] + b * x[0] - b * y[0];
+            base[1] = pos[1] - d * y[1] + b * x[1] - b * y[1];
+            base[2] = pos[2];
+            sEdge[0] = 2.0f * b * y[0];
+            sEdge[1] = 2.0f * b * y[1];
+            sEdge[2] = 0.0f;
+            tEdge[0] = 0.0f;
+            tEdge[1] = 0.0f;
+            tEdge[2] = z;
+            break;
+        case 9:
+            base[0] = pos[0] - d * y[0] - b * x[0] - b * y[0];
+            base[1] = pos[1] - d * y[1] - b * x[1] - b * y[1];
+            base[2] = pos[2] + z + 2.0f * b;
+            sEdge[0] = 2.0f * b * x[0];
+            sEdge[1] = 2.0f * b * x[1];
+            sEdge[2] = 0.0f;
+            tEdge[0] = 2.0f * (d + b) * y[0];
+            tEdge[1] = 2.0f * (d + b) * y[1];
+            tEdge[2] = 0.0f;
+            break;
+        case 10:
+            base[0] = pos[0] - d * y[0] + b * x[0] + b * y[0];
+            base[1] = pos[1] - d * y[1] + b * x[1] + b * y[1];
+            base[2] = pos[2] + z;
+            sEdge[0] = -2.0f * b * x[0];
+            sEdge[1] = -2.0f * b * x[1];
+            sEdge[2] = 0.0f;
+            tEdge[0] = 2.0f * (d - b) * y[0];
+            tEdge[1] = 2.0f * (d - b) * y[1];
+            tEdge[2] = 0.0f;
+            break;
+        case 11:
+            base[0] = pos[0] - d * y[0] + b * x[0] - b * y[0];
+            base[1] = pos[1] - d * y[1] + b * x[1] - b * y[1];
+            base[2] = pos[2] + z;
+            sEdge[0] = 2.0f * (d + b) * y[0];
+            sEdge[1] = 2.0f * (d + b) * y[1];
+            sEdge[2] = 0.0f;
+            tEdge[0] = 0.0f;
+            tEdge[1] = 0.0f;
+            tEdge[2] = 2.0f * b;
+            break;
+        case 12:
+            base[0] = pos[0] + d * y[0] - b * x[0] + b * y[0];
+            base[1] = pos[1] + d * y[1] - b * x[1] + b * y[1];
+            base[2] = pos[2] + z;
+            sEdge[0] = -2.0f * (d + b) * y[0];
+            sEdge[1] = -2.0f * (d + b) * y[1];
+            sEdge[2] = 0.0f;
+            tEdge[0] = 0.0f;
+            tEdge[1] = 0.0f;
+            tEdge[2] = 2.0f * b;
+            break;
+        default:
+            return false;
+        }
+        if (faceNum >= 1 && faceNum <= 12)
+        {
+            u = texCoords[faceNum - 1][0][0];
+            v = texCoords[faceNum - 1][0][1];
+            uc = texCoords[faceNum - 1][1][0] - u;
+            vc = texCoords[faceNum - 1][3][1] - v;
+        }
+        else
+        {
+            u = v = 0.0f;
+            uc = vc = 1.0f;
+        }
+        return true;
+    };
+    for (int i = 1; i <= 12; ++i) {
+        if (computeEdges(o, i)) {
+            teleObj.addMatMesh(
+                "cautionMaterial",
+                WorldPrimitiveGenerator::quad(base, sEdge, tEdge, u, v, uc, vc));
+        }
+    }
+
+    auto *bl = o.getBackLink();
+    auto *fl = o.getFrontLink();
+    {
+        const float* p = o.getPosition();
+        const float a = o.getRotation();
+        const float w = o.getWidth();
+        const float b = o.getBreadth();
+        const float br = o.getBorder();
+        const float h = o.getHeight();
+        const float xtxcd = 1.0f;
+        float ytxcd;
+        if ((b - br) > 0.0f)
+            ytxcd = h / (2.0f * (b - br));
+        else
+            ytxcd = 1.0f;
+        const float cos_val = cosf(a);
+        const float sin_val = sinf(a);
+        const float params[4][2] =
+        {{-1.0f, 0.0f}, {1.0f, 0.0f}, {1.0f, 1.0f}, {-1.0f, 1.0f}};
+        float wlen[2] = { (cos_val * w), (sin_val * w) };
+        float blen[2] = { (-sin_val * (b - br)), (cos_val * (b - br)) };
+        float verts[4][3];
+        for (int i = 0; i < 4; ++i) {
+            verts[i][0] = p[0] + (wlen[0] + (blen[0] * params[i][0]));
+            verts[i][1] = p[1] + (wlen[1] + (blen[1] * params[i][0]));
+            verts[i][2] = p[2] + ((h - br) * params[i][1]);
+        }
+        sEdge[0] = verts[1][0] - verts[0][0];
+        sEdge[1] = verts[1][1] - verts[0][1];
+        sEdge[2] = verts[1][2] - verts[0][2];
+        tEdge[0] = verts[3][0] - verts[0][0];
+        tEdge[1] = verts[3][1] - verts[0][1];
+        tEdge[2] = verts[3][2] - verts[0][2];
+        // xtxcd is actually the vertical component and ytxcd is the horizontal with the way
+        // that the above verts are numbered...
+        teleObj.addMatMesh("LinkMaterial",
+            WorldPrimitiveGenerator::quad(verts[0], sEdge, tEdge, 0, 0, ytxcd, xtxcd));
+        teleObj.addMatMesh("LinkMaterial",
+            WorldPrimitiveGenerator::quad(verts[0], tEdge, sEdge, 0, 0, ytxcd, xtxcd));
+    }
+    worldObjects.emplace_back(std::move(teleObj));
+}
+
 std::vector<std::string> WorldSceneBuilder::getMaterialList() const {
     std::set<std::string> mats;
     std::vector<std::string> matnames;

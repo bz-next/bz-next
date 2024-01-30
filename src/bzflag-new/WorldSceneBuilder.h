@@ -14,6 +14,7 @@
 #include "PyramidBuilding.h"
 #include "BaseBuilding.h"
 #include "WallObstacle.h"
+#include "Teleporter.h"
 
 // The approach here results in multiple copies of map mesh data in RAM
 // This is inefficient, but hopefully a map isn't so big that this leads
@@ -40,6 +41,7 @@ class WorldSceneBuilder {
     void addPyr(PyramidBuilding& o);
     void addBase(BaseBuilding& o);
     void addWall(WallObstacle& o);
+    void addTeleporter(const Teleporter& o);
     Magnum::Trade::MeshData compileMatMesh(std::string matname) const;
     std::vector<std::string> getMaterialList() const;
     private:

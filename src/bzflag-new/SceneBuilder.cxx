@@ -610,8 +610,8 @@ void SceneDatabaseBuilder::addBase(SceneDatabase *db, BaseBuilding &o)
 void SceneDatabaseBuilder::addTeleporter(SceneDatabase* db,
         const Teleporter& o,
         const World* world)
-{
-    /*// this assumes teleporters have fourteen parts:  12 border sides, 2 faces
+{/*
+    // this assumes teleporters have fourteen parts:  12 border sides, 2 faces
     int part = 0;
     WallSceneNode* node;
     ObstacleSceneNodeGenerator* nodeGen = new TeleporterSceneNodeGenerator(&o);

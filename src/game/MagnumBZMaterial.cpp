@@ -78,6 +78,11 @@ void MagnumBZMaterialManager::loadDefaultMaterials() {
     wallmat->setName("wallMaterial");
     wallmat->addTexture("wall");
     MAGNUMMATERIALMGR.addMaterial(wallmat);
+
+    auto *cautionMat = new MagnumBZMaterial();
+    cautionMat->setName("cautionMaterial");
+    cautionMat->addTexture("caution");
+    MAGNUMMATERIALMGR.addMaterial(cautionMat);
 }
 
 MagnumBZMaterialManager::MagnumBZMaterialManager()

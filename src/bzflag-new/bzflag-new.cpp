@@ -141,6 +141,7 @@
 #include "ObstacleMgr.h"
 #include "TextureMatrix.h"
 #include "DynamicColor.h"
+#include "Teleporter.h"
 
 // defaults for bzdb
 #include "defaultBZDB.h"
@@ -1436,6 +1437,10 @@ void BZFlagNew::joinInternetGame2()
     const ObstacleList& walls = OBSTACLEMGR.getWalls();
     for (int i = 0; i < walls.size(); ++i) {
         worldSceneBuilder.addWall(*((WallObstacle*) walls[i]));
+    }
+    const ObstacleList& teles = OBSTACLEMGR.getTeles();
+    for (int i = 0; i < teles.size(); ++i) {
+        worldSceneBuilder.addTeleporter(*((Teleporter*) teles[i]));
     }
 
     
