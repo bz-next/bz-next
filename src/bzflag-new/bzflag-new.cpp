@@ -74,6 +74,8 @@
 #include <Magnum/ImGuiIntegration/Context.hpp>
 #include <Magnum/Types.h>
 
+#include "GLInfo.h"
+
 #include "MagnumBZMaterial.h"
 #include "MagnumDefs.h"
 #include "PyramidBuilding.h"
@@ -213,12 +215,14 @@ class BZFlagNew: public Platform::Sdl2Application {
         // IMGUI
         void showMainMenuBar();
         void showMenuView();
+        void showMenuTools();
+        void showMenuDebug();
 
         void maybeShowConsole();
         bool showConsole = false;
 
-        void maybeShowFPS();
-        bool showFPS = false;
+        void maybeShowProfiler();
+        bool showProfiler = false;
 
         void maybeShowConnect();
         bool showConnect = true;
@@ -234,6 +238,9 @@ class BZFlagNew: public Platform::Sdl2Application {
 
         void maybeShowMATViewer();
         bool showMATViewer = false;
+
+        void maybeShowGLInfo();
+        bool showGLInfo = false;
         
         Vector3 positionOnSphere(const Vector2i& position) const;
 
@@ -448,6 +455,14 @@ void BZFlagNew::showMainMenuBar() {
             showMenuView();
             ImGui::EndMenu();
         }
+        if (ImGui::BeginMenu("Tools")) {
+            showMenuTools();
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Debug")) {
+            showMenuDebug();
+            ImGui::EndMenu();
+        }
         ImGui::EndMainMenuBar();
     }
 }
@@ -455,20 +470,27 @@ void BZFlagNew::showMainMenuBar() {
 void BZFlagNew::showMenuView() {
     if (ImGui::MenuItem("Scoreboard", NULL, &showScoreboard)) {}
     if (ImGui::MenuItem("Console", NULL, &showConsole)) {}
+}
+
+void BZFlagNew::showMenuTools() {
     if (ImGui::MenuItem("Texture Manager", NULL, &showTMBrowser)) {}
     if (ImGui::MenuItem("Material Manager", NULL, &showMATBrowser)) {}
     if (ImGui::MenuItem("Material Viewer", NULL, &showMATViewer)) {}
-    if (ImGui::MenuItem("FPS", NULL, &showFPS)) {}
+}
+
+void BZFlagNew::showMenuDebug() {
+    if (ImGui::MenuItem("Profiler", NULL, &showProfiler)) {}
+    if (ImGui::MenuItem("GL Info", NULL, &showGLInfo)) {}
 }
 
 void BZFlagNew::maybeShowConsole() {
     if (showConsole)
-        console.draw("Console", NULL);
+        console.draw("Console", &showConsole);
 }
 
-void BZFlagNew::maybeShowFPS() {
-    if (showFPS) {
-        ImGui::Begin("FPS", NULL);
+void BZFlagNew::maybeShowProfiler() {
+    if (showProfiler) {
+        ImGui::Begin("Profiler", &showProfiler);
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
             1000.0/Double(ImGui::GetIO().Framerate), Double(ImGui::GetIO().Framerate));
         ImGui::End();
@@ -522,6 +544,17 @@ void BZFlagNew::maybeShowMATViewer()
     }
 }
 
+void BZFlagNew::maybeShowGLInfo()
+{
+    static std::string info = getGLInfo();
+    if (showGLInfo) {
+        ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
+        ImGui::Begin("OpenGL Info", &showGLInfo);
+        ImGui::TextWrapped(info.c_str());
+        ImGui::End();
+    }
+}
+
 void BZFlagNew::onConsoleText(const char* msg) {
     // local commands:
     // /set lists all BZDB variables
@@ -561,12 +594,13 @@ void BZFlagNew::drawEvent() {
 
     showMainMenuBar();
     maybeShowConsole();
-    maybeShowFPS();
+    maybeShowProfiler();
     maybeShowConnect();
     maybeShowScoreboard();
     maybeShowTMBrowser();
     maybeShowMATBrowser();
     maybeShowMATViewer();
+    maybeShowGLInfo();
 
     /* Update application cursor */
     _imgui.updateApplicationCursor(*this);
@@ -1396,6 +1430,8 @@ int BZFlagNew::main() {
 
     killAres();
     AresHandler::globalShutdown();
+    tm.clear();
+    exit(0);
     return 0;
 }
 
@@ -2159,8 +2195,6 @@ void BZFlagNew::playingLoop()
         // handle incoming packets
         doMessages();
     }
-    std::cout << "Done playing" << std::endl;
-
 }
 
 void BZFlagNew::doMessages() {

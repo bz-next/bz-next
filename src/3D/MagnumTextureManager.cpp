@@ -184,6 +184,17 @@ bool MagnumTextureManager::reloadTextures()
     return true;
 }
 
+void MagnumTextureManager::clear()
+{
+    for (TextureNameMap::iterator it = textureNames.begin(); it != textureNames.end(); ++it)
+    {
+        MagnumImageInfo &tex = it->second;
+        if (tex.texture != NULL)
+            delete tex.texture;
+    }
+    textureNames.clear();
+}
+
 
 bool MagnumTextureManager::reloadTextureImage(const std::string& name)
 {
