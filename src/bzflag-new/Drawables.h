@@ -8,6 +8,7 @@
 #include <Magnum/Math/Matrix4.h>
 #include <Magnum/Mesh.h>
 #include <Magnum/Math/Color.h>
+#include <Magnum/Shaders/LineGL.h>
 
 #include "MagnumBZMaterial.h"
 
@@ -76,5 +77,23 @@ class BZMaterialDrawable : public Magnum::SceneGraph::Drawable3D {
         Magnum::Shaders::PhongGL &_shader;
         Magnum::Shaders::PhongGL &_shaderUntex;
         Magnum::GL::Mesh& _mesh;
+        std::string _matName;
+};
+
+class DebugLineDrawable : public Magnum::SceneGraph::Drawable3D {
+    public:
+        explicit DebugLineDrawable(Object3D& object, Magnum::Shaders::LineGL3D& shader, const Magnum::Color3& color, Magnum::GL::Mesh& mesh, Magnum::SceneGraph::DrawableGroup3D& group) :
+            Magnum::SceneGraph::Drawable3D{object, &group},
+            _shader(shader),
+            _mesh(mesh),
+            _color(color)
+        {}
+
+    private:
+        void draw(const Magnum::Matrix4& transformationMatrix, Magnum::SceneGraph::Camera3D& camera) override;
+
+        Magnum::Shaders::LineGL3D &_shader;
+        Magnum::GL::Mesh& _mesh;
+        Magnum::Color3 _color;
         std::string _matName;
 };

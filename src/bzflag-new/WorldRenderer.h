@@ -11,6 +11,7 @@
 #include <Magnum/SceneGraph/Drawable.h>
 #include <Magnum/SceneGraph/Scene.h>
 #include <Magnum/Shaders/PhongGL.h>
+#include <Magnum/Shaders/LineGL.h>
 
 #include "WorldSceneBuilder.h"
 
@@ -26,6 +27,7 @@ class WorldRenderer {
 
         Magnum::SceneGraph::DrawableGroup3D *getDrawableGroup();
         Magnum::SceneGraph::DrawableGroup3D *getTransDrawableGroup();
+        Magnum::SceneGraph::DrawableGroup3D *getDebugDrawableGroup();
         Object3D *getWorldObject();
 
         void destroyWorldObject();
@@ -37,6 +39,8 @@ class WorldRenderer {
         };
         std::map<std::string, std::list<Magnum::GL::Mesh>> worldMeshes;
         Object3D *worldParent;
+        Magnum::GL::Mesh *debugLine;
+        Magnum::SceneGraph::DrawableGroup3D *worldDebugDrawables;
         Magnum::SceneGraph::DrawableGroup3D *worldDrawables;
         Magnum::SceneGraph::DrawableGroup3D *worldTransDrawables;
         Magnum::Shaders::PhongGL coloredShader;
@@ -60,4 +64,5 @@ class WorldRenderer {
             .setMaterialCount(1)
             .setLightCount(1)
             .setDrawCount(1)};
+        Magnum::Shaders::LineGL3D _lineShader;
 };

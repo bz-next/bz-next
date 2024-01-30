@@ -407,46 +407,6 @@ void WorldSceneBuilder::addBase(BaseBuilding& o) {
     worldObjects.emplace_back(std::move(baseObj));
 }
 
-Trade::MeshData WorldSceneBuilder::compileMatMesh(std::string matname) const {
-    struct VertexData {
-        Vector3 position;
-        Vector2 texcoord;
-        Vector3 normal;
-    };
-    Containers::Array<Vector3> positions;
-    Containers::Array<Vector2> texcoords;
-    Containers::Array<Vector3> normals;
-    Containers::Array<UnsignedInt> indices;
-    int vertexCount = 0;
-    int indOffset = 0;
-    for (const auto& o: worldObjects) {
-        for (const auto& mm: o.getMatMeshes()) {
-            if (mm.first == matname) {
-                const auto& md = mm.second;
-                Containers::arrayAppend(positions, md.positions3DAsArray());
-                Containers::arrayAppend(texcoords, md.textureCoordinates2DAsArray());
-                Containers::arrayAppend(normals, md.normalsAsArray());
-                Containers::Array<UnsignedInt> inds{md.indicesAsArray()};
-
-                for (auto &i: inds) {
-                    i += indOffset;
-                }
-                vertexCount += md.vertexCount();
-                indOffset += md.vertexCount();
-                Containers::arrayAppend(indices, inds);
-            }
-        }
-    }
-
-    Containers::Array<char> meshdata = MeshTools::interleave(positions, texcoords, normals);
-    Containers::StridedArrayView1D<const VertexData> dataview = Containers::arrayCast<const VertexData>(meshdata);
-    return MeshTools::copy(Trade::MeshData {MeshPrimitive::Triangles, Trade::DataFlags{}, indices, Trade::MeshIndexData{indices}, std::move(meshdata), {
-        Trade::MeshAttributeData{Trade::MeshAttribute::Position, dataview.slice(&VertexData::position)},
-        Trade::MeshAttributeData{Trade::MeshAttribute::TextureCoordinates, dataview.slice(&VertexData::texcoord)},
-        Trade::MeshAttributeData{Trade::MeshAttribute::Normal, dataview.slice(&VertexData::normal)}
-        }, static_cast<UnsignedInt>(vertexCount)});
-}
-
 void WorldSceneBuilder::addWall(WallObstacle& o) {
     WorldObject wallObj;
     if (o.getHeight() <= 0.0f)
@@ -795,4 +755,48 @@ std::vector<std::string> WorldSceneBuilder::getMaterialList() const {
         matnames.emplace_back(e);
     }
     return matnames;
+}
+
+void WorldSceneBuilder::reset() {
+    worldObjects.clear();
+}
+
+Trade::MeshData WorldSceneBuilder::compileMatMesh(std::string matname) const {
+    struct VertexData {
+        Vector3 position;
+        Vector2 texcoord;
+        Vector3 normal;
+    };
+    Containers::Array<Vector3> positions;
+    Containers::Array<Vector2> texcoords;
+    Containers::Array<Vector3> normals;
+    Containers::Array<UnsignedInt> indices;
+    int vertexCount = 0;
+    int indOffset = 0;
+    for (const auto& o: worldObjects) {
+        for (const auto& mm: o.getMatMeshes()) {
+            if (mm.first == matname) {
+                const auto& md = mm.second;
+                Containers::arrayAppend(positions, md.positions3DAsArray());
+                Containers::arrayAppend(texcoords, md.textureCoordinates2DAsArray());
+                Containers::arrayAppend(normals, md.normalsAsArray());
+                Containers::Array<UnsignedInt> inds{md.indicesAsArray()};
+
+                for (auto &i: inds) {
+                    i += indOffset;
+                }
+                vertexCount += md.vertexCount();
+                indOffset += md.vertexCount();
+                Containers::arrayAppend(indices, inds);
+            }
+        }
+    }
+
+    Containers::Array<char> meshdata = MeshTools::interleave(positions, texcoords, normals);
+    Containers::StridedArrayView1D<const VertexData> dataview = Containers::arrayCast<const VertexData>(meshdata);
+    return MeshTools::copy(Trade::MeshData {MeshPrimitive::Triangles, Trade::DataFlags{}, indices, Trade::MeshIndexData{indices}, std::move(meshdata), {
+        Trade::MeshAttributeData{Trade::MeshAttribute::Position, dataview.slice(&VertexData::position)},
+        Trade::MeshAttributeData{Trade::MeshAttribute::TextureCoordinates, dataview.slice(&VertexData::texcoord)},
+        Trade::MeshAttributeData{Trade::MeshAttribute::Normal, dataview.slice(&VertexData::normal)}
+        }, static_cast<UnsignedInt>(vertexCount)});
 }
