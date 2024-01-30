@@ -733,12 +733,11 @@ void WorldSceneBuilder::addTeleporter(const Teleporter& o) {
         tEdge[0] = verts[3][0] - verts[0][0];
         tEdge[1] = verts[3][1] - verts[0][1];
         tEdge[2] = verts[3][2] - verts[0][2];
-        // xtxcd is actually the vertical component and ytxcd is the horizontal with the way
-        // that the above verts are numbered...
+
         teleObj.addMatMesh("LinkMaterial",
-            WorldPrimitiveGenerator::quad(verts[0], sEdge, tEdge, 0, 0, ytxcd, xtxcd));
+            WorldPrimitiveGenerator::quad(verts[0], sEdge, tEdge, 0, 0, xtxcd, ytxcd));
         teleObj.addMatMesh("LinkMaterial",
-            WorldPrimitiveGenerator::quad(verts[0], tEdge, sEdge, 0, 0, ytxcd, xtxcd));
+            WorldPrimitiveGenerator::quad(verts[0], tEdge, sEdge, 0, 0, xtxcd, ytxcd));
     }
     worldObjects.emplace_back(std::move(teleObj));
 }
