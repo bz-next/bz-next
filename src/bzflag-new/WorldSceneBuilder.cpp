@@ -114,13 +114,13 @@ void WorldSceneBuilder::addBox(BoxBuilding& o) {
         tEdge[0] = tCorner[0] - base[0];
         tEdge[1] = tCorner[1] - base[1];
         tEdge[2] = tCorner[2] - base[2];
-        // Magic factor of 2.8 2*sqrt(2) ??? seems to make this match the game
+        // Magic factor of 3.3 seems to make this match the game
         if (faceNum <= 4) {
-            uRepeats = -texFactor*boxTexWidth*2.8;
-            vRepeats = -texFactor*boxTexWidth*2.8;
+            uRepeats = -texFactor*boxTexWidth*3.3;
+            vRepeats = -texFactor*boxTexWidth*3.3;
         } else {
-            uRepeats = -boxTexHeight*2.8;
-            vRepeats = -boxTexHeight*2.8;
+            uRepeats = -boxTexHeight*3.3;
+            vRepeats = -boxTexHeight*3.3;
         }
         const float sLength = sqrtf(float(sEdge[0] * sEdge[0] +
                                       sEdge[1] * sEdge[1] + sEdge[2] * sEdge[2]));
@@ -322,49 +322,50 @@ void WorldSceneBuilder::addBase(BaseBuilding& o) {
     auto computeEdges =
         [&base, &sCorner, &tCorner, &sEdge, &tEdge, &uRepeats, &vRepeats, texFactor, height]
         (const BaseBuilding& bb, int faceNum) {
-        if (faceNum >= 1 && height == 0) return false;
+        if (faceNum > 1 && height == 0) return false;
         if (faceNum >= 6) return false;
         if (height == 0) {
             bb.getCorner(0, base);
             bb.getCorner(3, tCorner);
             bb.getCorner(1, sCorner);
-        }
-        switch (faceNum) {
-        case 1: // top
-            bb.getCorner(4, base);
-            bb.getCorner(5, sCorner);
-            bb.getCorner(7, tCorner);
-            break;
-        case 2:
-            bb.getCorner(0, base);
-            bb.getCorner(1, sCorner);
-            bb.getCorner(4, tCorner);
-            break;
-        case 3:
-            bb.getCorner(1, base);
-            bb.getCorner(2, sCorner);
-            bb.getCorner(5, tCorner);
-            break;
-        case 4:
-            bb.getCorner(2, base);
-            bb.getCorner(3, sCorner);
-            bb.getCorner(6, tCorner);
-            break;
-        case 5:                         //This is the top polygon
-            bb.getCorner(3, base);
-            bb.getCorner(0, sCorner);
-            bb.getCorner(7, tCorner);
-            break;
-        case 6:                         //This is the bottom polygon
-            //Don't generate the bottom polygon if on the ground (or lower)
-            if (bb.getPosition()[2] > 0.0f)
-            {
-                bb.getCorner(0, base);
-                bb.getCorner(3, sCorner);
-                bb.getCorner(1, tCorner);
+        } else {
+            switch (faceNum) {
+            case 1: // top
+                bb.getCorner(4, base);
+                bb.getCorner(5, sCorner);
+                bb.getCorner(7, tCorner);
                 break;
+            case 2:
+                bb.getCorner(0, base);
+                bb.getCorner(1, sCorner);
+                bb.getCorner(4, tCorner);
+                break;
+            case 3:
+                bb.getCorner(1, base);
+                bb.getCorner(2, sCorner);
+                bb.getCorner(5, tCorner);
+                break;
+            case 4:
+                bb.getCorner(2, base);
+                bb.getCorner(3, sCorner);
+                bb.getCorner(6, tCorner);
+                break;
+            case 5:                         //This is the top polygon
+                bb.getCorner(3, base);
+                bb.getCorner(0, sCorner);
+                bb.getCorner(7, tCorner);
+                break;
+            case 6:                         //This is the bottom polygon
+                //Don't generate the bottom polygon if on the ground (or lower)
+                if (bb.getPosition()[2] > 0.0f)
+                {
+                    bb.getCorner(0, base);
+                    bb.getCorner(3, sCorner);
+                    bb.getCorner(1, tCorner);
+                    break;
+                }
+                return false;
             }
-            return false;
         }
         sEdge[0] = sCorner[0] - base[0];
         sEdge[1] = sCorner[1] - base[1];
@@ -769,8 +770,8 @@ void WorldSceneBuilder::addGround(float worldSize) {
         if (BZDB.isSet("groundHighResTexRepeat")) {
             repeat = 1.0f/BZDB.eval("groundHighResTexRepeat");
         }
-        uRepeat = repeat*(worldSize)/tex->imageSize(0)[0];
-        vRepeat = repeat*(worldSize)/tex->imageSize(0)[1];;
+        uRepeat = 2*repeat*(worldSize)/tex->imageSize(0)[0];
+        vRepeat = 2*repeat*(worldSize)/tex->imageSize(0)[1];;
     }
     Warning{} << "World size " << worldSize;
     groundObj.addMatMesh("GroundMaterial",

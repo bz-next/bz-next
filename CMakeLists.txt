@@ -25,8 +25,8 @@ set(MAGNUM_WITH_ANYSCENEIMPORTER ON CACHE BOOL "" FORCE)
 set(MAGNUM_WITH_OBJIMPORTER ON CACHE BOOL "" FORCE)
 set(MAGNUM_WITH_PNGIMPORTER ON CACHE BOOL "" FORCE)
 set(MAGNUM_WITH_SDL2APPLICATION ON CACHE BOOL "" FORCE)
-
 set(MAGNUM_WITH_IMGUI ON CACHE BOOL "" FORCE)
+
 set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
 
 add_subdirectory(magnum EXCLUDE_FROM_ALL)
@@ -45,7 +45,6 @@ find_package(Magnum REQUIRED
 
 find_package(MagnumIntegration REQUIRED ImGui)
 find_package(MagnumPlugins REQUIRED PngImporter)
-#find_package(MagnumExtras REQUIRED Ui)
 
 
 # Compiler tests directory
