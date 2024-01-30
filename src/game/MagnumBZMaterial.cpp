@@ -104,7 +104,7 @@ MagnumBZMaterialManager::MagnumBZMaterialManager()
 
 MagnumBZMaterialManager::~MagnumBZMaterialManager()
 {
-    clear();
+    clear(false);
     return;
 }
 
@@ -118,12 +118,13 @@ std::vector<std::string> MagnumBZMaterialManager::getMaterialNames()
 }
 
 
-void MagnumBZMaterialManager::clear()
+void MagnumBZMaterialManager::clear(bool loadDefaults)
 {
     for (unsigned int i = 0; i < materials.size(); i++)
         delete materials[i];
     materials.clear();
-    loadDefaultMaterials();
+    if (loadDefaults)
+        loadDefaultMaterials();
     return;
 }
 

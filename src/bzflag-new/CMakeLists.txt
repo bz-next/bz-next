@@ -215,7 +215,8 @@ ActionBinding.cxx
     BZTextureBrowser.cpp
     BZMaterialBrowser.cpp
     BZMaterialViewer.cpp
-    WorldSceneBuilder.cpp)
+    WorldSceneBuilder.cpp
+    GLInfo.cpp)
 target_link_libraries(bzflag-new PRIVATE
     Corrade::Main
     Magnum::Application

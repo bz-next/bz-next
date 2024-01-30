@@ -204,7 +204,7 @@ public:
     void loadDefaultMaterials();
 
     void update();
-    void clear();
+    void clear(bool loadDefaults = true);
     const MagnumBZMaterial* addMaterial(const MagnumBZMaterial* material);
     const MagnumBZMaterial* findMaterial(const std::string& name) const;
     const MagnumBZMaterial* getMaterial(int id) const;

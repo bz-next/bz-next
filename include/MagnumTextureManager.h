@@ -60,6 +60,8 @@ public:
     bool reloadTextures();
     bool reloadTextureImage(const std::string& name);
 
+    void clear();
+
     std::vector<std::string> getTextureNames();
 
     void updateTextureFilters();
