@@ -133,6 +133,35 @@ Trade::MeshData WorldPrimitiveGenerator::tri(const float base[3], const float uE
     }, static_cast<UnsignedInt>(dataview.size())});
 }
 
+static Magnum::Trade::MeshData planarPoly(std::vector<Magnum::Math::Vector3<float>> verts, std::vector<Magnum::Math::Vector3<float>> norms, std::vector<Magnum::Math::Vector2<float>> texcoords) {
+
+    struct VertexData {
+        Vector3 position;
+        Vector2 texcoord;
+        Vector3 normal;
+    };
+
+    Containers::ArrayView<const Vector3> posview{verts};
+    Containers::ArrayView<const Vector2> texview{texcoords};
+    Containers::ArrayView<const Vector3> normview{norms};
+
+    Containers::Array<UnsignedInt> indices{verts.size()};
+
+    for (UnsignedInt i = 0; i < verts.size(); ++i)
+        indices[i] = i;
+
+    // Pack mesh data
+    Containers::Array<char> data{posview.size()*sizeof(VertexData)};
+    data = MeshTools::interleave(posview, texview, normview);
+    Containers::StridedArrayView1D<const VertexData> dataview = Containers::arrayCast<const VertexData>(data);
+
+    return MeshTools::copy(Trade::MeshData {MeshPrimitive::Triangles, Trade::DataFlags{}, indices, Trade::MeshIndexData{indices}, std::move(data), {
+        Trade::MeshAttributeData{Trade::MeshAttribute::Position, dataview.slice(&VertexData::position)},
+        Trade::MeshAttributeData{Trade::MeshAttribute::TextureCoordinates, dataview.slice(&VertexData::texcoord)},
+        Trade::MeshAttributeData{Trade::MeshAttribute::Normal, dataview.slice(&VertexData::normal)}
+    }, static_cast<UnsignedInt>(dataview.size())});
+}
+
 Trade::MeshData WorldPrimitiveGenerator::debugLine(Magnum::Math::Vector3<float> a, Magnum::Math::Vector3<float> b) {
     constexpr Trade::MeshAttributeData AttributeData3DWireframe[]{
         Trade::MeshAttributeData{Trade::MeshAttribute::Position, VertexFormat::Vector3,
