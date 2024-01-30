@@ -77,6 +77,7 @@
 #include "MagnumBZMaterial.h"
 #include "MagnumDefs.h"
 #include "PyramidBuilding.h"
+#include "WallObstacle.h"
 #include "WorldRenderer.h"
 
 #include "BZChatConsole.h"
@@ -1432,10 +1433,14 @@ void BZFlagNew::joinInternetGame2()
     for (int i = 0; i < bases.size(); ++i) {
         worldSceneBuilder.addBase(*((BaseBuilding*) bases[i]));
     }
+    const ObstacleList& walls = OBSTACLEMGR.getWalls();
+    for (int i = 0; i < walls.size(); ++i) {
+        worldSceneBuilder.addWall(*((WallObstacle*) walls[i]));
+    }
 
     
     //worldRenderer.createWorldObject();
-    worldRenderer.test(&worldSceneBuilder);
+    worldRenderer.createWorldObject(&worldSceneBuilder);
     worldRenderer.getWorldObject()->setParent(&_manipulator);
 
     // make radar

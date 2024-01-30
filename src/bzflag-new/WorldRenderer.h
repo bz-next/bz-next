@@ -22,8 +22,7 @@ class WorldRenderer {
         WorldRenderer();
         ~WorldRenderer();
         // Assumes that world is already loaded and OBSTACLEMGR is ready to go
-        void createWorldObject();
-        void test(const WorldSceneBuilder *sb);
+        void createWorldObject(const WorldSceneBuilder *sb);
 
         Magnum::SceneGraph::DrawableGroup3D *getDrawableGroup();
         Object3D *getWorldObject();
