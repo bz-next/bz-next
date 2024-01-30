@@ -278,12 +278,10 @@ GL::Texture2D* MagnumTextureManager::loadTexture(FileTextureInit &init, bool rep
     bool addpng = true;
     if (filename.size() > 4) {
         std::string ext = filename.substr(filename.size()-4);
-        std::cout << "ext " << ext << std::endl;
         // convert ext to lowercase
         std::transform(ext.begin(), ext.end(), ext.begin(), [](unsigned char c){return std::tolower(c);});
         if (ext == ".png") {
             addpng = false;
-            std::cout << "Detected png" << std::endl;
         }
     }
     if (addpng)
@@ -337,19 +335,6 @@ GL::Texture2D* MagnumTextureManager::loadTexture(FileTextureInit &init, bool rep
                 image = Trade::ImageData2D{PixelFormat::RGBA8Unorm, image->size(), std::move(rgbaData)};
                 break;
             }
-            case Magnum::PixelFormat::RGB8Unorm:
-            {
-                Containers::Array<char> rgbaData{data.size()*4/3};
-                int j = 0;
-                for (int i = 0; i < data.size();) {
-                    rgbaData[j++] = data[i++];
-                    rgbaData[j++] = data[i++];
-                    rgbaData[j++] = data[i++];
-                    rgbaData[j++] = 32;
-                }
-                image = Trade::ImageData2D{PixelFormat::RGBA8Unorm, image->size(), std::move(rgbaData)};
-                break;
-            }
             default:
                 Warning{} << "Unsupported pixel format " << image->format();
                 break;
@@ -361,7 +346,7 @@ GL::Texture2D* MagnumTextureManager::loadTexture(FileTextureInit &init, bool rep
         .setMagnificationFilter(GL::SamplerFilter::Linear)
         .setMinificationFilter(GL::SamplerFilter::Linear, GL::SamplerMipmap::Linear)
         .setMaxAnisotropy(GL::Sampler::maxMaxAnisotropy())
-        .setStorage(1, GL::textureFormat(image->format()), image->size())
+        .setStorage(4, GL::textureFormat(image->format()), image->size())
         .setSubImage(0, {}, *image)
         .generateMipmap();
     Warning{} << image->format();

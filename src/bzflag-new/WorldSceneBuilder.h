@@ -42,6 +42,7 @@ class WorldSceneBuilder {
     void addBase(BaseBuilding& o);
     void addWall(WallObstacle& o);
     void addTeleporter(const Teleporter& o);
+    void addGround(float worldSize);
     Magnum::Trade::MeshData compileMatMesh(std::string matname) const;
     std::vector<std::string> getMaterialList() const;
     private:

@@ -87,7 +87,13 @@ void MagnumBZMaterialManager::loadDefaultMaterials() {
     auto *teleLink = new MagnumBZMaterial();
     teleLink->setName("TeleLinkMaterial");
     teleLink->addTexture("telelink");
+    teleLink->setAlphaThreshold(0.5);
     MAGNUMMATERIALMGR.addMaterial(teleLink);
+
+    auto *ground = new MagnumBZMaterial();
+    ground->setName("GroundMaterial");
+    ground->addTexture("std_ground");
+    MAGNUMMATERIALMGR.addMaterial(ground);
 }
 
 MagnumBZMaterialManager::MagnumBZMaterialManager()

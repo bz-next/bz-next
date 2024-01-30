@@ -5,9 +5,11 @@
 
 
 #include "Magnum/GL/GL.h"
+#include "Magnum/Trade/MeshData.h"
+
+
 #include "MagnumTextureManager.h"
 #include "WorldPrimitiveGenerator.h"
-#include "Magnum/Trade/MeshData.h"
 #include "MagnumBZMaterial.h"
 
 #include "StateDatabase.h"
@@ -112,12 +114,13 @@ void WorldSceneBuilder::addBox(BoxBuilding& o) {
         tEdge[0] = tCorner[0] - base[0];
         tEdge[1] = tCorner[1] - base[1];
         tEdge[2] = tCorner[2] - base[2];
+        // Magic factor of 2.8 2*sqrt(2) ??? seems to make this match the game
         if (faceNum <= 4) {
-            uRepeats = -texFactor*boxTexWidth;
-            vRepeats = -texFactor*boxTexWidth;
+            uRepeats = -texFactor*boxTexWidth*2.8;
+            vRepeats = -texFactor*boxTexWidth*2.8;
         } else {
-            uRepeats = -boxTexHeight;
-            vRepeats = -boxTexHeight;
+            uRepeats = -boxTexHeight*2.8;
+            vRepeats = -boxTexHeight*2.8;
         }
         const float sLength = sqrtf(float(sEdge[0] * sEdge[0] +
                                       sEdge[1] * sEdge[1] + sEdge[2] * sEdge[2]));
@@ -245,8 +248,9 @@ void WorldSceneBuilder::addPyr(PyramidBuilding& o) {
         tEdge[1] = tCorner[1] - base[1];
         tEdge[2] = tCorner[2] - base[2];
 
-        uRepeats = -texFactor*boxTexHeight;
-        vRepeats = -texFactor*boxTexHeight;
+        // Magic factor of 2.8 2*sqrt(2) ??? seems to make the texmap match the game
+        uRepeats = -texFactor*boxTexHeight * 2.8;
+        vRepeats = -texFactor*boxTexHeight * 2.8;
 
         const float sLength = sqrtf(float(sEdge[0] * sEdge[0] +
                                     sEdge[1] * sEdge[1] + sEdge[2] * sEdge[2]));
@@ -740,6 +744,38 @@ void WorldSceneBuilder::addTeleporter(const Teleporter& o) {
             WorldPrimitiveGenerator::quad(verts[0], tEdge, sEdge, 0, 0, xtxcd, ytxcd));
     }
     worldObjects.emplace_back(std::move(teleObj));
+}
+
+void WorldSceneBuilder::addGround(float worldSize) {
+    float base[3], sEdge[3], tEdge[3];
+    base[0] = -worldSize;
+    base[1] = -worldSize;
+    base[2] = -0.1f;
+    sEdge[0] = 2*worldSize;
+    sEdge[1] = 0.0f;
+    sEdge[2] = 0.0f;
+    tEdge[0] = -0.1f;
+    tEdge[1] = 2*worldSize;
+    tEdge[2] = -0.1f;
+
+    WorldObject groundObj;
+    const auto *mat = MAGNUMMATERIALMGR.findMaterial("GroundMaterial");
+    const auto &tname = mat->getTexture(0);
+    auto* tex = MagnumTextureManager::instance().getTexture(tname.c_str());
+    float uRepeat = 1.0f;
+    float vRepeat = 1.0f;
+    if (tex) {
+        float repeat = 100.0;
+        if (BZDB.isSet("groundHighResTexRepeat")) {
+            repeat = 1.0f/BZDB.eval("groundHighResTexRepeat");
+        }
+        uRepeat = repeat*(worldSize)/tex->imageSize(0)[0];
+        vRepeat = repeat*(worldSize)/tex->imageSize(0)[1];;
+    }
+    Warning{} << "World size " << worldSize;
+    groundObj.addMatMesh("GroundMaterial",
+        WorldPrimitiveGenerator::quad(base, sEdge, tEdge, 0, 0, uRepeat, vRepeat));
+    worldObjects.emplace_back(std::move(groundObj));
 }
 
 std::vector<std::string> WorldSceneBuilder::getMaterialList() const {

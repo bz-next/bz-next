@@ -1369,17 +1369,17 @@ int BZFlagNew::main() {
 
     ServerListCache::get()->loadCache();
 
-    BZDB.set("callsign", "testingbz");
-    BZDB.set("server", "localhost");
-    BZDB.set("port", "5154");
+    //BZDB.set("callsign", "testingbz");
+    //BZDB.set("server", "localhost");
+    //BZDB.set("port", "5154");
 
     startupInfo.useUDPconnection=true;
     startupInfo.team = ObserverTeam;
-    strcpy(startupInfo.callsign, "testingbz");
-    strcpy(startupInfo.serverName, "localhost");
-    startupInfo.serverPort = 5154;
+    //strcpy(startupInfo.callsign, "testingbz");
+    //strcpy(startupInfo.serverName, "localhost");
+    //startupInfo.serverPort = 5154;
 
-    startupInfo.autoConnect = true;
+    startupInfo.autoConnect = false;
 
     Team::updateShotColors();
 
@@ -1446,6 +1446,7 @@ void BZFlagNew::joinInternetGame2()
     for (int i = 0; i < teles.size(); ++i) {
         worldSceneBuilder.addTeleporter(*((Teleporter*) teles[i]));
     }
+    worldSceneBuilder.addGround(BZDBCache::worldSize);
 
     
     //worldRenderer.createWorldObject();
