@@ -337,6 +337,19 @@ GL::Texture2D* MagnumTextureManager::loadTexture(FileTextureInit &init, bool rep
                 image = Trade::ImageData2D{PixelFormat::RGBA8Unorm, image->size(), std::move(rgbaData)};
                 break;
             }
+            case Magnum::PixelFormat::RGB8Unorm:
+            {
+                Containers::Array<char> rgbaData{data.size()*4/3};
+                int j = 0;
+                for (int i = 0; i < data.size();) {
+                    rgbaData[j++] = data[i++];
+                    rgbaData[j++] = data[i++];
+                    rgbaData[j++] = data[i++];
+                    rgbaData[j++] = 32;
+                }
+                image = Trade::ImageData2D{PixelFormat::RGBA8Unorm, image->size(), std::move(rgbaData)};
+                break;
+            }
             default:
                 Warning{} << "Unsupported pixel format " << image->format();
                 break;

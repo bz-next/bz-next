@@ -400,6 +400,7 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
 
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
     GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
+    GL::Renderer::enable(GL::Renderer::Feature::Blending);
 
     _coloredShader
         .setAmbientColor(0x111111_rgbf)
@@ -578,6 +579,9 @@ void BZFlagNew::drawEvent() {
     GL::Renderer::disable(GL::Renderer::Feature::Blending);
 
     if (auto* dg = worldRenderer.getDrawableGroup())
+        _camera->draw(*dg);
+    GL::Renderer::enable(GL::Renderer::Feature::Blending);
+    if (auto* dg = worldRenderer.getTransDrawableGroup())
         _camera->draw(*dg);
 
         /* Set appropriate states. If you only draw ImGui, it is sufficient to

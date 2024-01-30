@@ -214,7 +214,7 @@ void BZMaterialViewer::renderPreview() {
             materialUniform.setData({
                 Shaders::PhongMaterialUniform{}
                     .setDiffuseColor(Color4{toMagnumColor(mat->getDiffuse()), 0.0f})
-                    .setAmbientColor(toMagnumColor(mat->getAmbient()) + toMagnumColor(mat->getEmission()) + dyncol)
+                    .setAmbientColor(Color4{toMagnumColor(mat->getAmbient()) + toMagnumColor(mat->getEmission()) + dyncol, mat->getDiffuse()[3]})
                     .setSpecularColor(Color4{toMagnumColor(mat->getSpecular()), 0.0f})
                     .setShininess(mat->getShininess())
                     .setAlphaMask(mat->getAlphaThreshold())

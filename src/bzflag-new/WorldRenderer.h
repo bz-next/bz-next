@@ -25,6 +25,7 @@ class WorldRenderer {
         void createWorldObject(const WorldSceneBuilder *sb);
 
         Magnum::SceneGraph::DrawableGroup3D *getDrawableGroup();
+        Magnum::SceneGraph::DrawableGroup3D *getTransDrawableGroup();
         Object3D *getWorldObject();
 
         void destroyWorldObject();
@@ -37,6 +38,7 @@ class WorldRenderer {
         std::map<std::string, std::list<Magnum::GL::Mesh>> worldMeshes;
         Object3D *worldParent;
         Magnum::SceneGraph::DrawableGroup3D *worldDrawables;
+        Magnum::SceneGraph::DrawableGroup3D *worldTransDrawables;
         Magnum::Shaders::PhongGL coloredShader;
         Magnum::Shaders::PhongGL coloredShaderInstanced{Magnum::Shaders::PhongGL::Configuration{}
             .setFlags(Magnum::Shaders::PhongGL::Flag::InstancedTransformation|
