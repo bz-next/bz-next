@@ -18,6 +18,7 @@
 #include "TextureMatrix.h"
 #include "DynamicColor.h"
 #include "Pack.h"
+#include "Team.h"
 
 /****************************************************************************/
 //
@@ -46,6 +47,23 @@ void MagnumBZMaterialManager::loadDefaultMaterials() {
     pyrmat->addTexture("pyrwall");
     MAGNUMMATERIALMGR.addMaterial(pyrmat);
 
+    TeamColor teams[6] = {
+        RedTeam,
+        GreenTeam,
+        BlueTeam,
+        PurpleTeam
+    };
+    for (auto t: teams) {
+        auto *basewall = new MagnumBZMaterial();
+        basewall->setName(Team::getImagePrefix(t) + "baseWallMaterial");
+        basewall->addTexture(Team::getImagePrefix(t) + "basewall");
+        MAGNUMMATERIALMGR.addMaterial(basewall);
+
+        auto *basetop = new MagnumBZMaterial();
+        basetop->setName(Team::getImagePrefix(t) + "baseTopMaterial");
+        basetop->addTexture(Team::getImagePrefix(t) + "basetop");
+        MAGNUMMATERIALMGR.addMaterial(basetop); 
+    }
     auto *basewall = new MagnumBZMaterial();
     basewall->setName("baseWallMaterial");
     basewall->addTexture("red_basewall");
@@ -55,6 +73,11 @@ void MagnumBZMaterialManager::loadDefaultMaterials() {
     basetop->setName("baseTopMaterial");
     basetop->addTexture("red_basetop");
     MAGNUMMATERIALMGR.addMaterial(basetop);
+
+    auto *wallmat = new MagnumBZMaterial();
+    wallmat->setName("wallMaterial");
+    wallmat->addTexture("wall");
+    MAGNUMMATERIALMGR.addMaterial(wallmat);
 }
 
 MagnumBZMaterialManager::MagnumBZMaterialManager()
