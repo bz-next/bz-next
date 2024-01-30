@@ -215,7 +215,7 @@ class BZFlagNew: public Platform::Sdl2Application {
         void showMenuView();
 
         void maybeShowConsole();
-        bool showConsole = true;
+        bool showConsole = false;
 
         void maybeShowFPS();
         bool showFPS = false;
@@ -224,16 +224,16 @@ class BZFlagNew: public Platform::Sdl2Application {
         bool showConnect = true;
 
         void maybeShowScoreboard();
-        bool showScoreboard = true;
+        bool showScoreboard = false;
 
         void maybeShowTMBrowser();
-        bool showTMBrowser = true;
+        bool showTMBrowser = false;
 
         void maybeShowMATBrowser();
-        bool showMATBrowser = true;
+        bool showMATBrowser = false;
 
         void maybeShowMATViewer();
-        bool showMATViewer = true;
+        bool showMATViewer = false;
         
         Vector3 positionOnSphere(const Vector2i& position) const;
 
