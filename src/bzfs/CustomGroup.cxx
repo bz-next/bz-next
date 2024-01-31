@@ -23,7 +23,7 @@
 #include "ObstacleMgr.h"
 #include "ParseColor.h"
 #include "PhysicsDriver.h"
-#include "BzMaterial.h"
+#include "MagnumBZMaterial.h"
 
 
 CustomGroup::CustomGroup(const std::string& groupdef)
@@ -86,7 +86,7 @@ bool CustomGroup::read(const char *cmd, std::istream& input)
         std::string materialName;
         if (!(input >> materialName))
             std::cout << "missing matref parameter" << std::endl;
-        const BzMaterial* matref = MATERIALMGR.findMaterial(materialName);
+        const MagnumBZMaterial* matref = MAGNUMMATERIALMGR.findMaterial(materialName);
         if ((matref == NULL) && (materialName != "-1"))
         {
             std::cout << "couldn't find reference material: " << materialName
@@ -101,8 +101,8 @@ bool CustomGroup::read(const char *cmd, std::istream& input)
         std::string dstName;
         if (!(input >> srcName) || !(input >> dstName))
             std::cout << "missing matswap parameter" << std::endl;
-        const BzMaterial* srcMat = MATERIALMGR.findMaterial(srcName);
-        const BzMaterial* dstMat = MATERIALMGR.findMaterial(dstName);
+        const MagnumBZMaterial* srcMat = MAGNUMMATERIALMGR.findMaterial(srcName);
+        const MagnumBZMaterial* dstMat = MAGNUMMATERIALMGR.findMaterial(dstName);
         if (srcMat == NULL)
         {
             std::cout << "couldn't find matswap source: " << srcName

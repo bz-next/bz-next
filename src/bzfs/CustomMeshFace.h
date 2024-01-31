@@ -16,7 +16,7 @@
 /* common interface header */
 #include "MeshObstacle.h"
 #include "MeshFace.h"
-#include "BzMaterial.h"
+#include "MagnumBZMaterial.h"
 
 /* system header */
 #include <string>
@@ -26,13 +26,13 @@
 class CustomMeshFace
 {
 public:
-    CustomMeshFace(const BzMaterial& material, int phydrv, bool noclusters,
+    CustomMeshFace(const MagnumBZMaterial& material, int phydrv, bool noclusters,
                    bool smoothBounce, bool driveThrough, bool shootThrough);
     bool read(const char *cmd, std::istream& input);
     void write(MeshObstacle* mesh) const;
 
 private:
-    BzMaterial material;
+    MagnumBZMaterial material;
 
     std::vector<int> vertices;
     std::vector<int> normals;

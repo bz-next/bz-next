@@ -27,6 +27,8 @@
 #include "StateDatabase.h"
 #include "ObstacleMgr.h"
 
+#include "MagnumBZMaterial.h"
+
 /* bzfs implementation headers */
 #include "ParseMaterial.h"
 
@@ -390,9 +392,9 @@ void CustomBox::writeToGroupDef(GroupDefinition *groupdef) const
                                           false, false, false, false, false);
 
     // get the material refs
-    const BzMaterial* mats[FaceCount];
+    const MagnumBZMaterial* mats[FaceCount];
     for (i = 0; i < FaceCount; i++)
-        mats[i] = MATERIALMGR.addMaterial(&materials[i]);
+        mats[i] = MAGNUMMATERIALMGR.addLegacyIndexedMaterial(&materials[i]);
 
     // the index arrays
     std::vector<int> iv;

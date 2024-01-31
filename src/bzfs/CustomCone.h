@@ -20,7 +20,7 @@
 #include "WorldInfo.h"
 
 /* common interface headers */
-#include "BzMaterial.h"
+#include "MagnumBZMaterial.h"
 
 
 class CustomCone : public WorldFileObstacle
@@ -50,7 +50,7 @@ private:
     int phydrv;
     bool useNormals;
     bool smoothBounce;
-    BzMaterial materials[MaterialCount];
+    MagnumBZMaterial materials[MaterialCount];
 };
 
 

@@ -19,7 +19,7 @@
 
 /* common interface headers */
 #include "MeshObstacle.h"
-#include "BzMaterial.h"
+#include "MagnumBZMaterial.h"
 
 
 static inline void push2Ints(std::vector<int>& list, int i0, int i1)
@@ -53,10 +53,10 @@ static inline void addFace(MeshObstacle* mesh,
                            std::vector<int>& verticesList,
                            std::vector<int>& normalsList,
                            std::vector<int>& texcoordsList,
-                           const BzMaterial* material, int phydrv)
+                           const MagnumBZMaterial* material, int phydrv)
 {
     // use the mesh defaults for smoothBounce, driveThrough, and shootThough
-    const BzMaterial* matref = MATERIALMGR.addMaterial(material);
+    const MagnumBZMaterial* matref = MAGNUMMATERIALMGR.addMaterial(material);
     mesh->addFace(verticesList, normalsList, texcoordsList, matref, phydrv,
                   false, false, false, false, false, false);
     verticesList.clear();

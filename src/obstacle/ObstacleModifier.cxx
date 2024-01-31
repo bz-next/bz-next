@@ -24,7 +24,7 @@
 
 // common headers
 #include "ObstacleMgr.h"
-#include "BzMaterial.h"
+#include "MagnumBZMaterial.h"
 
 // obstacle headers
 #include "Obstacle.h"
@@ -111,7 +111,7 @@ ObstacleModifier::ObstacleModifier(const ObstacleModifier& obsMod,
         if (grpinst.modifyMaterial)
         {
             modifyMaterial = true;
-            MaterialMap::const_iterator find;
+            MagnumMaterialMap::const_iterator find;
             find = obsMod.matMap.find(grpinst.material);
             if (find != obsMod.matMap.end())
                 material = find->second;
@@ -121,10 +121,10 @@ ObstacleModifier::ObstacleModifier(const ObstacleModifier& obsMod,
         else
         {
             matMap = obsMod.matMap;
-            MaterialMap::const_iterator it;
+            MagnumMaterialMap::const_iterator it;
             for (it = grpinst.matMap.begin(); it != grpinst.matMap.end(); ++it)
             {
-                MaterialMap::const_iterator find_it;
+                MagnumMaterialMap::const_iterator find_it;
                 find_it = obsMod.matMap.find(it->second);
                 if (find_it != obsMod.matMap.end())
                     matMap[it->first] = find_it->second;
@@ -155,10 +155,10 @@ ObstacleModifier::~ObstacleModifier()
 }
 
 
-static const BzMaterial* getTintedMaterial(const float tint[4],
-        const BzMaterial* mat)
+static const MagnumBZMaterial* getTintedMaterial(const float tint[4],
+        const MagnumBZMaterial* mat)
 {
-    BzMaterial tintmat(*mat);
+    MagnumBZMaterial tintmat(*mat);
     float newColor[4];
     const float* oldColor;
 
@@ -171,7 +171,7 @@ static const BzMaterial* getTintedMaterial(const float tint[4],
     tintmat.setDiffuse(newColor);
     // ambient, specular, and emission are intentionally unmodifed
 
-    const BzMaterial* newmat = MATERIALMGR.addMaterial(&tintmat);
+    const MagnumBZMaterial* newmat = MAGNUMMATERIALMGR.addMaterial(&tintmat);
     return newmat;
 }
 
@@ -198,7 +198,7 @@ void ObstacleModifier::execute(Obstacle* obstacle) const
                     face->bzMaterial = material;
                 else if (matMap.size() > 0)
                 {
-                    MaterialMap::const_iterator it = matMap.find(face->bzMaterial);
+                    MagnumMaterialMap::const_iterator it = matMap.find(face->bzMaterial);
                     if (it != matMap.end())
                         face->bzMaterial = it->second;
                 }
@@ -265,23 +265,23 @@ void ObstacleModifier::execute(Obstacle* obstacle) const
 }
 
 
-void ObstacleModifier::getMaterialMap(const MaterialSet& matSet,
-                                      MaterialMap& materialMap) const
+void ObstacleModifier::getMaterialMap(const MagnumMaterialSet& matSet,
+                                      MagnumMaterialMap& materialMap) const
 {
     materialMap.clear();
 
     if (modifyColor || modifyMaterial || (matMap.size() > 0))
     {
-        MaterialSet::const_iterator it;
+        MagnumMaterialSet::const_iterator it;
         for (it = matSet.begin(); it != matSet.end(); ++it)
         {
-            const BzMaterial* origMat = *it;
-            const BzMaterial* convMat = *it;
+            const MagnumBZMaterial* origMat = *it;
+            const MagnumBZMaterial* convMat = *it;
             if (modifyMaterial)
                 convMat = material;
             else if (matMap.size() > 0)
             {
-                MaterialMap::const_iterator swap_it = matMap.find(origMat);
+                MagnumMaterialMap::const_iterator swap_it = matMap.find(origMat);
                 if (swap_it != matMap.end())
                     convMat = swap_it->second;
             }

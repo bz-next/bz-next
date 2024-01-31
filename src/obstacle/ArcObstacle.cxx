@@ -39,7 +39,7 @@ ArcObstacle::ArcObstacle(const MeshTransform& xform,
                          const float* _pos, const float* _size,
                          float _rotation, float _sweepAngle, float _ratio,
                          const float _texsize[4], bool _useNormals,
-                         int _divisions, const BzMaterial* mats[MaterialCount],
+                         int _divisions, const MagnumBZMaterial* mats[MaterialCount],
                          int physics, bool bounce, bool drive, bool shoot, bool rico)
 {
     // common obstace parameters
@@ -82,7 +82,7 @@ Obstacle* ArcObstacle::copyWithTransform(const MeshTransform& xform) const
     ArcObstacle* copy =
         new ArcObstacle(tmpXform, pos, size, angle, sweepAngle, ratio,
                         texsize, useNormals, divisions,
-                        const_cast<const BzMaterial**>(materials), phydrv,
+                        const_cast<const MagnumBZMaterial**>(materials), phydrv,
                         smoothBounce, driveThrough, shootThrough, ricochet);
     return copy;
 }
@@ -662,7 +662,7 @@ void* ArcObstacle::pack(void* buf) const
         buf = nboPackFloat(buf, texsize[i]);
     for (i = 0; i < MaterialCount; i++)
     {
-        int matindex = MATERIALMGR.getIndex(materials[i]);
+        int matindex = MAGNUMMATERIALMGR.getIndex(materials[i]);
         buf = nboPackInt(buf, matindex);
     }
 
@@ -701,7 +701,7 @@ const void* ArcObstacle::unpack(const void* buf)
         int matindex;
         buf = nboUnpackInt(buf, inTmp);
         matindex = int(inTmp);
-        materials[i] = MATERIALMGR.getMaterial(matindex);
+        materials[i] = MAGNUMMATERIALMGR.getMaterial(matindex);
     }
 
     // unpack the state byte
@@ -762,7 +762,7 @@ void ArcObstacle::print(std::ostream& out, const std::string& indent) const
     for (i = 0; i < MaterialCount; i++)
     {
         out << indent << "  " << sideNames[i] << " matref ";
-        MATERIALMGR.printReference(out, materials[i]);
+        MAGNUMMATERIALMGR.printReference(out, materials[i]);
         out << std::endl;
     }
 

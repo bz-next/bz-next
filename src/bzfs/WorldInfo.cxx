@@ -25,7 +25,7 @@
 #include "CollisionManager.h"
 #include "DynamicColor.h"
 #include "TextureMatrix.h"
-#include "BzMaterial.h"
+#include "MagnumBZMaterial.h"
 #include "PhysicsDriver.h"
 #include "MeshTransform.h"
 #include "MeshDrawInfo.h"
@@ -112,7 +112,7 @@ void WorldInfo::addWeapon(const FlagType *type, const float *origin,
                      teamColor, initdelay, delay, sync);
 }
 
-void WorldInfo::addWaterLevel (float level, const BzMaterial* matref)
+void WorldInfo::addWaterLevel (float level, const MagnumBZMaterial* matref)
 {
     waterLevel = level;
     waterMatRef = matref;
@@ -164,7 +164,7 @@ void WorldInfo::makeWaterMaterial()
     int texmatIndex = TEXMATRIXMGR.addMatrix(texmat);
 
     // the material
-    BzMaterial material;
+    MagnumBZMaterial material;
     const float diffuse[4] = {0.65f, 1.0f, 0.5f, 0.9f};
     material.reset();
     material.setName("WaterMaterial");
@@ -176,7 +176,7 @@ void WorldInfo::makeWaterMaterial()
     material.setUseSphereMap(false);
     material.setNoRadar(true);
     material.setNoShadow(true);
-    waterMatRef = MATERIALMGR.addMaterial(&material);
+    waterMatRef = MAGNUMMATERIALMGR.addMaterial(&material);
 
     return;
 }
@@ -483,7 +483,7 @@ int WorldInfo::packDatabase()
     // compute the database size
     databaseSize =
         DYNCOLORMGR.packSize() + TEXMATRIXMGR.packSize() +
-        MATERIALMGR.packSize() + PHYDRVMGR.packSize() +
+        MAGNUMMATERIALMGR.packSize() + PHYDRVMGR.packSize() +
         TRANSFORMMGR.packSize() + OBSTACLEMGR.packSize() + links.packSize() +
         worldWeapons.packSize() + entryZones.packSize();
     // add water level size
@@ -504,7 +504,7 @@ int WorldInfo::packDatabase()
     databasePtr = TEXMATRIXMGR.pack(databasePtr);
 
     // pack materials
-    databasePtr = MATERIALMGR.pack(databasePtr);
+    databasePtr = MAGNUMMATERIALMGR.pack(databasePtr);
 
     // pack physics drivers
     databasePtr = PHYDRVMGR.pack(databasePtr);
@@ -522,7 +522,7 @@ int WorldInfo::packDatabase()
     databasePtr = nboPackFloat(databasePtr, waterLevel);
     if (waterLevel >= 0.0f)
     {
-        int matindex = MATERIALMGR.getIndex(waterMatRef);
+        int matindex = MAGNUMMATERIALMGR.getIndex(waterMatRef);
         databasePtr = nboPackInt(databasePtr, matindex);
     }
 

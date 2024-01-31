@@ -25,7 +25,7 @@
 // Common headers
 #include "vectors.h"
 #include "Extents.h"
-#include "BzMaterial.h"
+#include "MagnumBZMaterial.h"
 #include "MeshTransform.h"
 
 class MeshObstacle;
@@ -54,7 +54,7 @@ public:
     // - the BzMaterials are regenerated from the map
     MeshDrawInfo(const MeshDrawInfo* drawInfo,
                  const MeshTransform& xform,
-                 const std::map<const BzMaterial*, const BzMaterial*>&);
+                 const std::map<const MagnumBZMaterial*, const MagnumBZMaterial*>&);
 
     ~MeshDrawInfo();
 
@@ -72,7 +72,7 @@ public:
 
     bool isInvisible() const;
 
-    void getMaterials(MaterialSet& matSet) const;
+    void getMaterials(MagnumMaterialSet& matSet) const;
 
     MeshDrawMgr* getDrawMgr() const;
     void setDrawMgr(MeshDrawMgr*);
@@ -96,7 +96,7 @@ public:
     int getLineCount() const;
 
     const MeshTransform::Tool* getTransformTool() const;
-    const MaterialMap* getMaterialMap() const;
+    const MagnumMaterialMap* getMaterialMap() const;
 
     void updateAnimation(double time);
     const AnimationInfo* getAnimationInfo() const;
@@ -128,7 +128,7 @@ private:
     Extents extents;
     float sphere[4];
 
-    MaterialMap* matMap;
+    MagnumMaterialMap* matMap;
     MeshTransform::Tool* xformTool;
 
     // elements
@@ -223,7 +223,7 @@ inline const MeshTransform::Tool*  MeshDrawInfo::getTransformTool() const
 {
     return xformTool;
 }
-inline const MaterialMap* MeshDrawInfo::getMaterialMap() const
+inline const MagnumMaterialMap* MeshDrawInfo::getMaterialMap() const
 {
     return matMap;
 }
@@ -307,7 +307,7 @@ public:
 public:
     int count;
     DrawCmd* cmds;
-    const BzMaterial* material;
+    const MagnumBZMaterial* material;
     bool wantList;
     float sphere[4];
     int triangleCount;

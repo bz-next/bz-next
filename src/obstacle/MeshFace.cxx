@@ -24,6 +24,8 @@
 #include "PhysicsDriver.h"
 #include "Intersect.h"
 
+#include "MagnumBZMaterial.h"
+
 
 const char* MeshFace::typeName = "MeshFace";
 
@@ -51,7 +53,7 @@ MeshFace::MeshFace(MeshObstacle* _mesh)
 
 MeshFace::MeshFace(MeshObstacle* _mesh, int _vertexCount,
                    float** _vertices, float** _normals, float** _texcoords,
-                   const BzMaterial* _bzMaterial, int physics,
+                   const MagnumBZMaterial* _bzMaterial, int physics,
                    bool _noclusters, bool bounce, bool drive, bool shoot, bool rico)
 {
     mesh = _mesh;
@@ -607,7 +609,7 @@ void *MeshFace::pack(void *buf) const
     }
 
     // material
-    int matindex = MATERIALMGR.getIndex(bzMaterial);
+    int matindex = MAGNUMMATERIALMGR.getIndex(bzMaterial);
     buf = nboPackInt(buf, matindex);
 
     // physics driver
@@ -671,7 +673,7 @@ const void *MeshFace::unpack(const void *buf)
     // material
     int32_t matindex;
     buf = nboUnpackInt(buf, matindex);
-    bzMaterial = MATERIALMGR.getMaterial(matindex);
+    bzMaterial = MAGNUMMATERIALMGR.getMaterial(matindex);
 
     // physics driver
     buf = nboUnpackInt(buf, inTmp);
@@ -762,7 +764,7 @@ void MeshFace::print(std::ostream& out, const std::string& indent) const
     }
 
     out << indent << "    matref ";
-    MATERIALMGR.printReference(out, bzMaterial);
+    MAGNUMMATERIALMGR.printReference(out, bzMaterial);
     out << std::endl;
 
     const PhysicsDriver* driver = PHYDRVMGR.getDriver(phydrv);

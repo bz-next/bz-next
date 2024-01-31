@@ -17,7 +17,7 @@
 #include "WorldFileObject.h"
 
 /* common headers */
-#include "BzMaterial.h"
+#include "MagnumBZMaterial.h"
 
 class CustomWaterLevel : public WorldFileObject
 {
@@ -33,7 +33,7 @@ public:
 private:
     float height;
     bool modedMaterial;
-    mutable BzMaterial material;
+    mutable MagnumBZMaterial material;
 };
 
 #endif  /* __CUSTOM_WATER_LEVEL_H__ */

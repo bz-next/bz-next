@@ -380,7 +380,7 @@ void MeshSceneNode::notifyStyleChange()
 
 const BzMaterial* MeshSceneNode::convertMaterial(const BzMaterial* bzmat)
 {
-    const MaterialMap* matMap = drawInfo->getMaterialMap();
+    /*const MaterialMap* matMap = drawInfo->getMaterialMap();
     if (matMap == NULL)
         return bzmat;
 
@@ -388,7 +388,8 @@ const BzMaterial* MeshSceneNode::convertMaterial(const BzMaterial* bzmat)
     if (it == matMap->end())
         return bzmat;
     else
-        return it->second;
+        return it->second;*/
+    return NULL;
 }
 
 

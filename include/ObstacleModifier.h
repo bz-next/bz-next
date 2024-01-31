@@ -14,7 +14,7 @@
 #define BZF_OBSTACLE_MODIFIER_H
 
 // common headers
-#include "BzMaterial.h"
+#include "MagnumBZMaterial.h"
 
 class Obstacle;
 class GroupInstance;
@@ -31,7 +31,7 @@ public:
 
     void execute(Obstacle* obstacle) const;
 
-    void getMaterialMap(const MaterialSet& matSet, MaterialMap& matMap) const;
+    void getMaterialMap(const MagnumMaterialSet& matSet, MagnumMaterialMap& matMap) const;
 
 private:
     bool modifyTeam; // only for bases
@@ -41,8 +41,8 @@ private:
     bool modifyPhysicsDriver; // only replaces valid physics drivers
     int phydrv;
     bool modifyMaterial; // swaps the whole thing
-    const BzMaterial* material;
-    MaterialMap matMap;
+    const MagnumBZMaterial* material;
+    MagnumMaterialMap matMap;
 
     bool driveThrough;
     bool shootThrough;

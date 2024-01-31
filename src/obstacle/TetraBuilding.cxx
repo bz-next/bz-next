@@ -45,7 +45,7 @@ TetraBuilding::TetraBuilding(const MeshTransform& xform,
                              const float _texcoords[4][3][2],
                              const bool _useNormals[4],
                              const bool _useTexcoords[4],
-                             const BzMaterial* _materials[4],
+                             const MagnumBZMaterial* _materials[4],
                              bool drive, bool shoot, bool rico)
 {
     // tetra specific parameters
@@ -81,7 +81,7 @@ Obstacle* TetraBuilding::copyWithTransform(const MeshTransform& xform) const
 
     TetraBuilding* copy =
         new TetraBuilding(tmpXform, vertices, normals, texcoords,
-                          useNormals, useTexcoords, const_cast<const BzMaterial**>(materials),
+                          useNormals, useTexcoords, const_cast<const MagnumBZMaterial**>(materials),
                           driveThrough, shootThrough, ricochet);
     return copy;
 }
@@ -195,7 +195,7 @@ void TetraBuilding::checkVertexOrder()
         useTexcoords[1] = useTexcoords[2];
         useTexcoords[2] = tmpBool;
 
-        const BzMaterial* tmpMat = materials[1];
+        const MagnumBZMaterial* tmpMat = materials[1];
         materials[1] = materials[2];
         materials[2] = tmpMat;
     }
@@ -363,7 +363,7 @@ void *TetraBuilding::pack(void* buf) const
     // pack the materials
     for (v = 0; v < 4; v++)
     {
-        int matindex = MATERIALMGR.getIndex(materials[v]);
+        int matindex = MAGNUMMATERIALMGR.getIndex(materials[v]);
         buf = nboPackInt(buf, matindex);
     }
 
@@ -423,7 +423,7 @@ const void *TetraBuilding::unpack(const void* buf)
     {
         int32_t matindex;
         buf = nboUnpackInt(buf, matindex);
-        materials[v] = MATERIALMGR.getMaterial(matindex);
+        materials[v] = MAGNUMMATERIALMGR.getMaterial(matindex);
     }
 
     finalize();
@@ -495,7 +495,7 @@ void TetraBuilding::print(std::ostream& out, const std::string& indent) const
             }
         }
         out << "\tmatref ";
-        MATERIALMGR.printReference(out, materials[i]);
+        MAGNUMMATERIALMGR.printReference(out, materials[i]);
         out << std::endl;
     }
 

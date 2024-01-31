@@ -26,6 +26,7 @@
 #include "Obstacle.h"
 #include "MeshFace.h"
 #include "MeshTransform.h"
+#include "MagnumBZMaterial.h"
 
 class MeshDrawInfo;
 
@@ -45,7 +46,7 @@ public:
     bool addFace (const std::vector<int>& vertices,
                   const std::vector<int>& normals,
                   const std::vector<int>& texcoords,
-                  const BzMaterial* bzMaterial, int physics,
+                  const MagnumBZMaterial* bzMaterial, int physics,
                   bool noclusters, bool bounce, bool drive, bool shoot,
                   bool ricochet, bool triangulate);
 

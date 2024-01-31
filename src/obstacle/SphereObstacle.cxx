@@ -38,7 +38,7 @@ SphereObstacle::SphereObstacle(const MeshTransform& xform,
                                const float* _pos, const float* _size,
                                float _rotation, const float _texsize[2],
                                bool _useNormals, bool _hemisphere,
-                               int _divisions, const BzMaterial* mats[MaterialCount],
+                               int _divisions, const MagnumBZMaterial* mats[MaterialCount],
                                int physics, bool bounce, bool drive, bool shoot, bool rico)
 {
     // common obstace parameters
@@ -79,7 +79,7 @@ Obstacle* SphereObstacle::copyWithTransform(const MeshTransform& xform) const
 
     SphereObstacle* copy =
         new SphereObstacle(tmpXform, pos, size, angle, texsize, useNormals,
-                           hemisphere, divisions, const_cast<const BzMaterial**>(materials),
+                           hemisphere, divisions, const_cast<const MagnumBZMaterial**>(materials),
                            phydrv, smoothBounce, driveThrough, shootThrough, ricochet);
     return copy;
 }
@@ -526,7 +526,7 @@ void *SphereObstacle::pack(void *buf) const
         buf = nboPackFloat(buf, texsize[i]);
     for (i = 0; i < MaterialCount; i++)
     {
-        int matindex = MATERIALMGR.getIndex(materials[i]);
+        int matindex = MAGNUMMATERIALMGR.getIndex(materials[i]);
         buf = nboPackInt(buf, matindex);
     }
 
@@ -563,7 +563,7 @@ const void *SphereObstacle::unpack(const void *buf)
     {
         int32_t matindex;
         buf = nboUnpackInt(buf, matindex);
-        materials[i] = MATERIALMGR.getMaterial(matindex);
+        materials[i] = MAGNUMMATERIALMGR.getMaterial(matindex);
     }
 
     // unpack the state byte
@@ -621,7 +621,7 @@ void SphereObstacle::print(std::ostream& out, const std::string& indent) const
     for (i = 0; i < MaterialCount; i++)
     {
         out << indent << "  " << sideNames[i] << " matref ";
-        MATERIALMGR.printReference(out, materials[i]);
+        MAGNUMMATERIALMGR.printReference(out, materials[i]);
         out << std::endl;
     }
 

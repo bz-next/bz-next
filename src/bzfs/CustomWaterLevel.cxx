@@ -23,7 +23,7 @@
 #include "ParseMaterial.h"
 
 /* common implementation headers */
-#include "BzMaterial.h"
+#include "MagnumBZMaterial.h"
 #include "TextureMatrix.h"
 
 
@@ -69,7 +69,7 @@ void CustomWaterLevel::writeToWorld(WorldInfo* world) const
 {
     if (modedMaterial)
     {
-        const BzMaterial* matref = MATERIALMGR.addMaterial(&material);
+        const MagnumBZMaterial* matref = MAGNUMMATERIALMGR.addMaterial(&material);
         world->addWaterLevel(height, matref);
     }
     else

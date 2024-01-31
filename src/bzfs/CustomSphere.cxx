@@ -114,9 +114,9 @@ bool CustomSphere::read(const char *cmd, std::istream& input)
 void CustomSphere::writeToGroupDef(GroupDefinition *groupdef) const
 {
     int i;
-    const BzMaterial* mats[MaterialCount];
+    const MagnumBZMaterial* mats[MaterialCount];
     for (i = 0; i < MaterialCount; i++)
-        mats[i] = MATERIALMGR.addMaterial(&materials[i]);
+        mats[i] = MAGNUMMATERIALMGR.addMaterial(&materials[i]);
     SphereObstacle* sphere = new SphereObstacle(transform, pos, size, rotation, texsize,
             useNormals, hemisphere, divisions, mats,
             phydrv,

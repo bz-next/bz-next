@@ -22,7 +22,7 @@
 #include "ParseMaterial.h"
 
 /* common implementation headers */
-#include "BzMaterial.h"
+#include "MagnumBZMaterial.h"
 
 
 CustomMaterial::CustomMaterial()
@@ -57,16 +57,16 @@ void CustomMaterial::writeToManager() const
 {
     material.setName(name);
 
-    if ((name.size() > 0) && (MATERIALMGR.findMaterial(name) != NULL))
+    if ((name.size() > 0) && (MAGNUMMATERIALMGR.findMaterial(name) != NULL))
     {
         std::cout << "warning: duplicate material name"
                   << " (" << name << ")" << std::endl;
         std::cout << "	 the first material will be used" << std::endl;
     }
 
-    const BzMaterial* matref = MATERIALMGR.addMaterial(&material);
+    const MagnumBZMaterial* matref = MAGNUMMATERIALMGR.addMaterial(&material);
 
-    int index = MATERIALMGR.getIndex(matref);
+    int index = MAGNUMMATERIALMGR.getIndex(matref);
     if (index < 0)
         std::cout << "CustomMaterial::write: material didn't register" << std::endl;
     return;
