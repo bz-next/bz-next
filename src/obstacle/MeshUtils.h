@@ -57,8 +57,7 @@ static inline void addFace(MeshObstacle* mesh,
 {
     // use the mesh defaults for smoothBounce, driveThrough, and shootThough
     const MagnumBZMaterial* matref = MAGNUMMATERIALMGR.findMaterial(std::to_string(material->getLegacyIndex()));
-    if (!matref) std::cout << "ERROR MATREF NULL" << std::endl;
-    mesh->addFace(verticesList, normalsList, texcoordsList, matref, phydrv,
+    mesh->addFace(verticesList, normalsList, texcoordsList, material, phydrv,
                   false, false, false, false, false, false);
     verticesList.clear();
     normalsList.clear();

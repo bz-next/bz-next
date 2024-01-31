@@ -186,7 +186,7 @@ const MagnumBZMaterial* MagnumBZMaterialManager::addMaterial(const MagnumBZMater
         newMat->setName("_Unnamed"+std::to_string(unnamedCount++));
     }
     if (findMaterial(newMat->getName()) != NULL)
-        newMat->setName("_nameCollisionWith" + newMat->getName() + std::to_string(duplicateNameCount++));
+        newMat->setName("_NameCollisionWith" + newMat->getName() + std::to_string(duplicateNameCount++));
     materials.push_back(newMat);
     return newMat;
 }
@@ -198,17 +198,15 @@ const MagnumBZMaterial* MagnumBZMaterialManager::findMaterial(const std::string&
         return NULL;
     // Lookup legacy indexed materials by a string containing the index number
     else if ((target[0] >= '0') && (target[0] <= '9'))
-    {   std::cout << "Searching for " << target << std::endl;
+    {
         int index = atoi (target.c_str());
         if ((index < 0))
             return NULL;
         for (auto m: materials) {
             if (m->getLegacyIndex() == index) {
-                std::cout << "Found it " << m->getName() << std::endl;
                 return m;
             }
         }
-        std::cout << "Not found!" << std::endl;
         return NULL;
     }
     else
