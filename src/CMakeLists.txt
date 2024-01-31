@@ -21,7 +21,7 @@ if(CLIENT_INCLUDED)
     add_subdirectory(ogl)
     add_subdirectory(platform)
     add_subdirectory(scene)
-    add_subdirectory(bzflag)
+    #add_subdirectory(bzflag)
 endif(CLIENT_INCLUDED)
 
 add_subdirectory(bzflag-new)

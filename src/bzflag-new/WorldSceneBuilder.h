@@ -43,6 +43,7 @@ class WorldSceneBuilder {
     void addWall(WallObstacle& o);
     void addTeleporter(const Teleporter& o);
     void addGround(float worldSize);
+    void addMesh(const MeshObstacle& o);
 
     // Empty it out to get ready to load a new map
     void reset();

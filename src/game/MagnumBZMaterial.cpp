@@ -12,6 +12,9 @@
 
 #include <string.h>
 
+#include <string>
+#include <sstream>
+
 #include "MagnumTextureManager.h"
 #include "MagnumBZMaterial.h"
 
@@ -47,7 +50,7 @@ void MagnumBZMaterialManager::loadDefaultMaterials() {
     pyrmat->addTexture("pyrwall");
     MAGNUMMATERIALMGR.addMaterial(pyrmat);
 
-    TeamColor teams[6] = {
+    TeamColor teams[4] = {
         RedTeam,
         GreenTeam,
         BlueTeam,
@@ -98,6 +101,7 @@ void MagnumBZMaterialManager::loadDefaultMaterials() {
 
 MagnumBZMaterialManager::MagnumBZMaterialManager()
 {
+    clear(false);
     return;
 }
 
@@ -120,6 +124,7 @@ std::vector<std::string> MagnumBZMaterialManager::getMaterialNames()
 
 void MagnumBZMaterialManager::clear(bool loadDefaults)
 {
+    legacyMaterialIndex = 0;
     for (unsigned int i = 0; i < materials.size(); i++)
         delete materials[i];
     materials.clear();
@@ -128,6 +133,23 @@ void MagnumBZMaterialManager::clear(bool loadDefaults)
     return;
 }
 
+const MagnumBZMaterial* MagnumBZMaterialManager::addLegacyIndexedMaterial(const MagnumBZMaterial* material)
+{
+    std::ostringstream namebuilder;
+    namebuilder << "LegacyMaterialIndex" << legacyMaterialIndex;
+
+    MagnumBZMaterial *indexedMat = new MagnumBZMaterial(*material);
+    indexedMat->addAlias(namebuilder.str());
+    indexedMat->setLegacyIndex(legacyMaterialIndex);
+
+    const auto* mat = addMaterial(indexedMat);
+
+    delete indexedMat;
+
+    legacyMaterialIndex += 1;
+
+    return mat;
+}
 
 const MagnumBZMaterial* MagnumBZMaterialManager::addMaterial(const MagnumBZMaterial* material)
 {
@@ -189,13 +211,20 @@ const MagnumBZMaterial* MagnumBZMaterialManager::getMaterial(int id) const
     return materials[id];
 }
 
-
+/* This function is for interfacing with legacy code that refers to materials by index.
+   This is bad practice because it implies that the material manager is unchanging, and
+   can lead to confusion and bugs. Instead, we map indices to material names and search
+   based on that. This function makes adapting old code easier. */
 int MagnumBZMaterialManager::getIndex(const MagnumBZMaterial* material) const
 {
     for (unsigned int i = 0; i < materials.size(); i++)
     {
-        if (material == materials[i])
-            return i;
+        if (material == materials[i]) {
+            if (materials[i]->getLegacyIndex() != -1) {
+                return materials[i]->getLegacyIndex();
+            }
+            return -1;
+        }
     }
     return -1;
 }
@@ -220,7 +249,8 @@ const void* MagnumBZMaterialManager::unpack(const void* buf)
     {
         MagnumBZMaterial* mat = new MagnumBZMaterial;
         buf = mat->unpack(buf);
-        materials.push_back(mat);
+        addLegacyIndexedMaterial(mat);
+        delete mat;
     }
     return buf;
 }
@@ -350,6 +380,8 @@ void MagnumBZMaterial::reset()
 
     referenced = false;
 
+    legacyIndex = -1;
+
     return;
 }
 
@@ -422,6 +454,8 @@ MagnumBZMaterial& MagnumBZMaterial::operator=(const MagnumBZMaterial& m)
     for (i = 0; i < shaderCount; i++)
         shaders[i] = m.shaders[i];
 
+    legacyIndex = m.legacyIndex;
+
     return *this;
 }
 
@@ -462,6 +496,9 @@ bool MagnumBZMaterial::operator==(const MagnumBZMaterial& m) const
         if (shaders[i].name != m.shaders[i].name)
             return false;
     }
+
+    if (legacyIndex != m.legacyIndex)
+        return false;
 
     return true;
 }
@@ -998,6 +1035,10 @@ void MagnumBZMaterial::clearShaders()
     return;
 }
 
+void MagnumBZMaterial::setLegacyIndex(int ind) {
+    legacyIndex = ind;
+}
+
 
 /****************************************************************************/
 //
@@ -1168,6 +1209,10 @@ bool MagnumBZMaterial::isInvisible() const
             !((textureCount > 0) && !textures[0].useColor))
         return true;
     return false;
+}
+
+int MagnumBZMaterial::getLegacyIndex() const {
+    return legacyIndex;
 }
 
 
