@@ -11,6 +11,7 @@ class BZMaterialBrowser {
     void draw(const char* title, bool* p_open);
     private:
     int itemCurrent;
+    bool onlyIndexed;
 };
 
 #endif

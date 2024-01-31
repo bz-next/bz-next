@@ -17,11 +17,8 @@ typedef std::map<const MagnumBZMaterial*,
         const MagnumBZMaterial*> MagnumMaterialMap;
 
 
-class MagnumBZMaterialManager;
-
 class MagnumBZMaterial
 {
-    friend class MagnumBZMaterialManager;
 public:
     MagnumBZMaterial();
     MagnumBZMaterial(const MagnumBZMaterial& material);
@@ -220,6 +217,9 @@ public:
     // Legacy function for adapting some deep parts of mesh code that references material indices
     int getIndex(const MagnumBZMaterial* material) const;
 
+    // Trigger the texture manager to load all referenced textures by accessing them
+    void forceLoadTextures();
+
     std::vector<std::string> getMaterialNames();
 
     typedef std::set<std::string> TextureSet;
@@ -237,6 +237,9 @@ public:
 private:
     std::vector<MagnumBZMaterial*> materials;
     int legacyMaterialIndex;
+    int unnamedCount;   // Auto generate names for unnamed or duplicate named materials
+    int duplicateNameCount;
+    int unnamedAliasCount;
 };
 
 
