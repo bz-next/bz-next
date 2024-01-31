@@ -1002,16 +1002,18 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
                 verts[i].z() = vp[2];
             }
 
-            std::size_t normalCount = 0;
-            if (face->useNormals())
-                normalCount = vertexCount;
+            //std::size_t normalCount = 0;
+            //if (face->useNormals())
+            //    normalCount = vertexCount;
             //if (!face->useNormals()) {currentNode += 1; return true; } // Debug skip
             std::vector<Math::Vector3<float>> norms{vertexCount};
-            for (int i = 0; i < normalCount; ++i) {
-                const float * vp = face->getNormal(i);
-                norms[i].x() = 0.0;//vp[0];
-                norms[i].y() = 0.0;//vp[1];
-                norms[i].z() = 1.0;//vp[2];
+            for (int i = 0; i < vertexCount; ++i) {
+                const float * vp;
+                if (face->useNormals()) vp = face->getNormal(i);
+                else vp = face->getPlane();
+                norms[i].x() = vp[0];
+                norms[i].y() = vp[1];
+                norms[i].z() = vp[2];
             }
 
             std::vector<Math::Vector2<float>> texcoords{vertexCount};
@@ -1031,11 +1033,57 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
         }
         else
         {
+            // The old mesh code stored a bunch of faces on one mesh node
+            // in the case that it wanted to compile them into buffers
+            // to be rendered as triangles... that's what we're doing
+            // for ALL the faces anyway, so we can just pack each
+            // face separately into the meshObj.
             /*const MeshFace** faces = new const MeshFace*[mn->faces.size()];
             for (int i = 0; i < (int)mn->faces.size(); i++)
                 faces[i] = mn->faces[i];
             // the MeshFragSceneNode will delete the faces
             node = new MeshFragSceneNode(mn->faces.size(), faces);*/
+            int faceCount = mn->faces.size();
+
+            for (int i = 0; i < faceCount; ++i) {
+                const MeshFace* face = mn->faces[i];
+                const size_t vertexCount = face->getVertexCount();
+
+                std::vector<Math::Vector3<float>> verts{vertexCount};
+                for (int i = 0; i < vertexCount; ++i) {
+                    const float * vp = face->getVertex(i);
+                    verts[i].x() = vp[0];
+                    verts[i].y() = vp[1];
+                    verts[i].z() = vp[2];
+                }
+
+                std::vector<Math::Vector2<float>> texcoords{vertexCount};
+                if (face->useTexcoords()) {
+                    for (int i = 0; i < vertexCount; ++i) {
+                        const float * vp = face->getTexcoord(i);
+                        texcoords[i].x() = vp[0];
+                        texcoords[i].y() = vp[1];
+                    }
+                } else {
+                    //makeTexcoords(face->getPlane(), vertices, texcoords);
+                    
+                }
+
+                std::vector<Math::Vector3<float>> norms{vertexCount};
+                for (int i = 0; i < vertexCount; ++i) {
+                    const float * vp;
+                    if (face->useNormals()) vp = face->getNormal(i);
+                    else vp = face->getPlane();
+                    norms[i].x() = vp[0];
+                    norms[i].y() = vp[1];
+                    norms[i].z() = vp[2];
+                }
+
+                meshObj.addMatMesh(mat->getName(),
+                WorldPrimitiveGenerator::planarPoly(verts, norms, texcoords));
+
+
+            }
         }
 
         currentNode++;
