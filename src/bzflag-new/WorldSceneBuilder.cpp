@@ -1023,6 +1023,7 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
                 }
             } else {
                 //makeTexcoords(face->getPlane(), vertices, texcoords);
+                
             }
             meshObj.addMatMesh(mat->getName(),
             WorldPrimitiveGenerator::planarPoly(verts, norms, texcoords));
