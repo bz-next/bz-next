@@ -12,7 +12,7 @@
 
 
 class MagnumBZMaterial;
-typedef std::set<const MagnumBZMaterial*> MagnumMagnumBZMaterial;
+typedef std::set<const MagnumBZMaterial*> MagnumMaterialSet;
 typedef std::map<const MagnumBZMaterial*,
         const MagnumBZMaterial*> MagnumMaterialMap;
 

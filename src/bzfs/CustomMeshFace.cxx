@@ -26,7 +26,7 @@
 #include <iostream>
 
 
-CustomMeshFace::CustomMeshFace(const BzMaterial& _material, int physics,
+CustomMeshFace::CustomMeshFace(const MagnumBZMaterial& _material, int physics,
                                bool _noclusters,
                                bool bounce, bool drive, bool shoot)
 {
@@ -130,7 +130,7 @@ bool CustomMeshFace::read(const char *cmd, std::istream& input)
 
 void CustomMeshFace::write(MeshObstacle *mesh) const
 {
-    const BzMaterial* matref = MATERIALMGR.addMaterial(&material);
+    const MagnumBZMaterial* matref = MAGNUMMATERIALMGR.addMaterial(&material);
     mesh->addFace(vertices, normals, texcoords, matref, phydrv,
                   noclusters, smoothBounce, driveThrough, shootThrough, ricochet,
                   true /* triangulate if required */);

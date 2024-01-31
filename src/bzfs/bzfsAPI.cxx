@@ -25,7 +25,7 @@
 #include "commands.h"
 #include "SpawnPosition.h"
 #include "WorldInfo.h"
-#include "BzMaterial.h"
+#include "MagnumBZMaterial.h"
 #include "cURLManager.h"
 #include "bzfsPlugins.h"
 #include "CustomWorld.h"
@@ -111,7 +111,7 @@ public:
 MasterBanURLHandler masterBanHandler;
 
 // utility functions
-void setBZMatFromAPIMat (BzMaterial &bzmat, bz_MaterialInfo* material )
+void setBZMatFromAPIMat (MagnumBZMaterial &bzmat, bz_MaterialInfo* material )
 {
     if (!material)
         return;
@@ -3075,9 +3075,9 @@ BZF_API bool bz_addWorldWaterLevel( float level, bz_MaterialInfo *material )
         return true;
     }
 
-    BzMaterial    bzmat;
+    MagnumBZMaterial    bzmat;
     setBZMatFromAPIMat(bzmat,material);
-    world->addWaterLevel(level,MATERIALMGR.addMaterial(&bzmat));
+    world->addWaterLevel(level,MAGNUMMATERIALMGR.addMaterial(&bzmat));
     return true;
 }
 

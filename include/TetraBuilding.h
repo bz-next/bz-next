@@ -22,7 +22,7 @@
 #include "Obstacle.h"
 #include "MeshObstacle.h"
 #include "MeshTransform.h"
-#include "BzMaterial.h"
+#include "MagnumBZMaterial.h"
 
 class TetraBuilding : public Obstacle
 {
@@ -32,7 +32,7 @@ public:
     TetraBuilding(const MeshTransform& transform,
                   const float vertices[4][3], const float normals[4][3][3],
                   const float texCoords[4][3][2], const bool useNormals[4],
-                  const bool useTexCoords[4], const BzMaterial* materials[4],
+                  const bool useTexCoords[4], const MagnumBZMaterial* materials[4],
                   bool drive = false, bool shoot = false, bool ricochet = false);
     ~TetraBuilding();
 
@@ -87,7 +87,7 @@ private:
     float texcoords[4][3][2];
     bool useNormals[4];
     bool useTexcoords[4];
-    const BzMaterial* materials[4];
+    const MagnumBZMaterial* materials[4];
 };
 
 

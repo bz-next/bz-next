@@ -27,7 +27,7 @@
 
 /* common implementation headers */
 
-class BzMaterial;
+class MagnumBZMaterial;
 class Obstacle;
 class BoxBuilding;
 class PyramidBuilding;
@@ -80,7 +80,7 @@ public:
     void addWeapon(const FlagType *type, const float *origin,
                    float direction, float tilt, TeamColor teamColor,
                    float initdelay, const std::vector<float> &delay, TimeKeeper &sync);
-    void addWaterLevel (float level, const BzMaterial* matref);
+    void addWaterLevel (float level, const MagnumBZMaterial* matref);
 
     void addBox(float x, float y, float z, float r,
                 float w, float d, float h,
@@ -178,7 +178,7 @@ private:
     float gravity;
     float maxHeight;
     float waterLevel;
-    const BzMaterial* waterMatRef;
+    const MagnumBZMaterial* waterMatRef;
 
     EntryZones entryZones;
     LinkManager links;

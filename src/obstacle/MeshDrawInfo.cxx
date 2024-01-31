@@ -26,7 +26,7 @@
 
 // common implementation headers
 #include "Pack.h"
-#include "BzMaterial.h"
+#include "MagnumBZMaterial.h"
 #include "MeshObstacle.h"
 #include "TimeKeeper.h"
 #include "bzfio.h" // for debugging info
@@ -84,8 +84,8 @@ MeshDrawInfo::MeshDrawInfo()
 
 MeshDrawInfo::MeshDrawInfo(const MeshDrawInfo* di,
                            const MeshTransform& xform,
-                           const std::map<const BzMaterial*,
-                           const BzMaterial*>& _matMap)
+                           const std::map<const MagnumBZMaterial*,
+                           const MagnumBZMaterial*>& _matMap)
 {
     init(); // client side copy constructor
 
@@ -112,7 +112,7 @@ MeshDrawInfo::MeshDrawInfo(const MeshDrawInfo* di,
     animInfo = di->animInfo;
 
     // new data
-    matMap = new MaterialMap(_matMap);
+    matMap = new MagnumMaterialMap(_matMap);
     xformTool = new MeshTransform::Tool(xform);
 
     return;
@@ -567,7 +567,7 @@ MeshDrawMgr* MeshDrawInfo::getDrawMgr() const
 }
 
 
-void MeshDrawInfo::getMaterials(MaterialSet& matSet) const
+void MeshDrawInfo::getMaterials(MagnumMaterialSet& matSet) const
 {
     for (int i = 0; i < lodCount; i++)
     {
@@ -590,7 +590,7 @@ bool MeshDrawInfo::isInvisible() const
         for (int j = 0; j < lod.count; j++)
         {
             DrawSet& set = lod.sets[j];
-            const BzMaterial* mat = set.material;
+            const MagnumBZMaterial* mat = set.material;
             if (mat->getDiffuse()[3] != 0.0f)
                 return false;
         }
@@ -844,7 +844,7 @@ static bool parseDrawLod(std::istream& input, DrawLod& lod, int& lines)
             if (parms >> matName)
             {
                 DrawSet set;
-                set.material = MATERIALMGR.findMaterial(matName);
+                set.material = MAGNUMMATERIALMGR.findMaterial(matName);
                 if (parseDrawSet(input, set, lines))
                     pSets.push_back(set);
                 else
@@ -1176,7 +1176,7 @@ void MeshDrawInfo::print(std::ostream& out, const std::string& indent) const
         {
             DrawSet& set = lod.sets[j];
             out << indent << "    matref ";
-            MATERIALMGR.printReference(out, set.material);
+            MAGNUMMATERIALMGR.printReference(out, set.material);
             out << std::endl;
             if (set.wantList)
                 out << indent << "      dlist" << std::endl;
@@ -1209,7 +1209,7 @@ void MeshDrawInfo::print(std::ostream& out, const std::string& indent) const
                 }
             }
             out << indent << "    end  # material ";
-            MATERIALMGR.printReference(out, set.material);
+            MAGNUMMATERIALMGR.printReference(out, set.material);
             out << std::endl;
         }
         out << indent << "  end  # lod " << i << std::endl;
@@ -1225,7 +1225,7 @@ void MeshDrawInfo::print(std::ostream& out, const std::string& indent) const
         {
             DrawSet& set = lod.sets[j];
             out << indent << "    material ";
-            MATERIALMGR.printReference(out, set.material);
+            MAGNUMMATERIALMGR.printReference(out, set.material);
             out << std::endl;
             if (set.wantList)
                 out << indent << "      dlist" << std::endl;
@@ -1254,7 +1254,7 @@ void MeshDrawInfo::print(std::ostream& out, const std::string& indent) const
                 }
             }
             out << indent << "    end  # material ";
-            MATERIALMGR.printReference(out, set.material);
+            MAGNUMMATERIALMGR.printReference(out, set.material);
             out << std::endl;
         }
         out << indent << "  end  # lod " << i << std::endl;
@@ -1724,7 +1724,7 @@ void* DrawSet::pack(void* buf) const
         buf = cmds[i].pack(buf);
 
     // material
-    int matindex = MATERIALMGR.getIndex(material);
+    int matindex = MAGNUMMATERIALMGR.getIndex(material);
     buf = nboPackInt(buf, matindex);
 
     // sphere
@@ -1751,7 +1751,7 @@ const void* DrawSet::unpack(const void* buf)
 
     // material
     buf = nboUnpackInt(buf, s32);
-    material = MATERIALMGR.getMaterial(s32);
+    material = MAGNUMMATERIALMGR.getMaterial(s32);
 
     // sphere
     buf = nboUnpackVector(buf, sphere);

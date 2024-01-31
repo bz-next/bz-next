@@ -30,7 +30,7 @@
 #include "ObstacleModifier.h"
 #include "StateDatabase.h"
 #include "PhysicsDriver.h"
-#include "BzMaterial.h"
+#include "MagnumBZMaterial.h"
 #include "MeshDrawInfo.h"
 
 // obstacle headers
@@ -137,7 +137,7 @@ void GroupInstance::setPhysicsDriver(int _phydrv)
 }
 
 
-void GroupInstance::setMaterial(const BzMaterial* _material)
+void GroupInstance::setMaterial(const MagnumBZMaterial* _material)
 {
     material = _material;
     modifyMaterial = true;
@@ -165,8 +165,8 @@ void GroupInstance::setCanRicochet()
 }
 
 
-void GroupInstance::addMaterialSwap(const BzMaterial* srcMat,
-                                    const BzMaterial* dstMat)
+void GroupInstance::addMaterialSwap(const MagnumBZMaterial* srcMat,
+                                    const MagnumBZMaterial* dstMat)
 {
     matMap[srcMat] = dstMat;
     return;
@@ -204,11 +204,11 @@ void* GroupInstance::pack(void* buf)
         int count = matMap.size();
         p = nboPackUByte(buffer, 0); // terminate
         p = nboPackInt(p, count);
-        MaterialMap::const_iterator it;
+        MagnumMaterialMap::const_iterator it;
         for (it = matMap.begin(); it != matMap.end(); ++it)
         {
-            int srcIndex = MATERIALMGR.getIndex(it->first);
-            int dstIndex = MATERIALMGR.getIndex(it->second);
+            int srcIndex = MAGNUMMATERIALMGR.getIndex(it->first);
+            int dstIndex = MAGNUMMATERIALMGR.getIndex(it->second);
             p = nboPackInt(p, srcIndex);
             p = nboPackInt(p, dstIndex);
         }
@@ -241,7 +241,7 @@ void* GroupInstance::pack(void* buf)
         buf = nboPackInt(buf, phydrv);
     if (modifyMaterial)
     {
-        int matindex = MATERIALMGR.getIndex(material);
+        int matindex = MAGNUMMATERIALMGR.getIndex(material);
         buf = nboPackInt(buf, (int32_t) matindex);
     }
 
@@ -267,8 +267,8 @@ const void* GroupInstance::unpack(const void* buf)
                 int32_t srcIndex, dstIndex;
                 p = nboUnpackInt(p, srcIndex);
                 p = nboUnpackInt(p, dstIndex);
-                const BzMaterial* srcMat = MATERIALMGR.getMaterial(srcIndex);
-                const BzMaterial* dstMat = MATERIALMGR.getMaterial(dstIndex);
+                const MagnumBZMaterial* srcMat = MAGNUMMATERIALMGR.getMaterial(srcIndex);
+                const MagnumBZMaterial* dstMat = MAGNUMMATERIALMGR.getMaterial(dstIndex);
                 matMap[srcMat] = dstMat;
             }
         }
@@ -309,7 +309,7 @@ const void* GroupInstance::unpack(const void* buf)
     {
         int32_t matindex;
         buf = nboUnpackInt(buf, matindex);
-        material = MATERIALMGR.getMaterial(matindex);
+        material = MAGNUMMATERIALMGR.getMaterial(matindex);
     }
 
     return buf;
@@ -375,18 +375,18 @@ void GroupInstance::print(std::ostream& out, const std::string& indent) const
     if (modifyMaterial)
     {
         out << indent << "  matref ";
-        MATERIALMGR.printReference(out, material);
+        MAGNUMMATERIALMGR.printReference(out, material);
         out << std::endl;
     }
     else if (matMap.size() > 0)
     {
-        MaterialMap::const_iterator it;
+        MagnumMaterialMap::const_iterator it;
         for (it = matMap.begin(); it != matMap.end(); ++it)
         {
             out << indent << "  matswap ";
-            MATERIALMGR.printReference(out, it->first);
+            MAGNUMMATERIALMGR.printReference(out, it->first);
             out << " ";
-            MATERIALMGR.printReference(out, it->second);
+            MAGNUMMATERIALMGR.printReference(out, it->second);
             out << std::endl;
         }
     }
@@ -641,8 +641,8 @@ void GroupDefinition::makeGroups(const MeshTransform& xform,
                         if ((diSource != NULL) &&
                                 (!diSource->isServerSide()) && diSource->isValid())
                         {
-                            MaterialSet matSet;
-                            MaterialMap matMap;
+                            MagnumMaterialSet matSet;
+                            MagnumMaterialMap matMap;
                             diSource->getMaterials(matSet);
                             obsMod.getMaterialMap(matSet, matMap);
                             MeshDrawInfo* diDest = new MeshDrawInfo(diSource, xform, matMap);

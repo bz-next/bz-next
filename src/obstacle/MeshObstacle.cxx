@@ -134,7 +134,7 @@ MeshObstacle::MeshObstacle(const MeshTransform& transform,
 bool MeshObstacle::addFace(const std::vector<int>& _vertices,
                            const std::vector<int>& _normals,
                            const std::vector<int>& _texcoords,
-                           const BzMaterial* _material, int phydrv,
+                           const MagnumBZMaterial* _material, int phydrv,
                            bool _noclusters,
                            bool bounce, bool drive, bool shoot, bool rico,
                            bool triangulate)
@@ -1006,16 +1006,16 @@ void MeshObstacle::printOBJ(std::ostream& out, const std::string& UNUSED(indent)
         outputFloat(out, texcoords[i][1]);
         out << std::endl;
     }
-    const BzMaterial* bzmat = NULL;
+    const MagnumBZMaterial* bzmat = NULL;
     for (int f = 0; f < faceCount; f++)
     {
         const MeshFace* face = faces[f];
-        const BzMaterial* nextMat = face->getMaterial();
+        const MagnumBZMaterial* nextMat = face->getMaterial();
         if (bzmat != nextMat)
         {
             bzmat = nextMat;
             out << "usemtl ";
-            MATERIALMGR.printReference(out, bzmat);
+            MAGNUMMATERIALMGR.printReference(out, bzmat);
             out << std::endl;
         }
         const int vCount = face->getVertexCount();

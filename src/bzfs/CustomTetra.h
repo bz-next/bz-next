@@ -23,7 +23,7 @@
 #include <string>
 
 /* common interface header */
-#include "BzMaterial.h"
+#include "MagnumBZMaterial.h"
 
 class CustomTetra : public WorldFileObstacle
 {
@@ -40,7 +40,7 @@ private:
     float texcoords[4][3][2];
     bool useNormals[4];
     bool useTexcoords[4];
-    BzMaterial materials[4];
+    MagnumBZMaterial materials[4];
 };
 
 #endif  /* __CUSTOMTETRA_H__ */

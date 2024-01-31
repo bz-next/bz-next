@@ -418,9 +418,9 @@ void CustomPyramid::writeToGroupDef(GroupDefinition *groupdef) const
                                           false, false, false, false, false);
 
     // get the material refs
-    const BzMaterial* mats[FaceCount];
+    const MagnumBZMaterial* mats[FaceCount];
     for (i = 0; i < FaceCount; i++)
-        mats[i] = MATERIALMGR.addMaterial(&materials[i]);
+        mats[i] = MAGNUMMATERIALMGR.addMaterial(&materials[i]);
 
     // the index arrays
     std::vector<int> iv;

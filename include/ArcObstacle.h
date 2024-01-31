@@ -22,7 +22,7 @@
 #include "Obstacle.h"
 #include "MeshObstacle.h"
 #include "MeshTransform.h"
-#include "BzMaterial.h"
+#include "MagnumBZMaterial.h"
 
 
 class ArcObstacle : public Obstacle
@@ -45,7 +45,7 @@ public:
                 const float* _pos, const float* _size,
                 float _rotation, float _angle, float _ratio,
                 const float _texsize[4], bool _useNormals,
-                int _divisions, const BzMaterial* mats[MaterialCount],
+                int _divisions, const MagnumBZMaterial* mats[MaterialCount],
                 int physics, bool bounce, bool drive, bool shoot, bool ricochet);
     ~ArcObstacle();
 
@@ -101,7 +101,7 @@ private:
     bool smoothBounce;
     bool useNormals;
     float texsize[4];
-    const BzMaterial* materials[MaterialCount];
+    const MagnumBZMaterial* materials[MaterialCount];
 };
 
 

@@ -11,7 +11,7 @@
  */
 
 /* interface header */
-#include "BzMaterial.h"
+#include "MagnumBZMaterial.h"
 #include "ParseMaterial.h"
 
 /* system headers */
@@ -25,7 +25,7 @@
 
 
 bool parseMaterials(const char* cmd, std::istream& input,
-                    BzMaterial* materials, int materialCount, bool& error)
+                    MagnumBZMaterial* materials, int materialCount, bool& error)
 {
     int i;
     error = false;
@@ -38,7 +38,7 @@ bool parseMaterials(const char* cmd, std::istream& input,
             std::cout << "missing " << cmd << " parameters" << std::endl;
             error = true;
         }
-        const BzMaterial* matref = MATERIALMGR.findMaterial(name);
+        const MagnumBZMaterial* matref = MAGNUMMATERIALMGR.findMaterial(name);
         if (matref == NULL)
         {
             std::cout << "couldn't find reference material: " << name << std::endl;
@@ -275,7 +275,7 @@ bool parseMaterials(const char* cmd, std::istream& input,
 
 
 bool parseMaterialsByName(const char* cmd, std::istream& input,
-                          BzMaterial* materials, const char** names,
+                          MagnumBZMaterial* materials, const char** names,
                           int materialCount, bool& error)
 {
     error = false;

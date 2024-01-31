@@ -20,7 +20,7 @@
 #include "WorldInfo.h"
 
 /* common interface headers */
-#include "BzMaterial.h"
+#include "MagnumBZMaterial.h"
 
 
 class CustomPyramid : public WorldFileObstacle
@@ -52,7 +52,7 @@ private:
     bool drivethrough[FaceCount];
     bool shootthrough[FaceCount];
     bool ricochets[FaceCount];
-    BzMaterial materials[FaceCount];
+    MagnumBZMaterial materials[FaceCount];
 
     static const char* faceNames[FaceCount];
 };

@@ -129,4 +129,6 @@ target_link_libraries(bzfs
     bzgame
     bzobstacle
     bzdate
+    bz3D
+    bzgame
 )

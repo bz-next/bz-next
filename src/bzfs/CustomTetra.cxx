@@ -139,9 +139,9 @@ void CustomTetra::writeToGroupDef(GroupDefinition *groupdef) const
         return;
     }
 
-    const BzMaterial* mats[4];
+    const MagnumBZMaterial* mats[4];
     for (int i = 0; i < 4; i++)
-        mats[i] = MATERIALMGR.addMaterial(&materials[i]);
+        mats[i] = MAGNUMMATERIALMGR.addMaterial(&materials[i]);
     TetraBuilding* tetra = new TetraBuilding(transform, vertices, normals, texcoords,
             useNormals, useTexcoords,
             mats, driveThrough, shootThrough, ricochet);

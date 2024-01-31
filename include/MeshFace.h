@@ -24,7 +24,7 @@
 #include "Ray.h"
 #include "Obstacle.h"
 #include "global.h"
-#include "BzMaterial.h"
+#include "MagnumBZMaterial.h"
 //#include "PhysicsDrive.h"
 
 
@@ -38,7 +38,7 @@ public:
     MeshFace(class MeshObstacle* mesh);
     MeshFace(MeshObstacle* mesh, int vertexCount,
              float** vertices, float** normals, float** texcoords,
-             const BzMaterial* material, int physics,
+             const MagnumBZMaterial* material, int physics,
              bool noclusters, bool smoothBounce, bool drive, bool shoot, bool ricochet);
     ~MeshFace();
 
@@ -74,7 +74,7 @@ public:
     const float* getNormal(int index) const;
     const float* getTexcoord(int index) const;
     const float* getPlane() const;
-    const BzMaterial* getMaterial() const;
+    const MagnumBZMaterial* getMaterial() const;
     int getPhysicsDriver() const;
     bool noClusters() const;
     bool isSmoothBounce() const;
@@ -110,7 +110,7 @@ private:
     float** vertices;
     float** normals;
     float** texcoords;
-    const BzMaterial* bzMaterial;
+    const MagnumBZMaterial* bzMaterial;
     bool smoothBounce;
     bool noclusters;
     int phydrv;
@@ -171,7 +171,7 @@ inline MeshObstacle* MeshFace::getMesh() const
     return mesh;
 }
 
-inline const BzMaterial* MeshFace::getMaterial() const
+inline const MagnumBZMaterial* MeshFace::getMaterial() const
 {
     return bzMaterial;
 }

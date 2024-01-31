@@ -23,7 +23,7 @@
 // common headers
 #include "ObstacleList.h"
 #include "MeshTransform.h"
-#include "BzMaterial.h"
+#include "MagnumBZMaterial.h"
 
 // avoid nasty dependencies
 class Obstacle;
@@ -60,12 +60,12 @@ public:
     void setTint(const float tint[4]);
     void setPhysicsDriver(int phydrv);
     void setTransform(const MeshTransform&);
-    void setMaterial(const BzMaterial*);
+    void setMaterial(const MagnumBZMaterial*);
     void setDriveThrough();
     void setShootThrough();
     void setCanRicochet();
-    void addMaterialSwap(const BzMaterial* src,
-                         const BzMaterial* dst);
+    void addMaterialSwap(const MagnumBZMaterial* src,
+                         const MagnumBZMaterial* dst);
 
     const std::string& getName() const;
 
@@ -90,11 +90,11 @@ private:
     bool modifyPhysicsDriver;
     int phydrv;
     bool modifyMaterial;
-    const BzMaterial* material;
+    const MagnumBZMaterial* material;
     bool driveThrough;
     bool shootThrough;
     bool ricochet;
-    MaterialMap matMap;
+    MagnumMaterialMap matMap;
 };
 
 

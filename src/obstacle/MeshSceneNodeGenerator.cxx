@@ -67,7 +67,7 @@ void MeshSceneNodeGenerator::setupOccluders()
     // If this is done, don't forget to make
     // the resulting combo sceneNode into an
     // occluder.
-    const int faceCount = mesh->getFaceCount();
+    /*const int faceCount = mesh->getFaceCount();
     for (int i = 0; i < faceCount; i++)
     {
         const MeshFace* face = mesh->getFace(i);
@@ -77,7 +77,7 @@ void MeshSceneNodeGenerator::setupOccluders()
             OccluderSceneNode* onode = new OccluderSceneNode(face);
             occluders.push_back(onode);
         }
-    }
+    }*/
 }
 
 
@@ -165,7 +165,7 @@ static int sortByMaterial(const void* a, const void *b)
 
 void MeshSceneNodeGenerator::setupFacesAndFrags()
 {
-    const int faceCount = mesh->getFaceCount();
+    /*const int faceCount = mesh->getFaceCount();
 
     // NOTE: this is where MeshClusters start being called
     //       MeshFragments. it would be good to rename all
@@ -255,13 +255,13 @@ void MeshSceneNodeGenerator::setupFacesAndFrags()
 
     delete[] sortList;
 
-    return;
+    return;*/
 }
 
 
 WallSceneNode* MeshSceneNodeGenerator::getNextNode(bool UNUSED(lod))
 {
-    const MeshNode* mn;
+    /*const MeshNode* mn;
     const MeshFace* face;
     const BzMaterial* mat;
 
@@ -361,13 +361,14 @@ WallSceneNode* MeshSceneNodeGenerator::getNextNode(bool UNUSED(lod))
 
     currentNode++;
 
-    return node;
+    return node;*/
+    return NULL;
 }
 
 
 MeshPolySceneNode* MeshSceneNodeGenerator::getMeshPolySceneNode(const MeshFace* face)
 {
-    int i;
+    /*int i;
 
     // vertices
     const int vertexCount = face->getVertexCount();
@@ -405,7 +406,8 @@ MeshPolySceneNode* MeshSceneNodeGenerator::getMeshPolySceneNode(const MeshFace* 
         new MeshPolySceneNode(face->getPlane(), noRadar, noShadow,
                               vertices, normals, texcoords);
 
-    return node;
+    return node;*/
+    return NULL;
 }
 
 

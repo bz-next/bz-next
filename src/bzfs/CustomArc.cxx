@@ -140,9 +140,9 @@ bool CustomArc::read(const char *cmd, std::istream& input)
 void CustomArc::writeToGroupDef(GroupDefinition *groupdef) const
 {
     int i;
-    const BzMaterial* mats[MaterialCount];
+    const MagnumBZMaterial* mats[MaterialCount];
     for (i = 0; i < MaterialCount; i++)
-        mats[i] = MATERIALMGR.addMaterial(&materials[i]);
+        mats[i] = MAGNUMMATERIALMGR.addMaterial(&materials[i]);
     ArcObstacle* arc;
     if (!boxStyle)
     {

@@ -21,7 +21,7 @@
 #include <vector>
 
 /* common interface headers */
-#include "BzMaterial.h"
+#include "MagnumBZMaterial.h"
 #include "MeshObstacle.h"
 
 /* local interface headers */
@@ -39,7 +39,7 @@ public:
 
 private:
 
-    BzMaterial material; // holds current defaults
+    MagnumBZMaterial material; // holds current defaults
 
     std::vector<char> checkTypes;
     std::vector<cfvec3> checkPoints;

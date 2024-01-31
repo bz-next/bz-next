@@ -17,7 +17,7 @@
 #include "WorldFileObject.h"
 
 /* common headers */
-#include "BzMaterial.h"
+#include "MagnumBZMaterial.h"
 
 class CustomMaterial : public WorldFileObject
 {
@@ -32,7 +32,7 @@ public:
     }
 
 private:
-    mutable BzMaterial material;
+    mutable MagnumBZMaterial material;
 };
 
 #endif  /* __CUSTOM_MATERIAL_H__ */
