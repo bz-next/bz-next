@@ -80,7 +80,7 @@ void MeshSceneNodeGenerator::setupOccluders()
     }*/
 }
 
-
+/*
 static bool translucentMaterial(const BzMaterial* mat)
 {
     // translucent texture?
@@ -125,7 +125,7 @@ static bool translucentMaterial(const BzMaterial* mat)
     }
 
     return false;
-}
+}*/
 
 
 static bool groundClippedFace(const MeshFace* face)
