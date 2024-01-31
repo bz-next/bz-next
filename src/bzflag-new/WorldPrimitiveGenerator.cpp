@@ -133,7 +133,7 @@ Trade::MeshData WorldPrimitiveGenerator::tri(const float base[3], const float uE
     }, static_cast<UnsignedInt>(dataview.size())});
 }
 
-static Magnum::Trade::MeshData planarPoly(std::vector<Magnum::Math::Vector3<float>> verts, std::vector<Magnum::Math::Vector3<float>> norms, std::vector<Magnum::Math::Vector2<float>> texcoords) {
+Magnum::Trade::MeshData WorldPrimitiveGenerator::planarPoly(const std::vector<Magnum::Math::Vector3<float>> &verts, const std::vector<Magnum::Math::Vector3<float>> &norms, const std::vector<Magnum::Math::Vector2<float>> &texcoords) {
 
     struct VertexData {
         Vector3 position;
@@ -145,10 +145,22 @@ static Magnum::Trade::MeshData planarPoly(std::vector<Magnum::Math::Vector3<floa
     Containers::ArrayView<const Vector2> texview{texcoords};
     Containers::ArrayView<const Vector3> normview{norms};
 
-    Containers::Array<UnsignedInt> indices{verts.size()};
+    Warning{} << "p " << posview;
+    Warning{} << "t " << texview;
+    Warning{} << "n " << normview;
 
-    for (UnsignedInt i = 0; i < verts.size(); ++i)
-        indices[i] = i;
+    // Num triangles = 3(N-2) for triangle fan
+    Containers::Array<UnsignedInt> indices{3*(verts.size()-2)};
+
+    // Verts come in as a triangle fan, fixup the indices for triangles instead
+    // There are verts-2 triangles
+    for (UnsignedInt i = 0; i < verts.size()-2; ++i) {
+        indices[i*3] = 0;
+        indices[i*3+1] = i+1;
+        indices[i*3+2] = i+2;
+    }
+
+    Warning{} << "i " << indices;
 
     // Pack mesh data
     Containers::Array<char> data{posview.size()*sizeof(VertexData)};

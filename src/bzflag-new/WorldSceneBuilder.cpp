@@ -2,6 +2,7 @@
 #include <Corrade/Containers/GrowableArray.h>
 #include <Magnum/MeshTools/Interleave.h>
 #include <Magnum/MeshTools/Copy.h>
+#include <Magnum/Math/Vector.h>
 
 
 #include "Magnum/GL/GL.h"
@@ -20,7 +21,9 @@
 #include "Team.h"
 #include "MeshDrawInfo.h"
 #include "BZDBCache.h"
+#include "DynamicColor.h"
 
+#include <vector>
 #include <utility>
 #include <set>
 
@@ -482,8 +485,6 @@ void WorldSceneBuilder::addTeleporter(const Teleporter& o) {
         {{ 0.0f, 0.5f }, { 5.0f, 0.5f }, { 5.0f, 1.0f }, { 0.0f, 1.0f }}
     };
     WorldObject teleObj;
-    const MagnumBZMaterial *cautionMat = MAGNUMMATERIALMGR.findMaterial("cautionMaterial");
-    const MagnumBZMaterial *linkMat = MAGNUMMATERIALMGR.findMaterial("LinkMaterial");
 
     auto &tm = MagnumTextureManager::instance();
 
@@ -746,7 +747,46 @@ void WorldSceneBuilder::addGround(float worldSize) {
     worldObjects.emplace_back(std::move(groundObj));
 }
 
-void WorldSceneBuilder::addMesh(const MeshObstacle& o) {/*
+static bool translucentMaterial(const MagnumBZMaterial* mat)
+{
+    // translucent texture?
+    MagnumTextureManager &tm = MagnumTextureManager::instance();
+    GL::Texture2D *faceTexture = NULL;
+    if (mat->getTextureCount() > 0)
+    {
+        faceTexture = tm.getTexture(mat->getTexture(0).c_str());
+        if (mat->getUseTextureAlpha(0)) return true;
+    }
+
+    // translucent color?
+    bool translucentColor = false;
+    const DynamicColor* dyncol = DYNCOLORMGR.getColor(mat->getDynamicColor());
+    if (dyncol == NULL)
+    {
+        if (mat->getDiffuse()[3] != 1.0f)
+            translucentColor = true;
+    }
+    else if (dyncol->canHaveAlpha())
+        translucentColor = true;
+
+    // is the color used?
+    if (translucentColor)
+    {
+        if (((faceTexture != NULL) && mat->getUseColorOnTexture(0)) ||
+                (faceTexture == NULL))
+        {
+            // modulate with the color if asked to, or
+            // if the specified texture was not available
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
+    WorldObject meshObj;
     // HELPER FUNCTIONS
     auto groundClippedFace = [](const MeshFace* face) {
         const float* plane = face->getPlane();
@@ -790,6 +830,7 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {/*
     bool useDrawInfo = (drawInfo != NULL) && drawInfo->isValid();
 
     // Immediately-invoked lambda for maximum correspondance with old code
+    // Corresponds with setupFacesAndFrags() in MeshSceneNodeGenerator
     if (!useDrawInfo) [&](){
         const int faceCount = o.getFaceCount();
         const bool noMeshClusters = BZDB.isTrue("noMeshClusters");
@@ -825,7 +866,7 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {/*
         while (first < count)
         {
             const MeshFace* firstFace = sortList[first];
-            const BzMaterial* firstMat = firstFace->getMaterial();
+            const MagnumBZMaterial* firstMat = firstFace->getMaterial();
 
             // see if this face needs to be drawn individually
             if (firstFace->noClusters() ||
@@ -845,7 +886,7 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {/*
             while (last < count)
             {
                 const MeshFace* lastFace = sortList[last];
-                const BzMaterial* lastMat = lastFace->getMaterial();
+                const MagnumBZMaterial* lastMat = lastFace->getMaterial();
                 if (lastMat != firstMat)
                     break;
                 last++;
@@ -873,12 +914,134 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {/*
     }();
 
     //while ((node = nodeGen->getNextNode(wallLOD)))
-    auto getNextPoly = [&]() {
+    int currentNode = 0;
+    // Corresponds to MeshSceneNodeGenerator::getNextNode()
+    auto genNextPoly = [&]() {
         const MeshNode* mn;
         const MeshFace* face;
-        const BzMaterial* mat;
-    }
-*/
+        const MagnumBZMaterial* mat;
+
+        /*if (useDrawInfo) {
+            if (drawInfo->isInvisible())
+            {
+                if (occluders.size() <= 0)
+                    return NULL;
+                else
+                {
+                    currentNode = 1;
+                    returnOccluders = true;
+                    return (WallSceneNode*)occluders[0];
+                }
+            }
+            else
+            {
+                currentNode = 0;
+                returnOccluders = true;
+                return (WallSceneNode*)(new MeshSceneNode(mesh));
+            }
+        }*/
+        // remove any faces or frags that will not be displayed
+        // also, return NULL if we are at the end of the face list
+        while (true)
+        {
+
+            if (currentNode >= (int)nodes.size())
+            {
+                // start sending out the occluders
+                /*returnOccluders = true;
+                if (occluders.size() > 0)
+                {
+                    currentNode = 1;
+                    return (WallSceneNode*)occluders[0];
+                }
+                else
+                    return NULL;*/
+                return false;
+            }
+
+            mn = &nodes[currentNode];
+            if (mn->isFace)
+            {
+                face = mn->faces[0];
+                mat = face->getMaterial();
+            }
+            else
+            {
+                face = NULL;
+                mat = mn->faces[0]->getMaterial();
+            }
+
+            if (mat->isInvisible())
+            {
+                currentNode++;
+                continue;
+            }
+
+            if (mn->isFace && groundClippedFace(face))
+            {
+                currentNode++;
+                continue;
+            }
+
+            break; // break the loop if we haven't used 'continue'
+        }
+        //WallSceneNode* node;
+        if (mn->isFace) {
+            //node = getMeshPolySceneNode(face);
+            // Corresponds to getMeshPolySceneNode(face)
+            const size_t vertexCount = face->getVertexCount();
+            std::vector<Math::Vector3<float>> verts{vertexCount};
+            for (int i = 0; i < vertexCount; ++i) {
+                const float * vp = face->getVertex(i);
+                verts[i].x() = vp[0];
+                verts[i].y() = vp[1];
+                verts[i].z() = vp[2];
+            }
+
+            std::size_t normalCount = 0;
+            if (face->useNormals())
+                normalCount = vertexCount;
+            //if (!face->useNormals()) {currentNode += 1; return true; } // Debug skip
+            std::vector<Math::Vector3<float>> norms{vertexCount};
+            for (int i = 0; i < normalCount; ++i) {
+                const float * vp = face->getNormal(i);
+                norms[i].x() = 0.0;//vp[0];
+                norms[i].y() = 0.0;//vp[1];
+                norms[i].z() = 1.0;//vp[2];
+            }
+
+            std::vector<Math::Vector2<float>> texcoords{vertexCount};
+            if (face->useTexcoords()) {
+                for (int i = 0; i < vertexCount; ++i) {
+                    const float * vp = face->getTexcoord(i);
+                    texcoords[i].x() = vp[0];
+                    texcoords[i].y() = vp[1];
+                }
+            } else {
+                //makeTexcoords(face->getPlane(), vertices, texcoords);
+            }
+            meshObj.addMatMesh(mat->getName(),
+            WorldPrimitiveGenerator::planarPoly(verts, norms, texcoords));
+    
+        }
+        else
+        {
+            /*const MeshFace** faces = new const MeshFace*[mn->faces.size()];
+            for (int i = 0; i < (int)mn->faces.size(); i++)
+                faces[i] = mn->faces[i];
+            // the MeshFragSceneNode will delete the faces
+            node = new MeshFragSceneNode(mn->faces.size(), faces);*/
+        }
+
+        currentNode++;
+
+        return true;
+
+    };
+
+    while (genNextPoly()) {}
+    worldObjects.emplace_back(std::move(meshObj));
+
 }
 
 std::vector<std::string> WorldSceneBuilder::getMaterialList() const {
