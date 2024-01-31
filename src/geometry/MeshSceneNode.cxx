@@ -140,7 +140,7 @@ MeshSceneNode::MeshSceneNode(const MeshObstacle* _mesh)
             SetNode& setNode = lodNode.sets[set];
             setNode.node = NULL;
             setNode.radarNode = NULL;
-            setNode.meshMat.bzmat = convertMaterial(drawSet.material);
+            //setNode.meshMat.bzmat = convertMaterial(drawSet.material);
         }
     }
 

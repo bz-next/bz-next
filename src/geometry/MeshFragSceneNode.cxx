@@ -241,7 +241,7 @@ MeshFragSceneNode::MeshFragSceneNode(int faceCount_, const MeshFace** faces_)
     , faces(faces_)
     , arrayCount(0)
 {
-    int i, j, k;
+    /*int i, j, k;
 
     // This is semi-pointless, as assert is typically compiled out in production code.
     // If protection is needed, a more/ robust solution should be provided
@@ -258,7 +258,7 @@ MeshFragSceneNode::MeshFragSceneNode(int faceCount_, const MeshFace** faces_)
     noShadow = bzmat->getNoShadow();
 
     // set lod info
-    setNumLODs(0, NULL /* unused because LOD = 0 */);
+    setNumLODs(0, NULL);
 
     // record extents info
     for (i = 0; i < faceCount; i++)
@@ -345,7 +345,7 @@ MeshFragSceneNode::MeshFragSceneNode(int faceCount_, const MeshFace** faces_)
 
     assert(arrayIndex == (arrayCount * 3));
 
-    renderNode.init(); // setup the display list
+    renderNode.init(); // setup the display list*/
 }
 
 
