@@ -91,6 +91,7 @@
 #include "BZTextureBrowser.h"
 #include "BZMaterialBrowser.h"
 #include "BZMaterialViewer.h"
+#include "ObstacleBrowser.h"
 
 #include "WorldSceneBuilder.h"
 
@@ -240,6 +241,9 @@ class BZFlagNew: public Platform::Sdl2Application {
         void maybeShowMATViewer();
         bool showMATViewer = false;
 
+        void maybeShowObsBrowser();
+        bool showObsBrowser = false;
+
         void maybeShowGLInfo();
         bool showGLInfo = false;
 
@@ -371,6 +375,7 @@ class BZFlagNew: public Platform::Sdl2Application {
         BZTextureBrowser tmBrowser;
         BZMaterialBrowser matBrowser;
         BZMaterialViewer matViewer;
+        ObstacleBrowser obsBrowser;
 
         bool isQuit = false;
 };
@@ -478,8 +483,11 @@ void BZFlagNew::showMenuView() {
 
 void BZFlagNew::showMenuTools() {
     if (ImGui::MenuItem("Texture Manager", NULL, &showTMBrowser)) {}
+    ImGui::Separator();
     if (ImGui::MenuItem("Material Manager", NULL, &showMATBrowser)) {}
     if (ImGui::MenuItem("Material Viewer", NULL, &showMATViewer)) {}
+    ImGui::Separator();
+    if (ImGui::MenuItem("Obstacle Manager", NULL, &showObsBrowser)) {}
 }
 
 void BZFlagNew::showMenuDebug() {
@@ -490,6 +498,9 @@ void BZFlagNew::showMenuDebug() {
         worldRenderer.destroyWorldObject();
         worldRenderer.createWorldObject(&worldSceneBuilder);
         worldRenderer.getWorldObject()->setParent(&_manipulator);
+    }
+    if (ImGui::MenuItem("Force Load Material Textures")) {
+        MAGNUMMATERIALMGR.forceLoadTextures();
     }
 
 }
@@ -555,6 +566,13 @@ void BZFlagNew::maybeShowMATViewer()
     }
 }
 
+void BZFlagNew::maybeShowObsBrowser() {
+    if (showObsBrowser) {
+        ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
+        obsBrowser.draw("Obstacle Manager", &showObsBrowser);
+    }
+}
+
 void BZFlagNew::maybeShowGLInfo()
 {
     static std::string info = getGLInfo();
@@ -611,6 +629,7 @@ void BZFlagNew::drawEvent() {
     maybeShowTMBrowser();
     maybeShowMATBrowser();
     maybeShowMATViewer();
+    maybeShowObsBrowser();
     maybeShowGLInfo();
 
     /* Update application cursor */

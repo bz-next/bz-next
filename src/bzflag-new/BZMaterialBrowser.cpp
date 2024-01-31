@@ -10,20 +10,35 @@ using namespace Magnum;
 
 BZMaterialBrowser::BZMaterialBrowser() {
     itemCurrent = 0;
+    onlyIndexed = false;
 }
 
 void BZMaterialBrowser::draw(const char *title, bool *p_open) {
 
     std::vector<std::string> names = MAGNUMMATERIALMGR.getMaterialNames();
     std::string names_cc;
-    for (const auto& e: names) {
-        names_cc += e + std::string("\0", 1);
-    }
     ImGui::Begin(title, p_open, ImGuiWindowFlags_AlwaysAutoResize);
+    ImGui::Checkbox("Only Show Legacy Indexed", &onlyIndexed);
+    bool haveMaterial = false;
+    int numFoundMaterials = 0;
+    std::vector<std::string> comboBoxNames;
+    for (const auto& e: names) {
+        const MagnumBZMaterial *m = MAGNUMMATERIALMGR.findMaterial(e);
+        if (m == NULL) continue;
+        if (onlyIndexed) {
+            if (m->getLegacyIndex() == -1) continue;
+        }
+        names_cc += e + std::string("\0", 1);
+        comboBoxNames.push_back(m->getName());
+        haveMaterial = true;
+        ++numFoundMaterials;
+    }
+    if (itemCurrent >= comboBoxNames.size())
+        itemCurrent = 0;
     ImGui::Combo("Material Name", &itemCurrent, names_cc.c_str(), names_cc.size());
-    ImGui::Separator();
-    if (names.size() >= 0 && itemCurrent < names.size()) {
-        const MagnumBZMaterial *mat = MAGNUMMATERIALMGR.findMaterial(names[itemCurrent]);
+    ImGui::Separator(); 
+    if (haveMaterial && itemCurrent < names.size()) {
+        const MagnumBZMaterial *mat = MAGNUMMATERIALMGR.findMaterial(comboBoxNames[itemCurrent]);
         std::vector<std::string> aliases = mat->getAliases();
         std::string aliases_cc;
         for (const auto& e: aliases) {
@@ -60,6 +75,7 @@ void BZMaterialBrowser::draw(const char *title, bool *p_open) {
             ImGui::Text("    Use Sphere Map: %d", mat->getUseSphereMap(i));
         }
         ImGui::Text("Invisible: %d", mat->isInvisible());
+        ImGui::Text("Legacy Index: %d", mat->getLegacyIndex());
     }
 
     ImGui::End();

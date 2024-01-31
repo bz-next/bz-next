@@ -14,6 +14,7 @@
 
 #include <string>
 #include <sstream>
+#include <string>
 
 #include "MagnumTextureManager.h"
 #include "MagnumBZMaterial.h"
@@ -128,15 +129,26 @@ void MagnumBZMaterialManager::clear(bool loadDefaults)
     for (unsigned int i = 0; i < materials.size(); i++)
         delete materials[i];
     materials.clear();
+    unnamedCount = unnamedAliasCount = duplicateNameCount = 0;
     if (loadDefaults)
         loadDefaultMaterials();
     return;
 }
 
+void MagnumBZMaterialManager::forceLoadTextures()
+{
+    for (auto m: materials) {
+        if (m->getTextureCount() != 0) {
+            for (int i = 0; i < m->getTextureCount(); ++i)
+                MagnumTextureManager::instance().getTexture(m->getTexture(i).c_str());
+        }
+    }
+}
+
 const MagnumBZMaterial* MagnumBZMaterialManager::addLegacyIndexedMaterial(const MagnumBZMaterial* material)
 {
     std::ostringstream namebuilder;
-    namebuilder << "LegacyMaterialIndex" << legacyMaterialIndex;
+    namebuilder << "_LegacyMaterialIndex" << legacyMaterialIndex;
 
     MagnumBZMaterial *indexedMat = new MagnumBZMaterial(*material);
     indexedMat->addAlias(namebuilder.str());
@@ -160,12 +172,17 @@ const MagnumBZMaterial* MagnumBZMaterialManager::addMaterial(const MagnumBZMater
             const std::string& name = material->getName();
             if (name.size() > 0)
                 materials[i]->addAlias(name);
+            else
+                materials[i]->addAlias("_UnnamedAlias"+std::to_string(unnamedAliasCount++));
             return materials[i];
         }
     }
     MagnumBZMaterial* newMat = new MagnumBZMaterial(*material);
+    if (newMat->getName() == "") {
+        newMat->setName("_Unnamed"+std::to_string(unnamedCount++));
+    }
     if (findMaterial(newMat->getName()) != NULL)
-        newMat->setName("");
+        newMat->setName("_nameCollisionWith" + newMat->getName() + std::to_string(duplicateNameCount++));
     materials.push_back(newMat);
     return newMat;
 }
@@ -175,13 +192,17 @@ const MagnumBZMaterial* MagnumBZMaterialManager::findMaterial(const std::string&
 {
     if (target.size() <= 0)
         return NULL;
+    // Lookup legacy indexed materials by a string containing the index number
     else if ((target[0] >= '0') && (target[0] <= '9'))
     {
         int index = atoi (target.c_str());
-        if ((index < 0) || (index >= (int)materials.size()))
+        if ((index < 0))
             return NULL;
-        else
-            return materials[index];
+        for (auto m: materials) {
+            if (m->getLegacyIndex() == index)
+                return m;
+        }
+        return NULL;
     }
     else
     {
