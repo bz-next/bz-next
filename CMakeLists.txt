@@ -208,7 +208,7 @@ if(BZ_PLUGINS)
     add_subdirectory(plugins)
 endif()
 
-install(TARGETS bzflag bzadmin bzfs)
+#install(TARGETS bzflag bzadmin bzfs)
 add_subdirectory(data)
 
 # Check for some C headers

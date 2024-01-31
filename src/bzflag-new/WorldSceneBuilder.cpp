@@ -9,6 +9,7 @@
 
 
 #include "MagnumTextureManager.h"
+#include "MeshObstacle.h"
 #include "WorldPrimitiveGenerator.h"
 #include "MagnumBZMaterial.h"
 
@@ -17,6 +18,8 @@
 #include "BoxBuilding.h"
 #include "BaseBuilding.h"
 #include "Team.h"
+#include "MeshDrawInfo.h"
+#include "BZDBCache.h"
 
 #include <utility>
 #include <set>
@@ -741,6 +744,141 @@ void WorldSceneBuilder::addGround(float worldSize) {
     groundObj.addMatMesh("GroundMaterial",
         WorldPrimitiveGenerator::quad(base, sEdge, tEdge, 0, 0, uRepeat, vRepeat));
     worldObjects.emplace_back(std::move(groundObj));
+}
+
+void WorldSceneBuilder::addMesh(const MeshObstacle& o) {/*
+    // HELPER FUNCTIONS
+    auto groundClippedFace = [](const MeshFace* face) {
+        const float* plane = face->getPlane();
+        if (plane[2] < -0.9f)
+        {
+            // plane is facing downwards
+            const Extents& exts = face->getExtents();
+            if (exts.maxs[2] < 0.001)
+            {
+                // plane is on or below the ground, ditch it
+                return true;
+            }
+        }
+        return false;
+    };
+    auto sortByMaterial = [](const void* a, const void *b) {
+        const MeshFace* faceA = *((const MeshFace* const *)a);
+        const MeshFace* faceB = *((const MeshFace* const *)b);
+        const bool noClusterA = faceA->noClusters();
+        const bool noClusterB = faceB->noClusters();
+
+        if (noClusterA && !noClusterB)
+            return -1;
+        if (noClusterB && !noClusterA)
+            return +1;
+
+        if (faceA->getMaterial() > faceB->getMaterial())
+            return +1;
+        else
+            return -1;
+    };
+
+    struct MeshNode
+    {
+        bool isFace;
+        std::vector<const MeshFace*> faces;
+    };
+    std::vector<MeshNode> nodes;
+
+    const MeshDrawInfo* drawInfo = o.getDrawInfo();
+    bool useDrawInfo = (drawInfo != NULL) && drawInfo->isValid();
+
+    // Immediately-invoked lambda for maximum correspondance with old code
+    if (!useDrawInfo) [&](){
+        const int faceCount = o.getFaceCount();
+        const bool noMeshClusters = BZDB.isTrue("noMeshClusters");
+        if (o.noClusters() || noMeshClusters || !BZDBCache::zbuffer)
+        {
+            for (int i = 0; i < faceCount; i++)
+            {
+                MeshNode mn;
+                mn.isFace = true;
+                mn.faces.push_back(o.getFace(i));
+                nodes.push_back(mn);
+            }
+            return; // bail out
+        }
+        // build up a list of faces and fragments
+        const MeshFace** sortList = new const MeshFace*[faceCount];
+
+        // clip ground faces, and then sort the face list by material
+        int count = 0;
+        for (int i = 0; i < faceCount; i++)
+        {
+            const MeshFace* face = o.getFace(i);
+            if (!groundClippedFace(face))
+            {
+                sortList[count] = face;
+                count++;
+            }
+        }
+        qsort(sortList, count, sizeof(MeshFace*), sortByMaterial);
+
+        // make the faces and fragments
+        int first = 0;
+        while (first < count)
+        {
+            const MeshFace* firstFace = sortList[first];
+            const BzMaterial* firstMat = firstFace->getMaterial();
+
+            // see if this face needs to be drawn individually
+            if (firstFace->noClusters() ||
+                    (translucentMaterial(firstMat) &&
+                    !firstMat->getNoSorting() && !firstMat->getGroupAlpha()))
+            {
+                MeshNode mn;
+                mn.isFace = true;
+                mn.faces.push_back(firstFace);
+                nodes.push_back(mn);
+                first++;
+                continue;
+            }
+
+            // collate similar materials
+            int last = first + 1;
+            while (last < count)
+            {
+                const MeshFace* lastFace = sortList[last];
+                const BzMaterial* lastMat = lastFace->getMaterial();
+                if (lastMat != firstMat)
+                    break;
+                last++;
+            }
+
+            // make a face for singles, and a fragment otherwise
+            if ((last - first) == 1)
+            {
+                MeshNode mn;
+                mn.isFace = true;
+                mn.faces.push_back(firstFace);
+                nodes.push_back(mn);
+            }
+            else
+            {
+                MeshNode mn;
+                mn.isFace = false;
+                for (int i = first; i < last; i++)
+                    mn.faces.push_back(sortList[i]);
+                nodes.push_back(mn);
+            }
+
+            first = last;
+        }
+    }();
+
+    //while ((node = nodeGen->getNextNode(wallLOD)))
+    auto getNextPoly = [&]() {
+        const MeshNode* mn;
+        const MeshFace* face;
+        const BzMaterial* mat;
+    }
+*/
 }
 
 std::vector<std::string> WorldSceneBuilder::getMaterialList() const {

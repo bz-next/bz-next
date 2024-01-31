@@ -663,8 +663,7 @@ void        World::makeLinkMaterial()
     mat.setTextureMatrix(texmatId);
     mat.setNoLighting(true);
     mat.setName(name);
-    linkMaterial = MAGNUMMATERIALMGR.addMaterial(&mat);
-
+    linkMaterial = MAGNUMMATERIALMGR.addLegacyIndexedMaterial(&mat);
     return;
 }
 

@@ -17,9 +17,11 @@ typedef std::map<const MagnumBZMaterial*,
         const MagnumBZMaterial*> MagnumMaterialMap;
 
 
+class MagnumBZMaterialManager;
+
 class MagnumBZMaterial
 {
-
+    friend class MagnumBZMaterialManager;
 public:
     MagnumBZMaterial();
     MagnumBZMaterial(const MagnumBZMaterial& material);
@@ -121,6 +123,9 @@ public:
 
     static const MagnumBZMaterial* getDefault();
 
+    void setLegacyIndex(int ind);
+    int getLegacyIndex() const;
+
     // data
 private:
     std::string name;
@@ -173,6 +178,9 @@ private:
     } ShaderInfo;
     ShaderInfo* shaders;
 
+    // For interfacing with legacy code that references material indices
+    int legacyIndex;
+
 private:
     static std::string nullString;
     static MagnumBZMaterial defaultMaterial;
@@ -206,8 +214,10 @@ public:
     void update();
     void clear(bool loadDefaults = true);
     const MagnumBZMaterial* addMaterial(const MagnumBZMaterial* material);
+    const MagnumBZMaterial* addLegacyIndexedMaterial(const MagnumBZMaterial* material);
     const MagnumBZMaterial* findMaterial(const std::string& name) const;
     const MagnumBZMaterial* getMaterial(int id) const;
+    // Legacy function for adapting some deep parts of mesh code that references material indices
     int getIndex(const MagnumBZMaterial* material) const;
 
     std::vector<std::string> getMaterialNames();
@@ -226,6 +236,7 @@ public:
 
 private:
     std::vector<MagnumBZMaterial*> materials;
+    int legacyMaterialIndex;
 };
 
 

@@ -80,6 +80,7 @@
 #include "MagnumDefs.h"
 #include "PyramidBuilding.h"
 #include "WallObstacle.h"
+#include "MeshObstacle.h"
 #include "WorldRenderer.h"
 
 #include "BZChatConsole.h"
@@ -1501,6 +1502,11 @@ void BZFlagNew::joinInternetGame2()
         worldSceneBuilder.addTeleporter(*((Teleporter*) teles[i]));
     }
     worldSceneBuilder.addGround(BZDBCache::worldSize);
+    const ObstacleList& meshes = OBSTACLEMGR.getMeshes();
+    for (int i = 0; i < meshes.size(); i++)
+        worldSceneBuilder.addMesh (*((MeshObstacle*) meshes[i]));
+    
+    world->makeLinkMaterial();
 
     
     //worldRenderer.createWorldObject();
