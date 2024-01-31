@@ -247,6 +247,9 @@ class BZFlagNew: public Platform::Sdl2Application {
         void maybeShowGLInfo();
         bool showGLInfo = false;
 
+        void maybeShowMatExclude();
+        bool showMatExclude = false;
+
         bool showGrid = false;
         
         Vector3 positionOnSphere(const Vector2i& position) const;
@@ -502,6 +505,8 @@ void BZFlagNew::showMenuDebug() {
     if (ImGui::MenuItem("Force Load Material Textures")) {
         MAGNUMMATERIALMGR.forceLoadTextures();
     }
+    if (ImGui::MenuItem("Exclude Materials from World", NULL, &showMatExclude)) {
+    }
 
 }
 
@@ -584,6 +589,41 @@ void BZFlagNew::maybeShowGLInfo()
     }
 }
 
+static bool excludeSetScratchArea[10000];
+void BZFlagNew::maybeShowMatExclude()
+{
+    if (showMatExclude) {
+        ImGui::Begin("Exclude Materials from World Mesh", &showMatExclude);
+        std::vector<std::string> names = MAGNUMMATERIALMGR.getMaterialNames();
+        int i = 0;
+        for (auto name: names) {
+            // Yes this is horrifyingly ugly
+            ImGui::Checkbox(name.c_str(), (bool *)&excludeSetScratchArea[i]);
+            i++;
+        }
+        if (ImGui::Button("Recompile with excludes")) {
+            std::set<std::string> matset;
+            for (int i = 0; i < names.size(); ++i) {
+                if (excludeSetScratchArea[i]) matset.insert(names[i]);
+            }
+            worldRenderer.setExcludeSet(matset);
+            worldRenderer.destroyWorldObject();
+            worldRenderer.createWorldObject(&worldSceneBuilder);
+            worldRenderer.getWorldObject()->setParent(&_manipulator);
+        }
+        if (ImGui::Button("Clear excludes")) {
+            for (auto& x: excludeSetScratchArea) {
+                x = 0;
+            }
+            worldRenderer.clearExcludeSet();
+            worldRenderer.destroyWorldObject();
+            worldRenderer.createWorldObject(&worldSceneBuilder);
+            worldRenderer.getWorldObject()->setParent(&_manipulator);
+        }
+        ImGui::End();
+    }
+}
+
 void BZFlagNew::onConsoleText(const char* msg) {
     // local commands:
     // /set lists all BZDB variables
@@ -631,6 +671,7 @@ void BZFlagNew::drawEvent() {
     maybeShowMATViewer();
     maybeShowObsBrowser();
     maybeShowGLInfo();
+    maybeShowMatExclude();
 
     /* Update application cursor */
     _imgui.updateApplicationCursor(*this);
@@ -1436,17 +1477,17 @@ int BZFlagNew::main() {
 
     ServerListCache::get()->loadCache();
 
-    //BZDB.set("callsign", "testingbz");
-    //BZDB.set("server", "localhost");
-    //BZDB.set("port", "5154");
+    BZDB.set("callsign", "testingbz");
+    BZDB.set("server", "localhost");
+    BZDB.set("port", "5154");
 
     startupInfo.useUDPconnection=true;
     startupInfo.team = ObserverTeam;
-    //strcpy(startupInfo.callsign, "testingbz");
-    //strcpy(startupInfo.serverName, "localhost");
-    //startupInfo.serverPort = 5154;
+    strcpy(startupInfo.callsign, "testingbz");
+    strcpy(startupInfo.serverName, "localhost");
+    startupInfo.serverPort = 5154;
 
-    startupInfo.autoConnect = false;
+    startupInfo.autoConnect = true;
 
     Team::updateShotColors();
 
@@ -1526,6 +1567,8 @@ void BZFlagNew::joinInternetGame2()
         worldSceneBuilder.addMesh (*((MeshObstacle*) meshes[i]));
     
     world->makeLinkMaterial();
+
+    //MAGNUMMATERIALMGR.loadDefaultMaterials();
 
     
     //worldRenderer.createWorldObject();

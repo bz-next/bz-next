@@ -57,6 +57,14 @@ WorldRenderer::~WorldRenderer() {
     destroyWorldObject();
 }
 
+void WorldRenderer::setExcludeSet(std::set<std::string> matnames) {
+    materialsToExclude = matnames;
+}
+
+void WorldRenderer::clearExcludeSet() {
+    materialsToExclude.clear();
+}
+
 void WorldRenderer::createWorldObject(const WorldSceneBuilder *sb) {
     worldDrawables = new SceneGraph::DrawableGroup3D{};
     worldTransDrawables = new SceneGraph::DrawableGroup3D{};
@@ -107,6 +115,9 @@ void WorldRenderer::createWorldObject(const WorldSceneBuilder *sb) {
         if (auto *m = MAGNUMMATERIALMGR.findMaterial(matname)) {
             if (m->getDiffuse()[3] < 0.999f) continue;
         }
+        if (materialsToExclude.find(matname) != materialsToExclude.end()) {
+            continue;
+        }
         Object3D *matobjs = new Object3D;
         std::string entryName = "mat_" + matname;
         worldMeshes[entryName].push_back(MeshTools::compile(sb->compileMatMesh(matname)));
@@ -118,6 +129,9 @@ void WorldRenderer::createWorldObject(const WorldSceneBuilder *sb) {
     for (const auto& matname: matnames) {
         if (auto *m = MAGNUMMATERIALMGR.findMaterial(matname)) {
             if (m->getDiffuse()[3] >= 0.999f) continue;
+        }
+        if (materialsToExclude.find(matname) != materialsToExclude.end()) {
+            continue;
         }
         Object3D *matobjs = new Object3D;
         std::string entryName = "mat_" + matname;

@@ -32,6 +32,10 @@
 MagnumBZMaterialManager MAGNUMMATERIALMGR;
 
 void MagnumBZMaterialManager::loadDefaultMaterials() {
+    MagnumBZMaterial defaultMat;
+    defaultMat.setName("_DefaultMaterial");
+    MAGNUMMATERIALMGR.addMaterial(&defaultMat);
+
     auto &tm = MagnumTextureManager::instance();
     tm.getTexture("boxwall");
     tm.getTexture("roof");
@@ -194,14 +198,17 @@ const MagnumBZMaterial* MagnumBZMaterialManager::findMaterial(const std::string&
         return NULL;
     // Lookup legacy indexed materials by a string containing the index number
     else if ((target[0] >= '0') && (target[0] <= '9'))
-    {
+    {   std::cout << "Searching for " << target << std::endl;
         int index = atoi (target.c_str());
         if ((index < 0))
             return NULL;
         for (auto m: materials) {
-            if (m->getLegacyIndex() == index)
+            if (m->getLegacyIndex() == index) {
+                std::cout << "Found it " << m->getName() << std::endl;
                 return m;
+            }
         }
+        std::cout << "Not found!" << std::endl;
         return NULL;
     }
     else
@@ -227,9 +234,13 @@ const MagnumBZMaterial* MagnumBZMaterialManager::findMaterial(const std::string&
 
 const MagnumBZMaterial* MagnumBZMaterialManager::getMaterial(int id) const
 {
-    if ((id < 0) || (id >= (int)materials.size()))
-        return MagnumBZMaterial::getDefault();
-    return materials[id];
+    const MagnumBZMaterial *ret;
+    ret = findMaterial(std::to_string(id));
+    if (ret) {
+        return ret;
+    }
+    ret = findMaterial("_DefaultMaterial");
+    return ret;
 }
 
 /* This function is for interfacing with legacy code that refers to materials by index.
@@ -266,10 +277,12 @@ const void* MagnumBZMaterialManager::unpack(const void* buf)
     unsigned int i;
     uint32_t count;
     buf = nboUnpackUInt (buf, count);
+    std::cout << "Unpacking " << count << std::endl;
     for (i = 0; i < count; i++)
     {
         MagnumBZMaterial* mat = new MagnumBZMaterial;
         buf = mat->unpack(buf);
+        std::cout << "Unpacked " << mat->getName() << std::endl;
         addLegacyIndexedMaterial(mat);
         delete mat;
     }

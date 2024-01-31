@@ -193,7 +193,7 @@ private:
     static World*   playingField;
     static BundleMgr    *bundleMgr;
     static std::string  locale;
-    //static int flagTexture;
+    //static Magnum::GL::Texture2D *flagTexture;
 };
 
 

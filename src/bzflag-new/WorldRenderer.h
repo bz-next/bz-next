@@ -17,6 +17,7 @@
 
 #include <map>
 #include <list>
+#include <set>
 
 class WorldRenderer {
     public:
@@ -30,8 +31,13 @@ class WorldRenderer {
         Magnum::SceneGraph::DrawableGroup3D *getDebugDrawableGroup();
         Object3D *getWorldObject();
 
+        // Specify materials to exclude when creating world object
+        void setExcludeSet(std::set<std::string> matnames);
+        void clearExcludeSet();
+
         void destroyWorldObject();
     private:
+        std::set<std::string> materialsToExclude;
         struct InstanceData {
             Magnum::Matrix4 transformationMatrix;
             Magnum::Matrix3x3 normalMatrix;

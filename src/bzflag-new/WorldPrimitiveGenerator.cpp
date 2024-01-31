@@ -145,10 +145,6 @@ Magnum::Trade::MeshData WorldPrimitiveGenerator::planarPoly(const std::vector<Ma
     Containers::ArrayView<const Vector2> texview{texcoords};
     Containers::ArrayView<const Vector3> normview{norms};
 
-    Warning{} << "p " << posview;
-    Warning{} << "t " << texview;
-    Warning{} << "n " << normview;
-
     // Num triangles = 3(N-2) for triangle fan
     Containers::Array<UnsignedInt> indices{3*(verts.size()-2)};
 
@@ -159,8 +155,6 @@ Magnum::Trade::MeshData WorldPrimitiveGenerator::planarPoly(const std::vector<Ma
         indices[i*3+1] = i+1;
         indices[i*3+2] = i+2;
     }
-
-    Warning{} << "i " << indices;
 
     // Pack mesh data
     Containers::Array<char> data{posview.size()*sizeof(VertexData)};
