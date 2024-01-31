@@ -50,7 +50,7 @@ void BZMaterialBrowser::draw(const char *title, bool *p_open) {
         const float *color = mat->getAmbient();
         ImGui::Text("Ambient: %f %f %f", color[0], color[1], color[2]);
         color = mat->getDiffuse();
-        ImGui::Text("Diffuse: %f %f %f", color[0], color[1], color[2]);
+        ImGui::Text("Diffuse: %f %f %f %f", color[0], color[1], color[2], color[3]);
         color = mat->getSpecular();
         ImGui::Text("Specular: %f %f %f", color[0], color[1], color[2]);
         color = mat->getEmission();

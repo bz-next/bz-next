@@ -20,7 +20,6 @@
 
 /* common implementation headers */
 #include "BZDBCache.h"
-#include "TextureManager.h"
 #include "FileManager.h"
 #include "CollisionManager.h"
 #include "DynamicColor.h"
@@ -102,13 +101,12 @@ World::~World()
 
 void            World::init()
 {
-    //TextureManager &tm = TextureManager::instance();
-    //flagTexture = tm.getTextureID( "flag" );
+    //flagTexture = MagnumTextureManager::instance().getTexture( "flag" );
 }
 
 void            World::done()
 {
-    //flagTexture = 0;
+    //flagTexture = NULL;
 }
 
 void            World::loadCollisionManager()

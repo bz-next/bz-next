@@ -728,20 +728,24 @@ void WorldSceneBuilder::addGround(float worldSize) {
     tEdge[2] = -0.1f;
 
     WorldObject groundObj;
-    const auto *mat = MAGNUMMATERIALMGR.findMaterial("GroundMaterial");
-    const auto &tname = mat->getTexture(0);
-    auto* tex = MagnumTextureManager::instance().getTexture(tname.c_str());
+
     float uRepeat = 1.0f;
     float vRepeat = 1.0f;
-    if (tex) {
-        float repeat = 100.0;
-        if (BZDB.isSet("groundHighResTexRepeat")) {
-            repeat = 1.0f/BZDB.eval("groundHighResTexRepeat");
+
+    const auto *mat = MAGNUMMATERIALMGR.findMaterial("GroundMaterial");
+    if (mat) {
+        const auto &tname = mat->getTexture(0);
+        auto* tex = MagnumTextureManager::instance().getTexture(tname.c_str());
+        if (tex) {
+            float repeat = 100.0;
+            if (BZDB.isSet("groundHighResTexRepeat")) {
+                repeat = 1.0f/BZDB.eval("groundHighResTexRepeat");
+            }
+            uRepeat = 2*repeat*(worldSize)/tex->imageSize(0)[0];
+            vRepeat = 2*repeat*(worldSize)/tex->imageSize(0)[1];;
         }
-        uRepeat = 2*repeat*(worldSize)/tex->imageSize(0)[0];
-        vRepeat = 2*repeat*(worldSize)/tex->imageSize(0)[1];;
     }
-    Warning{} << "World size " << worldSize;
+
     groundObj.addMatMesh("GroundMaterial",
         WorldPrimitiveGenerator::quad(base, sEdge, tEdge, 0, 0, uRepeat, vRepeat));
     worldObjects.emplace_back(std::move(groundObj));

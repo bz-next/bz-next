@@ -18,7 +18,7 @@
 /* common implementation headers */
 #include "AccessList.h"
 #include "CacheManager.h"
-#include "BzMaterial.h"
+#include "MagnumBZMaterial.h"
 #include "AnsiCodes.h"
 #include "cURLManager.h"
 
@@ -66,7 +66,7 @@ static bool       textureDownloading = false;
 
 // Function Prototypes
 static void printAuthNotice();
-static bool checkAuthorizations(BzMaterialManager::TextureSet& set);
+static bool checkAuthorizations(MagnumBZMaterialManager::TextureSet& set);
 
 
 class CachedTexture : cURLManager
@@ -106,7 +106,7 @@ CachedTexture::CachedTexture(const std::string &texUrl) : cURLManager()
     if (cached && !checkForCache)
     {
         // use the cached file
-        MATERIALMGR.setTextureLocal(texUrl, oldrec.name);
+        MAGNUMMATERIALMGR.setTextureLocal(texUrl, oldrec.name);
     }
     else
     {
@@ -121,7 +121,7 @@ CachedTexture::CachedTexture(const std::string &texUrl) : cURLManager()
         if (cached)
         {
             // use the cached file -- just in case
-            MATERIALMGR.setTextureLocal(url, oldrec.name);
+            MAGNUMMATERIALMGR.setTextureLocal(url, oldrec.name);
             setTimeCondition(ModifiedSince, oldrec.date);
         }
         addHandle();
@@ -158,16 +158,16 @@ void CachedTexture::finalization(char *data, unsigned int length, bool good)
             {
                 TEXMGR.reloadTextureImage(localname); // reload with the new image
             }
-            MATERIALMGR.setTextureLocal(url, localname);
+            MAGNUMMATERIALMGR.setTextureLocal(url, localname);
         }
     }
     else
     {
         CacheManager::CacheRecord rec;
         if (CACHEMGR.findURL(url, rec))
-            MATERIALMGR.setTextureLocal(url, rec.name);
+            MAGNUMMATERIALMGR.setTextureLocal(url, rec.name);
         else
-            MATERIALMGR.setTextureLocal(url, "");
+            MAGNUMMATERIALMGR.setTextureLocal(url, "");
     }
 }
 
@@ -210,9 +210,9 @@ void Downloads::startDownloads(bool doDownloads, bool updateDownloads,
 
     DownloadAccessList.reload();
 
-    BzMaterialManager::TextureSet set;
-    BzMaterialManager::TextureSet::iterator set_it;
-    MATERIALMGR.makeTextureList(set, referencing);
+    MagnumBZMaterialManager::TextureSet set;
+    MagnumBZMaterialManager::TextureSet::iterator set_it;
+    MAGNUMMATERIALMGR.makeTextureList(set, referencing);
 
     float timeout = 15;
     if (BZDB.isSet("httpTimeout"))
@@ -239,7 +239,7 @@ void Downloads::startDownloads(bool doDownloads, bool updateDownloads,
             if (CACHEMGR.isCacheFileType(texUrl))
             {
                 if (!referencing)
-                    MATERIALMGR.setTextureLocal(texUrl, "");
+                    MAGNUMMATERIALMGR.setTextureLocal(texUrl, "");
                 cachedTexVector.push_back(new CachedTexture(texUrl));
             }
         }
@@ -255,12 +255,12 @@ void Downloads::startDownloads(bool doDownloads, bool updateDownloads,
                 if (CACHEMGR.findURL(texUrl, oldrec))
                 {
                     // use the cached file
-                    MATERIALMGR.setTextureLocal(texUrl, oldrec.name);
+                    MAGNUMMATERIALMGR.setTextureLocal(texUrl, oldrec.name);
                 }
                 else
                 {
                     // bail here if we can't download
-                    MATERIALMGR.setTextureLocal(texUrl, "");
+                    MAGNUMMATERIALMGR.setTextureLocal(texUrl, "");
                     std::string msg = ColorStrings[GreyColor];
                     msg += "not downloading: " + texUrl;
                     //addMessage(NULL, msg);
@@ -292,9 +292,9 @@ bool Downloads::requestFinalized()
 
 void Downloads::removeTextures()
 {
-    BzMaterialManager::TextureSet set;
-    BzMaterialManager::TextureSet::iterator set_it;
-    MATERIALMGR.makeTextureList(set, false /* ignore referencing */);
+    MagnumBZMaterialManager::TextureSet set;
+    MagnumBZMaterialManager::TextureSet::iterator set_it;
+    MAGNUMMATERIALMGR.makeTextureList(set, false /* ignore referencing */);
 
     MagnumTextureManager& TEXMGR = MagnumTextureManager::instance();
 
@@ -354,7 +354,7 @@ bool parseHostname(const std::string& url, std::string& hostname)
 }
 
 
-static bool checkAuthorizations(BzMaterialManager::TextureSet& set)
+static bool checkAuthorizations(MagnumBZMaterialManager::TextureSet& set)
 {
     // avoid the DNS lookup
     if (DownloadAccessList.alwaysAuthorized())
@@ -362,7 +362,7 @@ static bool checkAuthorizations(BzMaterialManager::TextureSet& set)
 
     bool hostFailed = false;
 
-    BzMaterialManager::TextureSet::iterator set_it;
+    MagnumBZMaterialManager::TextureSet::iterator set_it;
 
     std::map<std::string, bool> hostAccess;
     std::map<std::string, bool>::iterator host_it;
@@ -387,7 +387,7 @@ static bool checkAuthorizations(BzMaterialManager::TextureSet& set)
     set_it = set.begin();
     while (set_it != set.end())
     {
-        BzMaterialManager::TextureSet::iterator next_it = set_it;
+        MagnumBZMaterialManager::TextureSet::iterator next_it = set_it;
         ++next_it;
         const std::string& url = *set_it;
         std::string hostname;
@@ -402,7 +402,7 @@ static bool checkAuthorizations(BzMaterialManager::TextureSet& set)
             //addMessage(NULL, msg);
             std::cout << msg << std::endl;
             // remove the url
-            MATERIALMGR.setTextureLocal(url, "");
+            MAGNUMMATERIALMGR.setTextureLocal(url, "");
             set.erase(set_it);
         }
         set_it = next_it;

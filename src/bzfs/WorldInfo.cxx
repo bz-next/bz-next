@@ -176,7 +176,7 @@ void WorldInfo::makeWaterMaterial()
     material.setUseSphereMap(false);
     material.setNoRadar(true);
     material.setNoShadow(true);
-    waterMatRef = MAGNUMMATERIALMGR.addMaterial(&material);
+    waterMatRef = MAGNUMMATERIALMGR.addLegacyIndexedMaterial(&material);
 
     return;
 }
