@@ -148,6 +148,7 @@ void WorldRenderer::destroyWorldObject() {
     if (worldDebugDrawables) delete worldDebugDrawables;
     if (worldParent) delete worldParent;
     if (debugLine) delete debugLine;
+    worldMeshes.clear();
     worldDrawables = NULL;
     worldTransDrawables = NULL;
     worldDebugDrawables = NULL;
