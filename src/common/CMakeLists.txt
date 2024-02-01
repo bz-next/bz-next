@@ -1,4 +1,4 @@
-add_library(bzcommon
+add_library(bzcommon STATIC
     AccessList.cxx
     AutoCompleter.cxx
     Bundle.cxx

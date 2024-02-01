@@ -1,4 +1,4 @@
-add_library(bzgame
+add_library(bzgame STATIC
     BzMaterial.cxx
     CacheManager.cxx
     CollisionManager.cxx

@@ -1,4 +1,4 @@
-add_library(bzmediafile
+add_library(bzmediafile STATIC
     AudioFile.cxx
     AudioFile.h
     ImageFile.cxx
