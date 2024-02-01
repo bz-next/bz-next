@@ -3,6 +3,7 @@
 #include <Magnum/SceneGraph/Camera.hpp>
 #include <Magnum/GL/Buffer.h>
 #include <Magnum/GL/TextureFormat.h>
+#include "Magnum/GL/Renderer.h"
 #include "Magnum/Shaders/PhongGL.h"
 #include "Magnum/Shaders/Phong.h"
 #include "Magnum/Shaders/Generic.h"
@@ -94,6 +95,11 @@ void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::C
                 .setShininess(mat->getShininess())
                 .setAlphaMask(mat->getAlphaThreshold())
         });
+
+        if (mat->getNoCulling())
+            GL::Renderer::disable(GL::Renderer::Feature::FaceCulling);
+        else
+            GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
 
         GL::Texture2D *t = tm.getTexture(mat->getTexture(0).c_str());
         if (t) {

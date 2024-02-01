@@ -833,6 +833,7 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
             return -1;
     };
     // Autogen texcoords for faces that don't have them
+    // This is only used for non-DrawInfo meshes
     auto makeTexcoords = [](const float* plane,
         const std::vector<Vector3>& vertices,
         std::vector<Vector2>& texcoords)
@@ -933,6 +934,7 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
                     count++;
                 }
             }
+            // I think this sort is useless now, since we group by material later anyway
             qsort(sortList, count, sizeof(MeshFace*), sortByMaterial);
 
             // make the faces and fragments
@@ -1094,17 +1096,38 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
                     }
                 }
 
+                // Materials referenced by DrawSet need to be fixed up, they
+                // are invalid without fixup, and will result in missing/default textures
+                const MagnumBZMaterial *maybeFixedupMaterial = dset.material;
+                const MagnumMaterialMap *matMap = drawInfo->getMaterialMap();
+                if (matMap != NULL) {
+                    Warning {} << "Searching mat map";
+                    Warning{} << dset.material;
+                    MagnumMaterialMap::const_iterator it = matMap->find(dset.material);
+                    if (it != matMap->end()) {
+                        Warning{} << "Found it!";
+                        maybeFixedupMaterial = it->second;
+                        Warning{} << maybeFixedupMaterial->getName().c_str();
+                        Warning{} << maybeFixedupMaterial->getLegacyIndex();
+                    } else {
+                        Warning{} << "Not Found!";
+                        Warning{} << maybeFixedupMaterial->getName().c_str();
+                        Warning{} << maybeFixedupMaterial->getLegacyIndex();
+                    }
+                }
+
                 // Fix up indices
                 switch (cmd.drawMode) {
                     case DrawCmd::DrawTriangles: {
                         Warning{} << "Supported DrawTriangles";
-                        Warning{} << verts;
-                        Warning{} << norms;
-                        Warning{} << texcoords;
-                        Warning{} << unpackedRawIndices;
-                        Warning{} << dset.material->getName().c_str();
+                        //Warning{} << verts;
+                        //Warning{} << norms;
+                        //Warning{} << texcoords;
+                        //Warning{} << unpackedRawIndices;
+                        Warning{} << maybeFixedupMaterial->getName().c_str();
+                        Warning{} << maybeFixedupMaterial->getLegacyIndex();
                         // Just use the indices directly
-                        meshObj.addMatMesh(dset.material->getName(),
+                        meshObj.addMatMesh(maybeFixedupMaterial->getName(),
                         WorldPrimitiveGenerator::rawIndexedTris(verts, norms, texcoords, unpackedRawIndices));
                         break;
                     }
