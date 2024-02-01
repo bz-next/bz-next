@@ -1,4 +1,4 @@
-add_library(bzogl
+add_library(bzogl STATIC
     OpenGLFramebuffer.cxx
     OpenGLGState.cxx
     OpenGLLight.cxx

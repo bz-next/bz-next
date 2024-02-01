@@ -1,4 +1,4 @@
-add_library(bznet
+add_library(bznet STATIC
     Address.cxx
     AresHandler.cxx
     multicast.cxx

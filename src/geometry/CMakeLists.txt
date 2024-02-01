@@ -1,4 +1,4 @@
-add_library(bzgeometry
+add_library(bzgeometry STATIC
     AnimatedTreads.cxx
     BillboardSceneNode.cxx
     BoltSceneNode.cxx

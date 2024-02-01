@@ -1,4 +1,4 @@
-add_library(bzobstacle
+add_library(bzobstacle STATIC
     ArcObstacle.cxx
     BaseBuilding.cxx
     BaseSceneNodeGenerator.cxx

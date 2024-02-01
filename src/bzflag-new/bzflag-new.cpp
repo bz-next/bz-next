@@ -387,7 +387,7 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
     Platform::Sdl2Application{arguments, Configuration{}
         .setTitle("BZFlag Experimental Client")
         .setWindowFlags(Configuration::WindowFlag::Resizable),
-        GLConfiguration{}.setSampleCount(16)},
+        GLConfiguration{}.setSampleCount(4)},
     motd(NULL),
     ServerAccessList("ServerAccess.txt", NULL)
 {

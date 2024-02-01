@@ -1,4 +1,4 @@
-add_library(bzplatform
+add_library(bzplatform STATIC
     BzfDisplay.cxx
     BzfJoystick.cxx
     BzfMedia.cxx

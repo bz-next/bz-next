@@ -1,4 +1,4 @@
-add_library(bz3D
+add_library(bz3D STATIC
     FontManager.cxx
     ImageFont.cxx
     ImageFont.h

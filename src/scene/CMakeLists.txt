@@ -1,4 +1,4 @@
-add_library(bzscene
+add_library(bzscene STATIC
     BSPSceneDatabase.cxx
     Occluder.cxx
     Occluder.h
