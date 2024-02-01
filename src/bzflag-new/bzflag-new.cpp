@@ -681,7 +681,7 @@ void BZFlagNew::drawEvent() {
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
     GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
     GL::Renderer::disable(GL::Renderer::Feature::ScissorTest);
-    GL::Renderer::disable(GL::Renderer::Feature::Blending);
+    GL::Renderer::enable(GL::Renderer::Feature::Blending);
 
     if (showGrid)
         if (auto* dg = worldRenderer.getDebugDrawableGroup())
