@@ -112,6 +112,9 @@ MeshDrawInfo::MeshDrawInfo(const MeshDrawInfo* di,
     animInfo = di->animInfo;
 
     vertexCount = di->vertexCount;
+    cornerCount = di->cornerCount;
+    normCount = di->normCount;
+    texCoordCount = di->texCoordCount;
 
     // new data
     matMap = new MagnumMaterialMap(_matMap);
@@ -311,6 +314,14 @@ int MeshDrawInfo::getVertexCount() const {
     return vertexCount;
 }
 
+int MeshDrawInfo::getNormalCount() const {
+    return normCount;
+}
+
+int MeshDrawInfo::getTexcoordCount() const {
+    return texCoordCount;
+}
+
 
 bool MeshDrawInfo::serverSetup(const MeshObstacle* mesh)
 {
@@ -480,6 +491,8 @@ bool MeshDrawInfo::clientSetup(const MeshObstacle* mesh)
         norms = rawNorms;
         txcds = rawTxcds;
         vertexCount = rawVertCount;
+        normCount = rawNormCount;
+        texCoordCount = rawTxcdCount;
     }
     else
     {
@@ -487,6 +500,8 @@ bool MeshDrawInfo::clientSetup(const MeshObstacle* mesh)
         norms = mesh->getNormals();
         txcds = mesh->getTexcoords();
         vertexCount = mesh->getVertexCount();
+        normCount = mesh->getNormalCount();
+        texCoordCount = mesh->getTexcoordCount();
     }
 
     // make the element arrays
@@ -576,6 +591,13 @@ MeshDrawMgr* MeshDrawInfo::getDrawMgr() const
         return drawMgr;
     else
         return source->getDrawMgr();
+}
+
+const Corner* MeshDrawInfo::getCorners() const {
+    return corners;
+}
+int MeshDrawInfo::getCornerCount() const {
+    return cornerCount;
 }
 
 

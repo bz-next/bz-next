@@ -90,7 +90,12 @@ public:
     const afvec3* getNormals() const;
     const afvec2* getTexcoords() const;
 
+    const Corner* getCorners() const;
+    int getCornerCount() const;
+
     int getVertexCount() const;
+    int getNormalCount() const;
+    int getTexcoordCount() const;
 
     int getRadarCount() const;
     const DrawLod* getRadarLods() const;
@@ -136,6 +141,8 @@ private:
     // elements
     int cornerCount;
     int vertexCount;
+    int normCount;
+    int texCoordCount;
     Corner* corners;
     afvec3* vertices;
     afvec3* normals;

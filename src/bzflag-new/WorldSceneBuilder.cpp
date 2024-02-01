@@ -1006,34 +1006,6 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
         float lengthAdj = 1.0f;
         const Extents& diExts = drawInfo->getExtents();
         const MeshTransform::Tool* xformTool = drawInfo->getTransformTool();
-        
-        if (xformTool) {
-            // sloppy way to recalcuate the transformed extents
-            afvec3 c[8];
-            c[0][0] = c[6][0] = c[5][0] = c[3][0] = diExts.mins[0];
-            c[7][0] = c[1][0] = c[2][0] = c[4][0] = diExts.maxs[0];
-            c[0][1] = c[1][1] = c[5][1] = c[4][1] = diExts.mins[1];
-            c[7][1] = c[6][1] = c[2][1] = c[3][1] = diExts.maxs[1];
-            c[0][2] = c[1][2] = c[2][2] = c[3][2] = diExts.mins[2];
-            c[7][2] = c[6][2] = c[5][2] = c[4][2] = diExts.maxs[2];
-            // lengthPerPixel adjustment
-            lengthAdj = +MAXFLOAT;
-            for (int a = 0; a < 3; a++)
-            {
-                const float oldWidth = diExts.maxs[a] - diExts.mins[a];
-                const afvec3& s = c[0]; // all mins
-                // mins, except: c[1] -> max[0], c[3] -> max[1], c[5] -> max[2]
-                const afvec3& e = c[(a * 2) + 1];
-                const float d[3] = {s[0] - e[0], s[1] - e[1], s[2] - e[2]};
-                const float newWidth = sqrtf(d[0]*d[0] + d[1]*d[1] + d[2]*d[2]);
-                if (oldWidth > 0.0f)
-                {
-                    const float scale = (newWidth / oldWidth);
-                    if (scale < lengthAdj)
-                        lengthAdj = scale;
-                }
-            }
-        }
 
         // Get LOD (just get the highest level one for now, can expand this later)
         if (drawInfo->getLodCount() < 1) return;
@@ -1049,24 +1021,30 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
         auto di_verts = drawInfo->getVertices();
         auto di_norms = drawInfo->getNormals();
         auto di_texcoords = drawInfo->getTexcoords();
-        size_t vertexCount = drawInfo->getVertexCount();
-        std::vector<Math::Vector3<float>> verts{vertexCount};
-        for (int i = 0; i < vertexCount; ++i) {
+
+        auto corners = drawInfo->getCorners();
+
+
+        size_t cornerCount = drawInfo->getCornerCount();
+
+
+        std::vector<Math::Vector3<float>> verts{cornerCount};
+        for (int i = 0; i < cornerCount; ++i) {
             verts[i].x() = di_verts[i][0];
             verts[i].y() = di_verts[i][1];
             verts[i].z() = di_verts[i][2];
             verts[i] = getTransformMatrix().transformPoint(verts[i]);
         }
 
-        std::vector<Math::Vector3<float>> norms{vertexCount};
-        for (int i = 0; i < vertexCount; ++i) {
+        std::vector<Math::Vector3<float>> norms{cornerCount};
+        for (int i = 0; i < cornerCount; ++i) {
             norms[i].x() = di_norms[i][0];
             norms[i].y() = di_norms[i][1];
             norms[i].z() = di_norms[i][2];
         }
 
-        std::vector<Math::Vector2<float>> texcoords{vertexCount};
-        for (int i = 0; i < vertexCount; ++i) {
+        std::vector<Math::Vector2<float>> texcoords{cornerCount};
+        for (int i = 0; i < cornerCount; ++i) {
             texcoords[i].x() = di_texcoords[i][0];
             texcoords[i].y() = di_texcoords[i][1];
         }
@@ -1097,38 +1075,59 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
                 }
 
                 // Materials referenced by DrawSet need to be fixed up, they
-                // are invalid without fixup, and will result in missing/default textures
+                // may be invalid without fixup, and will result in missing/default textures
                 const MagnumBZMaterial *maybeFixedupMaterial = dset.material;
                 const MagnumMaterialMap *matMap = drawInfo->getMaterialMap();
                 if (matMap != NULL) {
-                    Warning {} << "Searching mat map";
-                    Warning{} << dset.material;
                     MagnumMaterialMap::const_iterator it = matMap->find(dset.material);
                     if (it != matMap->end()) {
-                        Warning{} << "Found it!";
                         maybeFixedupMaterial = it->second;
-                        Warning{} << maybeFixedupMaterial->getName().c_str();
-                        Warning{} << maybeFixedupMaterial->getLegacyIndex();
-                    } else {
-                        Warning{} << "Not Found!";
-                        Warning{} << maybeFixedupMaterial->getName().c_str();
-                        Warning{} << maybeFixedupMaterial->getLegacyIndex();
                     }
                 }
+
+                // This will be used to index into our verts, texcoords, and normals
+                // We will reorder these indices based on the DrawMode to produce
+                // triangles, then emit a new set of arrays with indices 0..N
+                std::vector<UnsignedInt> indices{};
 
                 // Fix up indices
                 switch (cmd.drawMode) {
                     case DrawCmd::DrawTriangles: {
                         Warning{} << "Supported DrawTriangles";
-                        //Warning{} << verts;
-                        //Warning{} << norms;
-                        //Warning{} << texcoords;
-                        //Warning{} << unpackedRawIndices;
-                        Warning{} << maybeFixedupMaterial->getName().c_str();
-                        Warning{} << maybeFixedupMaterial->getLegacyIndex();
-                        // Just use the indices directly
-                        meshObj.addMatMesh(maybeFixedupMaterial->getName(),
-                        WorldPrimitiveGenerator::rawIndexedTris(verts, norms, texcoords, unpackedRawIndices));
+                        // Just use the raw indices directly
+                        indices = unpackedRawIndices;
+                        break;
+                    }
+
+                    case DrawCmd::DrawTriangleFan:
+                    case DrawCmd::DrawPolygon: {
+                        Warning{} << "Supported DrawTriangleFan";
+                        // Verts come in as a triangle fan, fixup the indices for triangles instead
+                        // There are #indices-2 triangles
+                        for (UnsignedInt i = 0; i < unpackedRawIndices.size()-2; ++i) {
+                            indices.push_back(unpackedRawIndices[0]);
+                            indices.push_back(unpackedRawIndices[i+1]);
+                            indices.push_back(unpackedRawIndices[i+2]);
+                        }
+                        break;
+                    }
+
+                    case DrawCmd::DrawTriangleStrip: {
+                        Warning{} << "Supported DrawTriangleStrip";
+                        // Verts come in as a triangle strip, fixup the indices for triangles instead
+                        // There are #indices-2 triangles
+                        for (UnsignedInt i = 0; i < unpackedRawIndices.size()-2; ++i) {
+                            if (i%2) { // Odd case
+                                indices[i*3] = unpackedRawIndices[i+1];
+                                indices[i*3+1] = unpackedRawIndices[i];
+                                indices[i*3+2] = unpackedRawIndices[i+2];
+                            } else { // Even case
+                                indices[i*3] = unpackedRawIndices[i];
+                                indices[i*3+1] = unpackedRawIndices[i+1];
+                                indices[i*3+2] = unpackedRawIndices[i+2];
+                            }
+                            
+                        }
                         break;
                     }
 
@@ -1138,6 +1137,10 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
                     case DrawCmd::DrawLineStrip:
                     default:
                         Warning{} << "Unsupported draw command" << cmd.drawMode;
+                }
+                if (indices.size() > 0) {
+                    meshObj.addMatMesh(maybeFixedupMaterial->getName(),
+                        WorldPrimitiveGenerator::rawIndexedTris(verts, norms, texcoords, indices));
                 }
             }
         }
