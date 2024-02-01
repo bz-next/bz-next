@@ -471,8 +471,6 @@ bool MeshDrawInfo::clientSetup(const MeshObstacle* mesh)
     if (!valid)
         return false;
 
-    std::cout << "Valid" << std::endl;
-
     const afvec3* verts;
     const afvec3* norms;
     const afvec2* txcds;

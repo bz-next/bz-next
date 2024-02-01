@@ -46,7 +46,7 @@ MeshDrawMgr::MeshDrawMgr(const MeshDrawInfo* drawInfo_)
     for (auto &item : lodLists)
         item.assign((curDrawLod++)->count, INVALID_GL_LIST_ID);
 
-    makeLists();
+    //makeLists();
     //OpenGLGState::registerContextInitializer(freeContext, initContext, this);
 }
 
@@ -55,8 +55,8 @@ MeshDrawMgr::~MeshDrawMgr()
 {
     logDebugMessage(4,"MeshDrawMgr: killing\n");
 
-    OpenGLGState::unregisterContextInitializer(freeContext, initContext, this);
-    freeLists();
+    //OpenGLGState::unregisterContextInitializer(freeContext, initContext, this);
+    //freeLists();
 
     return;
 }
@@ -64,7 +64,7 @@ MeshDrawMgr::~MeshDrawMgr()
 
 inline void MeshDrawMgr::rawExecuteCommands(int lod, int set)
 {
-    auto drawLods = drawInfo->getDrawLods();
+    /*auto drawLods = drawInfo->getDrawLods();
     const DrawLod& drawLod = drawLods[lod];
     const DrawSet& drawSet = drawLod.sets[set];
     const int cmdCount = drawSet.count;
@@ -72,7 +72,7 @@ inline void MeshDrawMgr::rawExecuteCommands(int lod, int set)
     {
         const DrawCmd& cmd = drawSet.cmds[i];
         glDrawElements(cmd.drawMode, cmd.count, cmd.indexType, cmd.indices);
-    }
+    }*/
     return;
 }
 
@@ -80,7 +80,7 @@ inline void MeshDrawMgr::rawExecuteCommands(int lod, int set)
 void MeshDrawMgr::executeSet(int lod, int set, bool useNormals, bool useTexcoords)
 {
     // FIXME (what is broken?)
-    const AnimationInfo* animInfo = drawInfo->getAnimationInfo();
+    /*const AnimationInfo* animInfo = drawInfo->getAnimationInfo();
     if (animInfo != nullptr)
     {
         glPushMatrix();
@@ -116,7 +116,7 @@ void MeshDrawMgr::executeSet(int lod, int set, bool useNormals, bool useTexcoord
     }
 
     if (animInfo != nullptr)
-        glPopMatrix();
+        glPopMatrix();*/
 
     return;
 }
@@ -152,7 +152,7 @@ void MeshDrawMgr::executeSetGeometry(int lod, int set)
 
 void MeshDrawMgr::makeLists()
 {
-    GLenum error;
+    /*GLenum error;
     int errCount = 0;
     // reset the error state
     while (true)
@@ -180,7 +180,7 @@ void MeshDrawMgr::makeLists()
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
     auto lod = 0;
-    auto curDrawLod = drawInfo->getDrawLods();
+    auto curDrawLod = drawInfo->getDrawLods();*/
 
     /*for (auto &item : lodLists)
     {
@@ -218,13 +218,13 @@ void MeshDrawMgr::makeLists()
 
 void MeshDrawMgr::freeLists()
 {
-    for (auto &item : lodLists)
+    /*for (auto &item : lodLists)
         for (auto &itemSet : item)
             if (itemSet != INVALID_GL_LIST_ID)
             {
                 glDeleteLists(itemSet, 1);
                 itemSet = INVALID_GL_LIST_ID;
-            }
+            }*/
 
     return;
 }
