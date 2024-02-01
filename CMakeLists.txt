@@ -220,7 +220,6 @@ list(APPEND C_HEADERS_TO_CHECK
     ncurses.h
 
     regex.h
-    SDL2/SDL.h
     stdlib.h
     stdint.h
     stdlib.h
