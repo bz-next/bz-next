@@ -998,18 +998,15 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
         if (drawInfo->isInvisible()) {
             return;
         }
-        Warning{} << "Check draw manager";
+
         auto drawMgr = drawInfo->getDrawMgr();
         if (drawMgr == NULL)
             return;
-        Warning{} << "Got it";
-        float lengthAdj = 1.0f;
-        const Extents& diExts = drawInfo->getExtents();
+
         const MeshTransform::Tool* xformTool = drawInfo->getTransformTool();
 
         // Get LOD (just get the highest level one for now, can expand this later)
         if (drawInfo->getLodCount() < 1) return;
-        Warning{} << "Got here";
 
         auto lods = drawInfo->getDrawLods();
         const DrawLod& lod = lods[0];   // Just get highest LOD for now
@@ -1024,9 +1021,7 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
 
         auto corners = drawInfo->getCorners();
 
-
         size_t cornerCount = drawInfo->getCornerCount();
-
 
         std::vector<Math::Vector3<float>> verts{cornerCount};
         for (int i = 0; i < cornerCount; ++i) {
@@ -1093,15 +1088,14 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
                 // Fix up indices
                 switch (cmd.drawMode) {
                     case DrawCmd::DrawTriangles: {
-                        Warning{} << "Supported DrawTriangles";
                         // Just use the raw indices directly
                         indices = unpackedRawIndices;
                         break;
                     }
 
+                    // Draw polys with triangle fan (polys must be convex)
                     case DrawCmd::DrawTriangleFan:
                     case DrawCmd::DrawPolygon: {
-                        Warning{} << "Supported DrawTriangleFan";
                         // Verts come in as a triangle fan, fixup the indices for triangles instead
                         // There are #indices-2 triangles
                         for (UnsignedInt i = 0; i < unpackedRawIndices.size()-2; ++i) {
@@ -1112,21 +1106,36 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
                         break;
                     }
 
-                    case DrawCmd::DrawTriangleStrip: {
-                        Warning{} << "Supported DrawTriangleStrip";
+                    case DrawCmd::DrawTriangleStrip:
+                    case DrawCmd::DrawQuadStrip: {
                         // Verts come in as a triangle strip, fixup the indices for triangles instead
                         // There are #indices-2 triangles
                         for (UnsignedInt i = 0; i < unpackedRawIndices.size()-2; ++i) {
                             if (i%2) { // Odd case
-                                indices[i*3] = unpackedRawIndices[i+1];
-                                indices[i*3+1] = unpackedRawIndices[i];
-                                indices[i*3+2] = unpackedRawIndices[i+2];
+                                indices.push_back(unpackedRawIndices[i+1]);
+                                indices.push_back(unpackedRawIndices[i]);
+                                indices.push_back(unpackedRawIndices[i+2]);
                             } else { // Even case
-                                indices[i*3] = unpackedRawIndices[i];
-                                indices[i*3+1] = unpackedRawIndices[i+1];
-                                indices[i*3+2] = unpackedRawIndices[i+2];
+                                indices.push_back(unpackedRawIndices[i]);
+                                indices.push_back(unpackedRawIndices[i+1]);
+                                indices.push_back(unpackedRawIndices[i+2]);
                             }
                             
+                        }
+                        break;
+                    }
+
+                    case DrawCmd::DrawQuads: {
+                        // Number of triangles is #indices/2
+                        // Number of quads is #indices/4
+                        for (UnsignedInt i = 0; i < unpackedRawIndices.size()/4; ++i) {
+                            // Add 1 quad = 2 tris at a time
+                            indices.push_back(unpackedRawIndices[4*i]);
+                            indices.push_back(unpackedRawIndices[4*i+1]);
+                            indices.push_back(unpackedRawIndices[4*i+2]);
+                            indices.push_back(unpackedRawIndices[4*i+2]);
+                            indices.push_back(unpackedRawIndices[4*i+3]);
+                            indices.push_back(unpackedRawIndices[4*i]);
                         }
                         break;
                     }
@@ -1136,7 +1145,7 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
                     case DrawCmd::DrawLineLoop:
                     case DrawCmd::DrawLineStrip:
                     default:
-                        Warning{} << "Unsupported draw command" << cmd.drawMode;
+                        Warning{} << "Unsupported DrawInfo draw command" << cmd.drawMode;
                 }
                 if (indices.size() > 0) {
                     meshObj.addMatMesh(maybeFixedupMaterial->getName(),
