@@ -112,8 +112,9 @@ void WorldRenderer::createWorldObject(const WorldSceneBuilder *sb) {
     std::vector<std::string> matnames = sb->getMaterialList();
     // Render opaque objects first
     for (const auto& matname: matnames) {
-        if (auto *m = MAGNUMMATERIALMGR.findMaterial(matname)) {
-            if (m->getDiffuse()[3] < 0.999f) continue;
+        auto *mat = MAGNUMMATERIALMGR.findMaterial(matname);
+        if (mat) {
+            if (mat->getDiffuse()[3] < 0.999f) continue;
         }
         if (materialsToExclude.find(matname) != materialsToExclude.end()) {
             continue;
@@ -123,12 +124,13 @@ void WorldRenderer::createWorldObject(const WorldSceneBuilder *sb) {
         worldMeshes[entryName].push_back(MeshTools::compile(sb->compileMatMesh(matname)));
         GL::Mesh *m = &worldMeshes[entryName].back();
         matobjs->setParent(worldParent);
-        new BZMaterialDrawable(*matobjs, matShader, matShaderUntex, *m, matname, *worldDrawables);
+        new BZMaterialDrawable(*matobjs, matShader, matShaderUntex, *m, matname, *worldDrawables, mat);
     }
     // Render transparent objects second
     for (const auto& matname: matnames) {
-        if (auto *m = MAGNUMMATERIALMGR.findMaterial(matname)) {
-            if (m->getDiffuse()[3] >= 0.999f) continue;
+        auto *mat = MAGNUMMATERIALMGR.findMaterial(matname);
+        if (mat) {
+            if (mat->getDiffuse()[3] >= 0.999f) continue;
         }
         if (materialsToExclude.find(matname) != materialsToExclude.end()) {
             continue;
@@ -138,7 +140,7 @@ void WorldRenderer::createWorldObject(const WorldSceneBuilder *sb) {
         worldMeshes[entryName].push_back(MeshTools::compile(sb->compileMatMesh(matname)));
         GL::Mesh *m = &worldMeshes[entryName].back();
         matobjs->setParent(worldParent);
-        new BZMaterialDrawable(*matobjs, matShader, matShaderUntex, *m, matname, *worldTransDrawables);
+        new BZMaterialDrawable(*matobjs, matShader, matShaderUntex, *m, matname, *worldTransDrawables, mat);
     }
 }
 

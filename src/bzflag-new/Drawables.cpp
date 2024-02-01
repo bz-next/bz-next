@@ -54,7 +54,7 @@ void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::C
     MagnumTextureManager &tm = MagnumTextureManager::instance();
     GL::Buffer projectionUniform, lightUniform, materialUniform, transformationUniform, drawUniform, textureTransformationUniform;
 
-    const MagnumBZMaterial *mat = MAGNUMMATERIALMGR.findMaterial(_matName);
+    const MagnumBZMaterial *mat = _matPtr;//MAGNUMMATERIALMGR.findMaterial(_matName);
     
     projectionUniform.setData({
         Shaders::ProjectionUniform3D{}
