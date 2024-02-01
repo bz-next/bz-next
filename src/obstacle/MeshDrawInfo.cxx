@@ -111,6 +111,8 @@ MeshDrawInfo::MeshDrawInfo(const MeshDrawInfo* di,
     radarLods = di->radarLods;
     animInfo = di->animInfo;
 
+    vertexCount = di->vertexCount;
+
     // new data
     matMap = new MagnumMaterialMap(_matMap);
     xformTool = new MeshTransform::Tool(xform);
@@ -200,6 +202,8 @@ void MeshDrawInfo::init()
     xformTool = NULL;
 
     animInfo = NULL;
+
+    vertexCount = 0;
 
     return;
 }
@@ -303,6 +307,10 @@ static int compareLengthPerPixel(const void* a, const void* b)
         return 0;
 }
 
+int MeshDrawInfo::getVertexCount() const {
+    return vertexCount;
+}
+
 
 bool MeshDrawInfo::serverSetup(const MeshObstacle* mesh)
 {
@@ -322,6 +330,8 @@ bool MeshDrawInfo::serverSetup(const MeshObstacle* mesh)
         vCount = mesh->getVertexCount();
         verts = mesh->getVertices();
     }
+
+    vertexCount = vCount;
 
     Extents tmpExts;
     const bool calcCenter = (sphere[0] == +MAXFLOAT) &&
@@ -461,6 +471,8 @@ bool MeshDrawInfo::clientSetup(const MeshObstacle* mesh)
     if (!valid)
         return false;
 
+    std::cout << "Valid" << std::endl;
+
     const afvec3* verts;
     const afvec3* norms;
     const afvec2* txcds;
@@ -469,12 +481,14 @@ bool MeshDrawInfo::clientSetup(const MeshObstacle* mesh)
         verts = rawVerts;
         norms = rawNorms;
         txcds = rawTxcds;
+        vertexCount = rawVertCount;
     }
     else
     {
         verts = mesh->getVertices();
         norms = mesh->getNormals();
         txcds = mesh->getTexcoords();
+        vertexCount = mesh->getVertexCount();
     }
 
     // make the element arrays

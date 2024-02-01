@@ -47,7 +47,7 @@ MeshDrawMgr::MeshDrawMgr(const MeshDrawInfo* drawInfo_)
         item.assign((curDrawLod++)->count, INVALID_GL_LIST_ID);
 
     makeLists();
-    OpenGLGState::registerContextInitializer(freeContext, initContext, this);
+    //OpenGLGState::registerContextInitializer(freeContext, initContext, this);
 }
 
 
@@ -182,7 +182,7 @@ void MeshDrawMgr::makeLists()
     auto lod = 0;
     auto curDrawLod = drawInfo->getDrawLods();
 
-    for (auto &item : lodLists)
+    /*for (auto &item : lodLists)
     {
         const DrawLod& drawLod = *(curDrawLod++);
         for (auto set = 0; set < drawLod.count; set++)
@@ -210,7 +210,7 @@ void MeshDrawMgr::makeLists()
                 logDebugMessage(3,"MeshDrawMgr::makeLists() %i/%i created\n", lod, set);
         }
         lod++;
-    }
+    }*/
 
     return;
 }

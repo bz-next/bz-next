@@ -3,9 +3,10 @@
 #include <Magnum/MeshTools/Interleave.h>
 #include <Magnum/MeshTools/Copy.h>
 #include <Magnum/Math/Vector.h>
-
+#include <Magnum/Math/Matrix4.h>
 
 #include "Magnum/GL/GL.h"
+#include "Magnum/Math/Vector3.h"
 #include "Magnum/Trade/MeshData.h"
 
 
@@ -788,10 +789,17 @@ static bool translucentMaterial(const MagnumBZMaterial* mat)
     return false;
 }
 
-
+// This function is mashed together from various SceneNodes in the old code
+// as well as from a few miscellaneous places. The idea is to take a mesh
+// obstacle and simply result in mesh/material data in a WorldObject
+// No fussing around with all sorts of intermediate objects and weird
+// internal state.
 void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
     WorldObject meshObj;
+
     // HELPER FUNCTIONS
+
+    // Check for downward facing faces that are below the ground
     auto groundClippedFace = [](const MeshFace* face) {
         const float* plane = face->getPlane();
         if (plane[2] < -0.9f)
@@ -806,6 +814,8 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
         }
         return false;
     };
+    // Predicate for qsort, just sorts based on the pointers
+    // (this is kinda dumb, but it's how the original did it
     auto sortByMaterial = [](const void* a, const void *b) {
         const MeshFace* faceA = *((const MeshFace* const *)a);
         const MeshFace* faceB = *((const MeshFace* const *)b);
@@ -822,6 +832,47 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
         else
             return -1;
     };
+    // Autogen texcoords for faces that don't have them
+    auto makeTexcoords = [](const float* plane,
+        const std::vector<Vector3>& vertices,
+        std::vector<Vector2>& texcoords)
+    {
+
+        auto x = vertices[1] - vertices[0];
+        auto y = Math::cross({plane[0], plane[1], plane[2]}, x);
+
+        float len = Math::dot(x, x);
+        if (len > 0.0f)
+        {
+            len = 1.0f / sqrtf(len);
+            x *= len;
+        }
+        else
+            return false;
+
+        len = Math::dot(y, y);
+        if (len > 0.0f)
+        {
+            len = 1.0f / sqrtf(len);
+            y *= len;
+        }
+        else
+            return false;
+
+        const float uvScale = 8.0f;
+
+        texcoords[0] = {0.0f, 0.0f};
+
+        // Remember that mesh is based on GL_TRIANGLE_FAN
+        const int count = vertices.size();
+        for (int i = 1; i < count; i++)
+        {
+            Vector3 delta = vertices[i]-vertices[0];
+            texcoords[i] = {Math::dot(delta, x) / uvScale, Math::dot(delta, y) / uvScale};
+        }
+
+        return true;
+    };
 
     struct MeshNode
     {
@@ -833,89 +884,250 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
     const MeshDrawInfo* drawInfo = o.getDrawInfo();
     bool useDrawInfo = (drawInfo != NULL) && drawInfo->isValid();
 
+    auto getTransformMatrix = [&]()
+    {
+        Matrix4 xformMatrix;
+        const float *xformMatrixRaw;
+        const MeshTransform::Tool* xformTool = drawInfo->getTransformTool();
+
+        if (xformTool != NULL)
+        {
+            xformMatrixRaw = xformTool->getMatrix();
+            // Transpose, because xformTool gives a backwards result
+            for (int i = 0; i < 4; ++i)
+                for (int j = 0; j < 4; ++j)
+                    xformMatrix[i][j] = xformMatrixRaw[(4*j)+i];
+        }
+        return xformMatrix;
+    };
+
     // Immediately-invoked lambda for maximum correspondance with old code
     // Corresponds with setupFacesAndFrags() in MeshSceneNodeGenerator
-    if (!useDrawInfo) [&](){
-        const int faceCount = o.getFaceCount();
-        const bool noMeshClusters = BZDB.isTrue("noMeshClusters");
-        if (o.noClusters() || noMeshClusters || !BZDBCache::zbuffer)
-        {
+    // Just ported this over like this to avoid having to rewrite branching logic
+    if (!useDrawInfo) { // Meshes without DrawInfo are handled below
+        [&](){
+            const int faceCount = o.getFaceCount();
+            const bool noMeshClusters = BZDB.isTrue("noMeshClusters");
+            if (o.noClusters() || noMeshClusters || !BZDBCache::zbuffer)
+            {
+                for (int i = 0; i < faceCount; i++)
+                {
+                    MeshNode mn;
+                    mn.isFace = true;
+                    mn.faces.push_back(o.getFace(i));
+                    nodes.push_back(mn);
+                }
+                return; // bail out
+            }
+            // build up a list of faces and fragments
+            const MeshFace** sortList = new const MeshFace*[faceCount];
+
+            // clip ground faces, and then sort the face list by material
+            int count = 0;
             for (int i = 0; i < faceCount; i++)
             {
-                MeshNode mn;
-                mn.isFace = true;
-                mn.faces.push_back(o.getFace(i));
-                nodes.push_back(mn);
+                const MeshFace* face = o.getFace(i);
+                if (!groundClippedFace(face))
+                {
+                    sortList[count] = face;
+                    count++;
+                }
             }
-            return; // bail out
+            qsort(sortList, count, sizeof(MeshFace*), sortByMaterial);
+
+            // make the faces and fragments
+            int first = 0;
+            while (first < count)
+            {
+                const MeshFace* firstFace = sortList[first];
+                const MagnumBZMaterial* firstMat = firstFace->getMaterial();
+
+                // see if this face needs to be drawn individually
+                if (firstFace->noClusters() ||
+                        (translucentMaterial(firstMat) &&
+                        !firstMat->getNoSorting() && !firstMat->getGroupAlpha()))
+                {
+                    MeshNode mn;
+                    mn.isFace = true;
+                    mn.faces.push_back(firstFace);
+                    nodes.push_back(mn);
+                    first++;
+                    continue;
+                }
+
+                // collate similar materials
+                int last = first + 1;
+                while (last < count)
+                {
+                    const MeshFace* lastFace = sortList[last];
+                    const MagnumBZMaterial* lastMat = lastFace->getMaterial();
+                    if (lastMat != firstMat)
+                        break;
+                    last++;
+                }
+
+                // make a face for singles, and a fragment otherwise
+                if ((last - first) == 1)
+                {
+                    MeshNode mn;
+                    mn.isFace = true;
+                    mn.faces.push_back(firstFace);
+                    nodes.push_back(mn);
+                }
+                else
+                {
+                    MeshNode mn;
+                    mn.isFace = false;
+                    for (int i = first; i < last; i++)
+                        mn.faces.push_back(sortList[i]);
+                    nodes.push_back(mn);
+                }
+
+                first = last;
+            }
+        }(); // Please forgive me for this
+    } else { // We are using drawinfo
+        // ================ DrawInfo Meshes handled below ================
+        // These meshes were handled in an extremely convoluted way in the old code
+        // As far as I can tell, meshes were parsed into lists to be sent to OpenGL
+        // But the code was pretty fragile and pretty unencapsulated... The code
+        // below is built up from sources such as MeshSceneNode.cxx, MeshSceneNodeGenerator.cxx
+        // MeshDrawInfo.cxx, MeshRenderNode.cxx, among others.
+        if (drawInfo->isInvisible()) {
+            return;
         }
-        // build up a list of faces and fragments
-        const MeshFace** sortList = new const MeshFace*[faceCount];
-
-        // clip ground faces, and then sort the face list by material
-        int count = 0;
-        for (int i = 0; i < faceCount; i++)
-        {
-            const MeshFace* face = o.getFace(i);
-            if (!groundClippedFace(face))
+        Warning{} << "Check draw manager";
+        auto drawMgr = drawInfo->getDrawMgr();
+        if (drawMgr == NULL)
+            return;
+        Warning{} << "Got it";
+        float lengthAdj = 1.0f;
+        const Extents& diExts = drawInfo->getExtents();
+        const MeshTransform::Tool* xformTool = drawInfo->getTransformTool();
+        
+        if (xformTool) {
+            // sloppy way to recalcuate the transformed extents
+            afvec3 c[8];
+            c[0][0] = c[6][0] = c[5][0] = c[3][0] = diExts.mins[0];
+            c[7][0] = c[1][0] = c[2][0] = c[4][0] = diExts.maxs[0];
+            c[0][1] = c[1][1] = c[5][1] = c[4][1] = diExts.mins[1];
+            c[7][1] = c[6][1] = c[2][1] = c[3][1] = diExts.maxs[1];
+            c[0][2] = c[1][2] = c[2][2] = c[3][2] = diExts.mins[2];
+            c[7][2] = c[6][2] = c[5][2] = c[4][2] = diExts.maxs[2];
+            // lengthPerPixel adjustment
+            lengthAdj = +MAXFLOAT;
+            for (int a = 0; a < 3; a++)
             {
-                sortList[count] = face;
-                count++;
+                const float oldWidth = diExts.maxs[a] - diExts.mins[a];
+                const afvec3& s = c[0]; // all mins
+                // mins, except: c[1] -> max[0], c[3] -> max[1], c[5] -> max[2]
+                const afvec3& e = c[(a * 2) + 1];
+                const float d[3] = {s[0] - e[0], s[1] - e[1], s[2] - e[2]};
+                const float newWidth = sqrtf(d[0]*d[0] + d[1]*d[1] + d[2]*d[2]);
+                if (oldWidth > 0.0f)
+                {
+                    const float scale = (newWidth / oldWidth);
+                    if (scale < lengthAdj)
+                        lengthAdj = scale;
+                }
             }
         }
-        qsort(sortList, count, sizeof(MeshFace*), sortByMaterial);
 
-        // make the faces and fragments
-        int first = 0;
-        while (first < count)
-        {
-            const MeshFace* firstFace = sortList[first];
-            const MagnumBZMaterial* firstMat = firstFace->getMaterial();
+        // Get LOD (just get the highest level one for now, can expand this later)
+        if (drawInfo->getLodCount() < 1) return;
+        Warning{} << "Got here";
 
-            // see if this face needs to be drawn individually
-            if (firstFace->noClusters() ||
-                    (translucentMaterial(firstMat) &&
-                    !firstMat->getNoSorting() && !firstMat->getGroupAlpha()))
-            {
-                MeshNode mn;
-                mn.isFace = true;
-                mn.faces.push_back(firstFace);
-                nodes.push_back(mn);
-                first++;
-                continue;
-            }
+        auto lods = drawInfo->getDrawLods();
+        const DrawLod& lod = lods[0];   // Just get highest LOD for now
 
-            // collate similar materials
-            int last = first + 1;
-            while (last < count)
-            {
-                const MeshFace* lastFace = sortList[last];
-                const MagnumBZMaterial* lastMat = lastFace->getMaterial();
-                if (lastMat != firstMat)
-                    break;
-                last++;
-            }
+        // Grab transform matrix (transforms obj coords to world coords)
+        Matrix4 transformMat = getTransformMatrix();
 
-            // make a face for singles, and a fragment otherwise
-            if ((last - first) == 1)
-            {
-                MeshNode mn;
-                mn.isFace = true;
-                mn.faces.push_back(firstFace);
-                nodes.push_back(mn);
-            }
-            else
-            {
-                MeshNode mn;
-                mn.isFace = false;
-                for (int i = first; i < last; i++)
-                    mn.faces.push_back(sortList[i]);
-                nodes.push_back(mn);
-            }
-
-            first = last;
+        // Copy out verts, norms, texcoords
+        auto di_verts = drawInfo->getVertices();
+        auto di_norms = drawInfo->getNormals();
+        auto di_texcoords = drawInfo->getTexcoords();
+        size_t vertexCount = drawInfo->getVertexCount();
+        std::vector<Math::Vector3<float>> verts{vertexCount};
+        for (int i = 0; i < vertexCount; ++i) {
+            verts[i].x() = di_verts[i][0];
+            verts[i].y() = di_verts[i][1];
+            verts[i].z() = di_verts[i][2];
+            verts[i] = getTransformMatrix().transformPoint(verts[i]);
         }
-    }();
+
+        std::vector<Math::Vector3<float>> norms{vertexCount};
+        for (int i = 0; i < vertexCount; ++i) {
+            norms[i].x() = di_norms[i][0];
+            norms[i].y() = di_norms[i][1];
+            norms[i].z() = di_norms[i][2];
+        }
+
+        std::vector<Math::Vector2<float>> texcoords{vertexCount};
+        for (int i = 0; i < vertexCount; ++i) {
+            texcoords[i].x() = di_texcoords[i][0];
+            texcoords[i].y() = di_texcoords[i][1];
+        }
+
+        // For each set (pairing of command (GL_TRIANGLES, GL_POINTS, etc, and index data)
+
+        for (int setnum = 0; setnum < lod.count; ++setnum) {
+            const DrawSet& dset = lod.sets[setnum];
+            // For each draw command in the draw set...
+            for (int cmdnum = 0; cmdnum < dset.count; ++cmdnum) {
+                const DrawCmd& cmd = dset.cmds[cmdnum];
+
+                UnsignedInt rawIndexCount = cmd.count;
+
+                // Draw commands store indices with runtime packing, unpack to Uints first
+                std::vector<UnsignedInt> unpackedRawIndices;
+                for (int i = 0; i < rawIndexCount; ++i) {
+                    switch(cmd.indexType) {
+                        case DrawCmd::DrawIndexUShort:
+                            unpackedRawIndices.push_back((UnsignedInt)((unsigned short *)cmd.indices)[i]);
+                            break;
+                        case DrawCmd::DrawIndexUInt:
+                            unpackedRawIndices.push_back((UnsignedInt)((unsigned int *)cmd.indices)[i]);
+                            break;
+                        default:
+                            Warning{} << "Unsupported index format" << cmd.indexType;
+                    }
+                }
+
+                // Fix up indices
+                switch (cmd.drawMode) {
+                    case DrawCmd::DrawTriangles: {
+                        Warning{} << "Supported DrawTriangles";
+                        Warning{} << verts;
+                        Warning{} << norms;
+                        Warning{} << texcoords;
+                        Warning{} << unpackedRawIndices;
+                        Warning{} << dset.material->getName().c_str();
+                        // Just use the indices directly
+                        meshObj.addMatMesh(dset.material->getName(),
+                        WorldPrimitiveGenerator::rawIndexedTris(verts, norms, texcoords, unpackedRawIndices));
+                        break;
+                    }
+
+                    case DrawCmd::DrawPoints:
+                    case DrawCmd::DrawLines:
+                    case DrawCmd::DrawLineLoop:
+                    case DrawCmd::DrawLineStrip:
+                    default:
+                        Warning{} << "Unsupported draw command" << cmd.drawMode;
+                }
+            }
+        }
+        worldObjects.emplace_back(std::move(meshObj));
+        return;
+    }
+
+    // ==================== We have a non-DrawInfo Mesh =======================
+    // These are pretty straightforward, grab the faces, do any necessary post-processing
+    // (pack verts, normals, and texcoords) and ship them off to WorldPrimitiveGenerator
+    // to be processed into MeshData. Non-DrawInfo mesh faces are always indexed meshes
+    // in the form of triangle fans, so we post-process the indices to convert them
+    // into triangles instead, for uniformity with other mesh handling code.
 
     //while ((node = nodeGen->getNextNode(wallLOD)))
     int currentNode = 0;
@@ -989,10 +1201,8 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
 
             break; // break the loop if we haven't used 'continue'
         }
-        //WallSceneNode* node;
+
         if (mn->isFace) {
-            //node = getMeshPolySceneNode(face);
-            // Corresponds to getMeshPolySceneNode(face)
             const size_t vertexCount = face->getVertexCount();
             std::vector<Math::Vector3<float>> verts{vertexCount};
             for (int i = 0; i < vertexCount; ++i) {
@@ -1002,10 +1212,6 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
                 verts[i].z() = vp[2];
             }
 
-            //std::size_t normalCount = 0;
-            //if (face->useNormals())
-            //    normalCount = vertexCount;
-            //if (!face->useNormals()) {currentNode += 1; return true; } // Debug skip
             std::vector<Math::Vector3<float>> norms{vertexCount};
             for (int i = 0; i < vertexCount; ++i) {
                 const float * vp;
@@ -1024,11 +1230,11 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
                     texcoords[i].y() = vp[1];
                 }
             } else {
-                //makeTexcoords(face->getPlane(), vertices, texcoords);
+                makeTexcoords(face->getPlane(), verts, texcoords);
                 
             }
             meshObj.addMatMesh(mat->getName(),
-            WorldPrimitiveGenerator::planarPoly(verts, norms, texcoords));
+            WorldPrimitiveGenerator::planarPolyFromTriFan(verts, norms, texcoords));
     
         }
         else
@@ -1038,11 +1244,6 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
             // to be rendered as triangles... that's what we're doing
             // for ALL the faces anyway, so we can just pack each
             // face separately into the meshObj.
-            /*const MeshFace** faces = new const MeshFace*[mn->faces.size()];
-            for (int i = 0; i < (int)mn->faces.size(); i++)
-                faces[i] = mn->faces[i];
-            // the MeshFragSceneNode will delete the faces
-            node = new MeshFragSceneNode(mn->faces.size(), faces);*/
             int faceCount = mn->faces.size();
 
             for (int i = 0; i < faceCount; ++i) {
@@ -1065,8 +1266,7 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
                         texcoords[i].y() = vp[1];
                     }
                 } else {
-                    //makeTexcoords(face->getPlane(), vertices, texcoords);
-                    
+                    makeTexcoords(face->getPlane(), verts, texcoords);
                 }
 
                 std::vector<Math::Vector3<float>> norms{vertexCount};
@@ -1080,7 +1280,7 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
                 }
 
                 meshObj.addMatMesh(mat->getName(),
-                WorldPrimitiveGenerator::planarPoly(verts, norms, texcoords));
+                WorldPrimitiveGenerator::planarPolyFromTriFan(verts, norms, texcoords));
 
 
             }

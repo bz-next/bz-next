@@ -1541,6 +1541,8 @@ void BZFlagNew::joinInternetGame2()
 
     worldRenderer.destroyWorldObject();
 
+    world->makeMeshDrawMgrs();
+
     const ObstacleList& boxes = OBSTACLEMGR.getBoxes();
     for (int i = 0; i < boxes.size(); ++i) {
         worldSceneBuilder.addBox(*((BoxBuilding*) boxes[i]));
@@ -1565,9 +1567,13 @@ void BZFlagNew::joinInternetGame2()
     const ObstacleList& meshes = OBSTACLEMGR.getMeshes();
     for (int i = 0; i < meshes.size(); i++)
         worldSceneBuilder.addMesh (*((MeshObstacle*) meshes[i]));
+    /*std::vector<MeshObstacle*> sourceMeshes;
+    OBSTACLEMGR.getSourceMeshes(sourceMeshes);
+    for (int i = 0; i < sourceMeshes.size(); i++)
+        worldSceneBuilder.addMesh (*((MeshObstacle*) sourceMeshes[i]));*/
     
     world->makeLinkMaterial();
-
+    
     //MAGNUMMATERIALMGR.loadDefaultMaterials();
 
     

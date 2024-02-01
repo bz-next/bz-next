@@ -824,6 +824,7 @@ const void *MeshObstacle::unpack(const void *buf)
                 if (useDrawInfo)
                 {
                     drawInfo->clientSetup(this);
+                    std::cout << "Client Setup" << std::endl;
                     if (!drawInfo->isValid())
                     {
                         delete drawInfo;
