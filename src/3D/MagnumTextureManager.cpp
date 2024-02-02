@@ -9,7 +9,8 @@
  * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
-
+#include <algorithm>
+#include <string>
 // interface headers
 #include "MagnumTextureManager.h"
 #include <Corrade/Containers/Array.h>
@@ -280,8 +281,11 @@ GL::Texture2D* MagnumTextureManager::loadTexture(FileTextureInit &init, bool rep
     if (filename == "") {
         return NULL;
     }
-    if (CACHEMGR.isCacheFileType(init.name))
+	std::replace(filename.begin(), filename.end(), '\\', '/');
+    if (CACHEMGR.isCacheFileType(filename)) {
+		std::cout << "Cache type" << std::endl;
         filename = CACHEMGR.getLocalName(filename);
+	}
 
     // TODO: Support other file types JUST BY NOT REQUIRING THIS EXTENSION!!!
     // The current code is dumb in that it appends the extension last minute based on what exists...

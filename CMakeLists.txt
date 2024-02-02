@@ -101,6 +101,8 @@ find_package(ZLIB REQUIRED)
 # Optional for BZAdmin
 find_package(Curses)
 
+set(CMAKE_CXX_STANDARD_LIBRARIES "-static-libgcc -static-libstdc++ -lwsock32 -lws2_32 ${CMAKE_CXX_STANDARD_LIBRARIES}")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive")
 if(ENABLE_CLIENT)
     # Needed for client
     find_package(SDL2)
@@ -110,6 +112,16 @@ if(ENABLE_CLIENT)
     set(HAVE_PTHREADS ${CMAKE_USE_PTHREADS_INIT})
     find_package(OpenGL)
     find_package(GLEW)
+
+    set(CMAKE_EXE_LINKER_FLAGS " -static")
+    link_libraries(-static)
+    link_libraries(${GLEW_LIBRARIES})
+    link_libraries(-lpng)
+    link_libraries(-lsystre)
+    link_libraries(-lzlibstatic)
+    link_libraries(winmm)
+    link_libraries(-lregex)
+    link_libraries(libtre.dll)
 
     # Check if all our dependencies were found, and if not, disable the client
     if(NOT SDL2_FOUND OR NOT Threads_FOUND OR NOT OPENGL_FOUND OR NOT GLEW_FOUND)

@@ -69,6 +69,10 @@ std::string CacheManager::getIndexPath()
 
 bool CacheManager::isCacheFileType(const std::string &name) const
 {
+    std::cout << name.substr(0,7) << std::endl;
+    if (name.substr(0, 7) == "http://") {
+        return true;
+    }
     if (strncasecmp(name.c_str(), "http://", 7) == 0)
         return true;
     if (strncasecmp(name.c_str(), "ftp://", 6) == 0)

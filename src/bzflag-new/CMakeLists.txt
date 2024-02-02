@@ -33,7 +33,8 @@ set_directory_properties(PROPERTIES CORRADE_USE_PEDANTIC_FLAGS ON)
 
 corrade_add_resource(BZNEW_RESOURCES resources/resources.conf)
 
-add_executable(bzflag-new WIN32 bzflag-new.cpp ${BZNEW_RESOURCES}
+set(CMAKE_EXE_LINKER_FLAGS " -static -mconsole")
+add_executable(bzflag-new bzflag-new.cpp ${BZNEW_RESOURCES}
 ActionBinding.cxx
     ActionBinding.h
     AutoPilot.cxx
@@ -245,7 +246,9 @@ target_link_libraries(bzflag-new PRIVATE
     bzmediafile
     bzdate
     bzgeometry
-    bzogl)
+    bzogl
+    -static-libstdc++
+    -static-libgcc)
 target_compile_options(bzflag-new PRIVATE -w)
 add_dependencies(bzflag-new Magnum::AnyImageImporter MagnumPlugins::PngImporter Magnum::AnySceneImporter Magnum::ObjImporter GLEW::GLEW)
 

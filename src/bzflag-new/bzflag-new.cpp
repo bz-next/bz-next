@@ -455,7 +455,7 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
         GL::Renderer::BlendFunction::OneMinusSourceAlpha);
 
     setMinimalLoopPeriod(0);
-    //setSwapInterval(0);
+    setSwapInterval(0);
 }
 
 void BZFlagNew::showMainMenuBar() {
