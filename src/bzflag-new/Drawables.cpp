@@ -94,13 +94,19 @@ void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::C
 
         GL::Texture2D *t = tm.getTexture(mat->getTexture(0).c_str());
         if (t) {
+            float alphathresh = mat->getAlphaThreshold();
+            // The map "duck dodgers" set alphathresh=1 for many materials
+            // and the old client still rendered them. Max out alphathresh at
+            // 0.999, since some map makers might just max out the value
+            // to get transparency working.
+            if (alphathresh > 0.999f) alphathresh = 0.999f;
             materialUniform.setData({
             Shaders::PhongMaterialUniform{}
                 .setDiffuseColor(Color4{toMagnumColor(mat->getDiffuse()), 0.0f})
-                .setAmbientColor(Color4{toMagnumColor(mat->getAmbient()) + toMagnumColor(mat->getEmission()) + dyncol, mat->getDiffuse()[3]})
+                .setAmbientColor(Color4{0.2*toMagnumColor(mat->getAmbient()) + toMagnumColor(mat->getEmission()) + dyncol, mat->getDiffuse()[3]})
                 .setSpecularColor(Color4{toMagnumColor(mat->getSpecular()), 0.0f})
                 .setShininess(mat->getShininess())
-                .setAlphaMask(mat->getAlphaThreshold())
+                .setAlphaMask(alphathresh)
         });
                 textureTransformationUniform.setData({
                     Shaders::TextureTransformationUniform{}
