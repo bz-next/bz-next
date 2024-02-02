@@ -76,7 +76,7 @@ BZMaterialViewer::BZMaterialViewer() :
     },
     phongUntex {
         Shaders::PhongGL::Configuration{}
-            .setFlags(Shaders::PhongGL::Flag::UniformBuffers | Shaders::PhongGL::Flag::AlphaMask)
+            .setFlags(Shaders::PhongGL::Flag::UniformBuffers)
             .setMaterialCount(1)
             .setLightCount(1)
             .setDrawCount(1)
@@ -211,17 +211,18 @@ void BZMaterialViewer::renderPreview() {
                     dyncol = toMagnumColor(dc->getColor());
                 }
             }
-            materialUniform.setData({
-                Shaders::PhongMaterialUniform{}
-                    .setDiffuseColor(Color4{toMagnumColor(mat->getDiffuse()), 0.0f})
-                    .setAmbientColor(Color4{toMagnumColor(mat->getAmbient()) + toMagnumColor(mat->getEmission()) + dyncol, mat->getDiffuse()[3]})
-                    .setSpecularColor(Color4{toMagnumColor(mat->getSpecular()), 0.0f})
-                    .setShininess(mat->getShininess())
-                    .setAlphaMask(mat->getAlphaThreshold())
-            });
+            
 
             GL::Texture2D *t = tm.getTexture(mat->getTexture(0).c_str());
             if (t) {
+                    materialUniform.setData({
+                    Shaders::PhongMaterialUniform{}
+                        .setDiffuseColor(Color4{toMagnumColor(mat->getDiffuse())+dyncol, 0.0f})
+                        .setAmbientColor(Color4{toMagnumColor(mat->getAmbient()) + toMagnumColor(mat->getEmission()), mat->getDiffuse()[3]})
+                        .setSpecularColor(Color4{toMagnumColor(mat->getSpecular()), 0.0f})
+                        .setShininess(mat->getShininess())
+                        .setAlphaMask(mat->getAlphaThreshold())
+                });
                     textureTransformationUniform.setData({
                         Shaders::TextureTransformationUniform{}
                             .setTextureMatrix(Matrix3{})
@@ -256,6 +257,14 @@ void BZMaterialViewer::renderPreview() {
                     .bindTextureTransformationBuffer(textureTransformationUniform)
                     .draw(mesh);
             } else {
+                materialUniform.setData({
+                Shaders::PhongMaterialUniform{}
+                    .setDiffuseColor(Color4{toMagnumColor(mat->getDiffuse())+dyncol, 0.0f})
+                    .setAmbientColor(Color4{toMagnumColor(mat->getAmbient()) + toMagnumColor(mat->getEmission()), mat->getDiffuse()[3]})
+                    .setSpecularColor(Color4{toMagnumColor(mat->getSpecular()), 0.0f})
+                    .setShininess(mat->getShininess())
+                    // No alpha mask on untextured materials
+                });
                 phongUntex
                     .bindLightBuffer(lightUniform)
                     .bindProjectionBuffer(projectionUniform)

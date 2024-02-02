@@ -65,8 +65,7 @@ class WorldRenderer {
             .setDrawCount(1)};
         Magnum::Shaders::PhongGL matShaderUntex{Magnum::Shaders::PhongGL::Configuration{}
             .setFlags(
-                Magnum::Shaders::PhongGL::Flag::UniformBuffers |
-                Magnum::Shaders::PhongGL::Flag::AlphaMask)
+                Magnum::Shaders::PhongGL::Flag::UniformBuffers)
             .setMaterialCount(1)
             .setLightCount(1)
             .setDrawCount(1)};

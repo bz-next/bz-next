@@ -63,7 +63,7 @@ void BZMaterialBrowser::draw(const char *title, bool *p_open) {
         ImGui::Text("No Culling: %d", mat->getNoCulling());
         ImGui::Text("No Sorting: %d", mat->getNoSorting());
         ImGui::Text("No Lighting: %d", mat->getNoLighting());
-        ImGui::Text("Alpha Threshold: %d", mat->getAlphaThreshold());
+        ImGui::Text("Alpha Threshold: %f", mat->getAlphaThreshold());
         ImGui::Text("Texture Count: %d", mat->getTextureCount());
         for (int i = 0; i < mat->getTextureCount(); ++i) {
             ImGui::Text("  Texture %d: %s", i, mat->getTexture(i).c_str());
