@@ -43,7 +43,7 @@ class WorldRenderer {
             Magnum::Matrix3x3 normalMatrix;
             Magnum::Color3 color;
         };
-        std::map<std::string, std::list<Magnum::GL::Mesh>> worldMeshes;
+        std::map<std::string, std::vector<Magnum::GL::Mesh>> worldMeshes;
         Object3D *worldParent;
         Magnum::GL::Mesh *debugLine;
         Magnum::SceneGraph::DrawableGroup3D *worldDebugDrawables;

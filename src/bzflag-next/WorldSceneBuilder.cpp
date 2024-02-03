@@ -10,6 +10,7 @@
 #include "Magnum/GL/GL.h"
 #include "Magnum/Math/Vector3.h"
 #include "Magnum/MeshTools/Compile.h"
+#include "Magnum/Shaders/PhongGL.h"
 #include "Magnum/Trade/Data.h"
 #include "Magnum/Trade/MeshData.h"
 
@@ -1360,6 +1361,7 @@ void WorldSceneBuilder::reset() {
 }
 
 GL::Mesh WorldSceneBuilder::compileMatMesh(std::string matname) const {
+    static unsigned long long int vcount = 0;
     struct VertexData {
         Vector3 position;
         Vector3 normal;
@@ -1368,6 +1370,9 @@ GL::Mesh WorldSceneBuilder::compileMatMesh(std::string matname) const {
     Containers::Array<Vector3> positions;
     Containers::Array<Vector3> normals;
     Containers::Array<Vector2> texcoords;
+    Containers::Array<Vector3> positions2;
+    Containers::Array<Vector3> normals2;
+    Containers::Array<Vector2> texcoords2;
     Containers::Array<UnsignedInt> indices;
     int vertexCount = 0;
     int indOffset = 0;
@@ -1391,14 +1396,53 @@ GL::Mesh WorldSceneBuilder::compileMatMesh(std::string matname) const {
         }
     }
 
+    for (const auto& o: worldObjects) {
+        for (const auto& mm: o.getMatMeshes()) {
+            if (mm.first == matname) {
+                const auto& md = mm.second;
+                Containers::arrayAppend(positions2, Containers::ArrayView<const Vector3>{md.getVertices().data(), md.getVertices().size()});
+                Containers::arrayAppend(normals2, Containers::ArrayView<const Vector3>{md.getNormals().data(), md.getNormals().size()});
+                Containers::arrayAppend(texcoords2, Containers::ArrayView<const Vector2>{md.getTexcoords().data(), md.getTexcoords().size()});
+                Containers::Array<UnsignedInt> inds{md.getIndices().size()};
+
+                for (int i = 0; i < inds.size(); ++i) {
+                    inds[i] = md.getIndices()[i] + indOffset;
+                }
+
+                //vertexCount += md.getVertices().size();
+                //indOffset += md.getVertices().size();
+                //Containers::arrayAppend(indices, inds);
+            }
+        }
+    }
+
     Containers::Array<char> meshdata = MeshTools::interleave(positions, normals, texcoords);
     Warning{} << matname.c_str() << vertexCount << indices.size() << meshdata.size();
     Containers::StridedArrayView1D<const VertexData> dataview = Containers::arrayCast<const VertexData>(meshdata);
     Containers::ArrayView<const UnsignedInt> indexview = Containers::arrayCast<const UnsignedInt>(indices);
+
+    vcount += vertexCount;
+
+    Warning{} << "BIG V COUNT" << vcount;
 
     return MeshTools::compile(Trade::MeshData {MeshPrimitive::Triangles, Trade::DataFlags{}, std::move(indices), Trade::MeshIndexData{indexview}, std::move(meshdata), {
         Trade::MeshAttributeData{Trade::MeshAttribute::Position, dataview.slice(&VertexData::position)},
         Trade::MeshAttributeData{Trade::MeshAttribute::Normal, dataview.slice(&VertexData::normal)},
         Trade::MeshAttributeData{Trade::MeshAttribute::TextureCoordinates, dataview.slice(&VertexData::texcoord)}
         }, static_cast<UnsignedInt>(vertexCount)});
+    
+    // Alternative approach, manual mesh spec
+    /*
+    GL::Mesh *ret = new GL::Mesh;
+    GL::Buffer indicesbuf;
+    indicesbuf.setData(indices);
+    GL::Buffer vbuf;
+    vbuf.setData(meshdata);
+
+    ret->addVertexBuffer(std::move(vbuf), 0, Shaders::PhongGL::Position{}, Shaders::PhongGL::Normal{}, Shaders::PhongGL::TextureCoordinates{});
+    ret->setIndexBuffer(std::move(indicesbuf), 0, MeshIndexType::UnsignedInt);
+    ret->setCount(indices.size());
+    return ret;
+    */
+    
 }
