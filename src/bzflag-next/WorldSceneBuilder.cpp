@@ -1396,34 +1396,11 @@ GL::Mesh WorldSceneBuilder::compileMatMesh(std::string matname) const {
         }
     }
 
-    for (const auto& o: worldObjects) {
-        for (const auto& mm: o.getMatMeshes()) {
-            if (mm.first == matname) {
-                const auto& md = mm.second;
-                Containers::arrayAppend(positions2, Containers::ArrayView<const Vector3>{md.getVertices().data(), md.getVertices().size()});
-                Containers::arrayAppend(normals2, Containers::ArrayView<const Vector3>{md.getNormals().data(), md.getNormals().size()});
-                Containers::arrayAppend(texcoords2, Containers::ArrayView<const Vector2>{md.getTexcoords().data(), md.getTexcoords().size()});
-                Containers::Array<UnsignedInt> inds{md.getIndices().size()};
-
-                for (int i = 0; i < inds.size(); ++i) {
-                    inds[i] = md.getIndices()[i] + indOffset;
-                }
-
-                //vertexCount += md.getVertices().size();
-                //indOffset += md.getVertices().size();
-                //Containers::arrayAppend(indices, inds);
-            }
-        }
-    }
-
     Containers::Array<char> meshdata = MeshTools::interleave(positions, normals, texcoords);
-    Warning{} << matname.c_str() << vertexCount << indices.size() << meshdata.size();
     Containers::StridedArrayView1D<const VertexData> dataview = Containers::arrayCast<const VertexData>(meshdata);
     Containers::ArrayView<const UnsignedInt> indexview = Containers::arrayCast<const UnsignedInt>(indices);
 
     vcount += vertexCount;
-
-    Warning{} << "BIG V COUNT" << vcount;
 
     return MeshTools::compile(Trade::MeshData {MeshPrimitive::Triangles, Trade::DataFlags{}, std::move(indices), Trade::MeshIndexData{indexview}, std::move(meshdata), {
         Trade::MeshAttributeData{Trade::MeshAttribute::Position, dataview.slice(&VertexData::position)},
