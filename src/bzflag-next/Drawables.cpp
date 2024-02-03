@@ -54,32 +54,14 @@ void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::C
     MagnumTextureManager &tm = MagnumTextureManager::instance();
     GL::Buffer projectionUniform, lightUniform, materialUniform, transformationUniform, drawUniform, textureTransformationUniform;
 
-    const MagnumBZMaterial *mat = _matPtr;//MAGNUMMATERIALMGR.findMaterial(_matName);
-    
-    projectionUniform.setData({
-        Shaders::ProjectionUniform3D{}
-            .setProjectionMatrix(camera.projectionMatrix())
-    });
-    lightUniform.setData({
-        Shaders::PhongLightUniform{}
-            .setPosition({camera.cameraMatrix().transformPoint({0.0f, 0.0f, 1000.0f}), 0.0f})
-            .setColor({1.0, 1.0, 1.0})
-    });
-    transformationUniform.setData({
-        Shaders::TransformationUniform3D{}
-            .setTransformationMatrix(transformationMatrix)
-    });
-    drawUniform.setData({
-        Shaders::PhongDrawUniform{}
-            .setNormalMatrix(transformationMatrix.normalMatrix())
-            .setMaterialId(0)
-    });
+    const MagnumBZMaterial *mat = _matPtr;
 
     auto toMagnumColor = [](const float *cp) {
         return Color3{cp[0], cp[1], cp[2]};
     };
 
     if (mat) {
+
         Color3 dyncol;
         if (mat->getDynamicColor() != -1) {
             auto * dc = DYNCOLORMGR.getColor(mat->getDynamicColor());
@@ -87,6 +69,7 @@ void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::C
                 dyncol = toMagnumColor(dc->getColor());
             }
         }
+
         if (mat->getNoCulling())
             GL::Renderer::disable(GL::Renderer::Feature::FaceCulling);
         else
@@ -100,21 +83,12 @@ void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::C
             // 0.999, since some map makers might just max out the value
             // to get transparency working.
             if (alphathresh > 0.999f) alphathresh = 0.999f;
-            materialUniform.setData({
-            Shaders::PhongMaterialUniform{}
-                .setDiffuseColor(Color4{toMagnumColor(mat->getDiffuse()), 0.0f})
-                .setAmbientColor(Color4{0.2*toMagnumColor(mat->getAmbient()) + toMagnumColor(mat->getEmission()) + dyncol, mat->getDiffuse()[3]})
-                .setSpecularColor(Color4{toMagnumColor(mat->getSpecular()), 0.0f})
-                .setShininess(mat->getShininess())
-                .setAlphaMask(alphathresh)
-        });
-                textureTransformationUniform.setData({
-                    Shaders::TextureTransformationUniform{}
-                        .setTextureMatrix(Matrix3{})
-                });
+
+            Matrix3 texmat;
+
             if (mat->getTextureMatrix(0) != -1) {
                 const TextureMatrix *texmat_internal = TEXMATRIXMGR.getMatrix(mat->getTextureMatrix(0));
-                Matrix3 texmat;
+                
                 
                 auto &tmd = texmat.data();
                 const float *tmid = texmat_internal->getMatrix();
@@ -127,19 +101,21 @@ void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::C
                 tmd[MAGNUMROWCOL(0, 2)] = tmid[INTROWCOL(0, 3)];
                 tmd[MAGNUMROWCOL(1, 2)] = tmid[INTROWCOL(1, 3)];
                 
-                textureTransformationUniform.setData({
-                    Shaders::TextureTransformationUniform{}
-                        .setTextureMatrix(texmat)
-                });
             }
             _shader.bindDiffuseTexture(*t)
                 .bindAmbientTexture(*t)
-                .bindLightBuffer(lightUniform)
-                .bindProjectionBuffer(projectionUniform)
-                .bindMaterialBuffer(materialUniform)
-                .bindTransformationBuffer(transformationUniform)
-                .bindDrawBuffer(drawUniform)
-                .bindTextureTransformationBuffer(textureTransformationUniform)
+                .setDiffuseColor(Color4{toMagnumColor(mat->getDiffuse()), 0.0f})
+                .setAmbientColor(Color4{0.2*toMagnumColor(mat->getAmbient()) + toMagnumColor(mat->getEmission()) + dyncol, mat->getDiffuse()[3]})
+                .setSpecularColor(Color4{toMagnumColor(mat->getSpecular()), 0.0f})
+                .setShininess(mat->getShininess())
+                .setAlphaMask(alphathresh)
+                .setNormalMatrix(transformationMatrix.normalMatrix())
+                .setTransformationMatrix(transformationMatrix)
+                .setProjectionMatrix(camera.projectionMatrix())
+                .setLightPositions({
+                    {camera.cameraMatrix().transformPoint({0.0f, 0.0f, 1000.0f}), 0.0f}
+                })
+                .setTextureMatrix(texmat)
                 .draw(_mesh);
         } else {
             materialUniform.setData({
@@ -150,11 +126,16 @@ void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::C
                 .setShininess(mat->getShininess())
         });
             _shaderUntex
-                .bindLightBuffer(lightUniform)
-                .bindProjectionBuffer(projectionUniform)
-                .bindMaterialBuffer(materialUniform)
-                .bindTransformationBuffer(transformationUniform)
-                .bindDrawBuffer(drawUniform)
+                .setDiffuseColor(Color4{toMagnumColor(mat->getDiffuse()), 0.0f})
+                .setAmbientColor(Color4{0.2*toMagnumColor(mat->getAmbient()) + toMagnumColor(mat->getEmission()) + dyncol, mat->getDiffuse()[3]})
+                .setSpecularColor(Color4{toMagnumColor(mat->getSpecular()), 0.0f})
+                .setShininess(mat->getShininess())
+                .setNormalMatrix(transformationMatrix.normalMatrix())
+                .setTransformationMatrix(transformationMatrix)
+                .setProjectionMatrix(camera.projectionMatrix())
+                .setLightPositions({
+                    {camera.cameraMatrix().transformPoint({0.0f, 0.0f, 1000.0f}), 0.0f}
+                })
                 .draw(_mesh);
         }
     } else {
