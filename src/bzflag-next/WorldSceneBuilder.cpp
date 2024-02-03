@@ -5,11 +5,17 @@
 #include <Magnum/Math/Vector.h>
 #include <Magnum/Math/Matrix4.h>
 
+#include "Corrade/Containers/ArrayView.h"
+#include "IndexedMeshData.h"
 #include "Magnum/GL/GL.h"
 #include "Magnum/Math/Vector3.h"
+#include "Magnum/MeshTools/Compile.h"
+#include "Magnum/Trade/Data.h"
 #include "Magnum/Trade/MeshData.h"
 
 
+#include "Magnum/Trade/Trade.h"
+#include "Magnum/Types.h"
 #include "MagnumTextureManager.h"
 #include "MeshObstacle.h"
 #include "WorldPrimitiveGenerator.h"
@@ -31,7 +37,7 @@
 using namespace Magnum;
 using namespace Corrade;
 
-void WorldObject::addMatMesh(std::string materialname, Trade::MeshData&& md) {
+void WorldObject::addMatMesh(std::string materialname, IndexedMeshData&& md) {
     matMeshes.emplace_back(std::make_pair(materialname, std::move(md)));
 }
 
@@ -58,7 +64,7 @@ void WorldSceneBuilder::addBox(BoxBuilding& o) {
     // TextureMatrix
     // TODO: Add a texmat to box materials and remove this!
 
-    Magnum::GL::Texture2D *bwtex = NULL;// = MagnumTextureManager::instance().getTexture("boxwall");
+    Magnum::GL::Texture2D *bwtex = NULL;
 
     if (o.userTextures[0].size())
         bwtex = tm.getTexture(o.userTextures[0].c_str());
@@ -1023,27 +1029,6 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
 
         size_t cornerCount = drawInfo->getCornerCount();
 
-        std::vector<Math::Vector3<float>> verts{cornerCount};
-        for (int i = 0; i < cornerCount; ++i) {
-            verts[i].x() = di_verts[i][0];
-            verts[i].y() = di_verts[i][1];
-            verts[i].z() = di_verts[i][2];
-            verts[i] = getTransformMatrix().transformPoint(verts[i]);
-        }
-
-        std::vector<Math::Vector3<float>> norms{cornerCount};
-        for (int i = 0; i < cornerCount; ++i) {
-            norms[i].x() = di_norms[i][0];
-            norms[i].y() = di_norms[i][1];
-            norms[i].z() = di_norms[i][2];
-        }
-
-        std::vector<Math::Vector2<float>> texcoords{cornerCount};
-        for (int i = 0; i < cornerCount; ++i) {
-            texcoords[i].x() = di_texcoords[i][0];
-            texcoords[i].y() = di_texcoords[i][1];
-        }
-
         // For each set (pairing of command (GL_TRIANGLES, GL_POINTS, etc, and index data)
 
         for (int setnum = 0; setnum < lod.count; ++setnum) {
@@ -1148,8 +1133,32 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
                         Warning{} << "Unsupported DrawInfo draw command" << cmd.drawMode;
                 }
                 if (indices.size() > 0) {
+                    std::vector<Math::Vector3<float>> verts{indices.size()};
+                    for (int i = 0; i < indices.size(); ++i) {
+                        verts[i].x() = di_verts[indices[i]][0];
+                        verts[i].y() = di_verts[indices[i]][1];
+                        verts[i].z() = di_verts[indices[i]][2];
+                        verts[i] = getTransformMatrix().transformPoint(verts[i]);
+                    }
+
+                    std::vector<Math::Vector3<float>> norms{indices.size()};
+                    for (int i = 0; i < indices.size(); ++i) {
+                        norms[i].x() = di_norms[indices[i]][0];
+                        norms[i].y() = di_norms[indices[i]][1];
+                        norms[i].z() = di_norms[indices[i]][2];
+                    }
+
+                    std::vector<Math::Vector2<float>> texcoords{indices.size()};
+                    for (int i = 0; i < indices.size(); ++i) {
+                        texcoords[i].x() = di_texcoords[indices[i]][0];
+                        texcoords[i].y() = di_texcoords[indices[i]][1];
+                    }
+                    std::vector<UnsignedInt> linearizedIndices(indices.size());
+                    for (int i = 0; i < indices.size(); ++i) {
+                        linearizedIndices[i] = i;
+                    }
                     meshObj.addMatMesh(maybeFixedupMaterial->getName(),
-                        WorldPrimitiveGenerator::rawIndexedTris(verts, norms, texcoords, indices));
+                        WorldPrimitiveGenerator::rawIndexedTris(verts, norms, texcoords, linearizedIndices));
                 }
             }
         }
@@ -1350,15 +1359,15 @@ void WorldSceneBuilder::reset() {
     worldObjects.clear();
 }
 
-Trade::MeshData WorldSceneBuilder::compileMatMesh(std::string matname) const {
+GL::Mesh WorldSceneBuilder::compileMatMesh(std::string matname) const {
     struct VertexData {
         Vector3 position;
-        Vector2 texcoord;
         Vector3 normal;
+        Vector2 texcoord;
     };
     Containers::Array<Vector3> positions;
-    Containers::Array<Vector2> texcoords;
     Containers::Array<Vector3> normals;
+    Containers::Array<Vector2> texcoords;
     Containers::Array<UnsignedInt> indices;
     int vertexCount = 0;
     int indOffset = 0;
@@ -1366,26 +1375,30 @@ Trade::MeshData WorldSceneBuilder::compileMatMesh(std::string matname) const {
         for (const auto& mm: o.getMatMeshes()) {
             if (mm.first == matname) {
                 const auto& md = mm.second;
-                Containers::arrayAppend(positions, md.positions3DAsArray());
-                Containers::arrayAppend(texcoords, md.textureCoordinates2DAsArray());
-                Containers::arrayAppend(normals, md.normalsAsArray());
-                Containers::Array<UnsignedInt> inds{md.indicesAsArray()};
+                Containers::arrayAppend(positions, Containers::ArrayView<const Vector3>{md.getVertices().data(), md.getVertices().size()});
+                Containers::arrayAppend(normals, Containers::ArrayView<const Vector3>{md.getNormals().data(), md.getNormals().size()});
+                Containers::arrayAppend(texcoords, Containers::ArrayView<const Vector2>{md.getTexcoords().data(), md.getTexcoords().size()});
+                Containers::Array<UnsignedInt> inds{md.getIndices().size()};
 
-                for (auto &i: inds) {
-                    i += indOffset;
+                for (int i = 0; i < inds.size(); ++i) {
+                    inds[i] = md.getIndices()[i] + indOffset;
                 }
-                vertexCount += md.vertexCount();
-                indOffset += md.vertexCount();
+
+                vertexCount += md.getVertices().size();
+                indOffset += md.getVertices().size();
                 Containers::arrayAppend(indices, inds);
             }
         }
     }
 
-    Containers::Array<char> meshdata = MeshTools::interleave(positions, texcoords, normals);
+    Containers::Array<char> meshdata = MeshTools::interleave(positions, normals, texcoords);
+    Warning{} << matname.c_str() << vertexCount << indices.size() << meshdata.size();
     Containers::StridedArrayView1D<const VertexData> dataview = Containers::arrayCast<const VertexData>(meshdata);
-    return MeshTools::copy(Trade::MeshData {MeshPrimitive::Triangles, Trade::DataFlags{}, indices, Trade::MeshIndexData{indices}, std::move(meshdata), {
+    Containers::ArrayView<const UnsignedInt> indexview = Containers::arrayCast<const UnsignedInt>(indices);
+
+    return MeshTools::compile(Trade::MeshData {MeshPrimitive::Triangles, Trade::DataFlags{}, std::move(indices), Trade::MeshIndexData{indexview}, std::move(meshdata), {
         Trade::MeshAttributeData{Trade::MeshAttribute::Position, dataview.slice(&VertexData::position)},
-        Trade::MeshAttributeData{Trade::MeshAttribute::TextureCoordinates, dataview.slice(&VertexData::texcoord)},
-        Trade::MeshAttributeData{Trade::MeshAttribute::Normal, dataview.slice(&VertexData::normal)}
+        Trade::MeshAttributeData{Trade::MeshAttribute::Normal, dataview.slice(&VertexData::normal)},
+        Trade::MeshAttributeData{Trade::MeshAttribute::TextureCoordinates, dataview.slice(&VertexData::texcoord)}
         }, static_cast<UnsignedInt>(vertexCount)});
 }

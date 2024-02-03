@@ -191,7 +191,8 @@ add_executable(bzflag-next WIN32 bzflag-next.cpp ${BZNEXT_RESOURCES}
     BZMaterialViewer.cpp
     WorldSceneBuilder.cpp
     GLInfo.cpp
-    ObstacleBrowser.cpp)
+    ObstacleBrowser.cpp
+    IndexedMeshData.cpp)
 target_link_libraries(bzflag-next PRIVATE
     Corrade::Main
     Magnum::Application

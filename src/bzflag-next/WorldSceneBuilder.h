@@ -7,7 +7,9 @@
 #include <vector>
 #include <utility>
 
-#include <Magnum/Trade/MeshData.h>
+#include <Magnum/GL/Mesh.h>
+
+#include "IndexedMeshData.h"
 
 
 #include "BoxBuilding.h"
@@ -21,7 +23,7 @@
 // to memory use issues
 
 // Pair material name with mesh data
-typedef std::pair<std::string, Magnum::Trade::MeshData> MatMesh;
+typedef std::pair<std::string, IndexedMeshData> MatMesh;
 
 // Contains all the meshes that make up a world object
 // These may be later compiled into combined meshes,
@@ -29,7 +31,7 @@ typedef std::pair<std::string, Magnum::Trade::MeshData> MatMesh;
 // useful for object picking.
 class WorldObject {
     public:
-    void addMatMesh(std::string materialname, Magnum::Trade::MeshData&& md);
+    void addMatMesh(std::string materialname, IndexedMeshData&& md);
     const std::vector<MatMesh>& getMatMeshes() const;
     private:
     std::vector<MatMesh> matMeshes;
@@ -48,7 +50,7 @@ class WorldSceneBuilder {
     // Empty it out to get ready to load a new map
     void reset();
 
-    Magnum::Trade::MeshData compileMatMesh(std::string matname) const;
+    Magnum::GL::Mesh compileMatMesh(std::string matname) const;
     std::vector<std::string> getMaterialList() const;
     private:
     std::vector<WorldObject> worldObjects;
