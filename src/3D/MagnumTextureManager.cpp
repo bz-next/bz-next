@@ -118,25 +118,7 @@ Magnum::GL::Texture2D *MagnumTextureManager::getTexture( const char* name, bool 
 
         FileTextureInit texInfo;
         texInfo.name = filename;
-        //texInfo.filter = OpenGLTexture::LinearMipmapLinear;
 
-        //OpenGLTexture *image = loadTexture(texInfo, reportFail);
-        /*if (!importer || !importer->openFile(filename)) {
-            logDebugMessage(2,"Image not found or unloadable: %s\n", filename.c_str());
-            return NULL;
-        }
-        Containers::Optional<Trade::ImageData2D> image = importer->image2D(0);
-        if (!image)
-        {
-            logDebugMessage(2,"Image not found or unloadable: %s\n", filename.c_str());
-            return NULL;
-        }
-        GL::Texture2D *texture = new GL::Texture2D{};
-        texture->setWrapping(GL::SamplerWrapping::ClampToEdge)
-            .setMagnificationFilter(GL::SamplerFilter::Linear)
-            .setMinificationFilter(GL::SamplerFilter::Linear)
-            .setStorage(1, GL::textureFormat(image->format()), image->size())
-            .setSubImage(0, {}, *image);*/
         GL::Texture2D *texture = loadTexture(texInfo, reportFail);
         return addTexture(name, texture);
     }
@@ -204,12 +186,10 @@ bool MagnumTextureManager::reloadTextureImage(const std::string& name)
 
     MagnumImageInfo& info = it->second;
     GL::Texture2D* oldTex = info.texture;
-    // TODO: We are assuming linear mipmap linear for now
-    //OpenGLTexture::Filter filter = oldTex->getFilter();
 
     // make the new texture object
     FileTextureInit fileInit;
-    //fileInit.filter = OpenGLTexture::LinearMipmapLinear;
+
     fileInit.name = name;
     GL::Texture2D* newTex = loadTexture(fileInit, false);
     if (newTex == NULL)
@@ -228,25 +208,7 @@ bool MagnumTextureManager::reloadTextureImage(const std::string& name)
 
 void MagnumTextureManager::updateTextureFilters()
 {
-    // reset all texture filters to the current maxFilter
-    TextureNameMap::iterator itr = textureNames.begin();
-    while (itr != textureNames.end())
-    {
-        /*OpenGLTexture* texture = itr->second.texture;
-        // getting, then setting re-clamps the filter level
-        OpenGLTexture::Filter current = texture->getFilter();
-        texture->setFilter(current);
-        ++itr;*/
-        // TODO: Implement this using the magnum texture class
-    }
-
-    // rebuild proc textures
-    /*
-    for (int i = 0; i < (int)bzcountof(procLoader); i++)
-    {
-        procLoader[i].manager = this;
-        procLoader[i].proc(procLoader[i]);
-    }*/
+    // We just assume linear mipmap linear for now
 }
 
 GL::Texture2D *MagnumTextureManager::addTexture( const char* name, GL::Texture2D *texture )
