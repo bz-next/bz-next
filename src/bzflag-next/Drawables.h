@@ -63,12 +63,11 @@ class TexturedDrawable : public Magnum::SceneGraph::Drawable3D {
 
 class BZMaterialDrawable : public Magnum::SceneGraph::Drawable3D {
     public:
-        explicit BZMaterialDrawable(Object3D& object, Magnum::Shaders::PhongGL& shader, Magnum::Shaders::PhongGL& shaderUntex, Magnum::GL::Mesh& mesh, std::string matname, Magnum::SceneGraph::DrawableGroup3D& group, const MagnumBZMaterial* mptr) :
+        explicit BZMaterialDrawable(Object3D& object, Magnum::Shaders::PhongGL& shader, Magnum::Shaders::PhongGL& shaderUntex, Magnum::GL::Mesh& mesh, const MagnumBZMaterial* mptr, Magnum::SceneGraph::DrawableGroup3D& group) :
             Magnum::SceneGraph::Drawable3D{object, &group},
             _shader(shader),
             _shaderUntex(shaderUntex),
             _mesh(mesh),
-            _matName(matname),
             _matPtr(mptr)
         {}
 
@@ -78,7 +77,6 @@ class BZMaterialDrawable : public Magnum::SceneGraph::Drawable3D {
         Magnum::Shaders::PhongGL &_shader;
         Magnum::Shaders::PhongGL &_shaderUntex;
         Magnum::GL::Mesh& _mesh;
-        std::string _matName;
         const MagnumBZMaterial *_matPtr;
 };
 

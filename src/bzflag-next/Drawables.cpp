@@ -158,7 +158,7 @@ void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::C
                 .draw(_mesh);
         }
     } else {
-        Warning{} << "Missing mat" << _matName.c_str();
+        Warning{} << "Missing material";
     }
 }
 

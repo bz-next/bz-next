@@ -124,7 +124,7 @@ void WorldRenderer::createWorldObject(const WorldSceneBuilder *sb) {
         worldMeshes[entryName].emplace_back(std::move(sb->compileMatMesh(matname)));
         GL::Mesh *m = &worldMeshes[entryName].back();
         matobjs->setParent(worldParent);
-        new BZMaterialDrawable(*matobjs, matShader, matShaderUntex, *m, matname, *worldDrawables, mat);
+        new BZMaterialDrawable(*matobjs, matShader, matShaderUntex, *m, mat, *worldDrawables);
     }
     // Render transparent objects second
     for (const auto& matname: matnames) {
@@ -140,7 +140,7 @@ void WorldRenderer::createWorldObject(const WorldSceneBuilder *sb) {
         worldMeshes[entryName].emplace_back(std::move(sb->compileMatMesh(matname)));
         GL::Mesh *m = &worldMeshes[entryName].back();
         matobjs->setParent(worldParent);
-        new BZMaterialDrawable(*matobjs, matShader, matShaderUntex, *m, matname, *worldTransDrawables, mat);
+        new BZMaterialDrawable(*matobjs, matShader, matShaderUntex, *m, mat, *worldTransDrawables);
     }
 }
 
