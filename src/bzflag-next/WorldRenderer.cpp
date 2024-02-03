@@ -121,7 +121,8 @@ void WorldRenderer::createWorldObject(const WorldSceneBuilder *sb) {
         }
         Object3D *matobjs = new Object3D;
         std::string entryName = "mat_" + matname;
-        worldMeshes[entryName].push_back(sb->compileMatMesh(matname));
+        worldMeshes[entryName].emplace_back(std::move(sb->compileMatMesh(matname)));
+        //GL::Mesh m2 = sb->compileMatMesh(matname);
         GL::Mesh *m = &worldMeshes[entryName].back();
         Warning{} << "Meshsize" << m->count();
         matobjs->setParent(worldParent);
@@ -138,7 +139,7 @@ void WorldRenderer::createWorldObject(const WorldSceneBuilder *sb) {
         }
         Object3D *matobjs = new Object3D;
         std::string entryName = "mat_" + matname;
-        worldMeshes[entryName].push_back(sb->compileMatMesh(matname));
+        worldMeshes[entryName].emplace_back(std::move(sb->compileMatMesh(matname)));
         GL::Mesh *m = &worldMeshes[entryName].back();
         Warning{} << "Meshsize" << m->count();
         matobjs->setParent(worldParent);
