@@ -130,3 +130,6 @@ Thumbs.db
 /MSVC/HoldTheFlag_Win32_Debug/*.ib_pdb_index
 *.ib_pdb_index
 /build/
+
+# ImGUI config
+imgui.ini
