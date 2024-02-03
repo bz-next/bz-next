@@ -12,10 +12,10 @@ include(BZUtils)
 
 # Define the project information
 cmake_policy(SET CMP0048 NEW) # This enables new behavior for VERSION below
-project(BZFlag
-        VERSION 2.4.27
+project(BZ-Next
+        VERSION 0.1.00
         DESCRIPTION "Free multi-player 3D tank battle game for Windows, Linux, and macOS"
-	HOMEPAGE_URL "https://www.bzflag.org"
+	HOMEPAGE_URL "https://bz-next.github.io/"
 )
 
 add_subdirectory(corrade EXCLUDE_FROM_ALL)
