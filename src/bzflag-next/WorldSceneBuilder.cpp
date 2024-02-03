@@ -1140,7 +1140,7 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
                         verts[i].x() = di_verts[indices[i]][0];
                         verts[i].y() = di_verts[indices[i]][1];
                         verts[i].z() = di_verts[indices[i]][2];
-                        verts[i] = getTransformMatrix().transformPoint(verts[i]);
+                        verts[i] = transformMat.transformPoint(verts[i]);
                     }
 
                     std::vector<Math::Vector3<float>> norms{indices.size()};
@@ -1148,6 +1148,7 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
                         norms[i].x() = di_norms[indices[i]][0];
                         norms[i].y() = di_norms[indices[i]][1];
                         norms[i].z() = di_norms[indices[i]][2];
+                        norms[i] = transformMat.transformVector(norms[i]);
                     }
 
                     std::vector<Math::Vector2<float>> texcoords{indices.size()};
