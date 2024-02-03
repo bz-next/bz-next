@@ -10,6 +10,7 @@
 #include "Magnum/GL/GL.h"
 #include "Magnum/Math/Vector3.h"
 #include "Magnum/MeshTools/Compile.h"
+#include "Magnum/MeshTools/CompressIndices.h"
 #include "Magnum/Shaders/PhongGL.h"
 #include "Magnum/Trade/Data.h"
 #include "Magnum/Trade/MeshData.h"
@@ -1361,18 +1362,10 @@ void WorldSceneBuilder::reset() {
 }
 
 GL::Mesh WorldSceneBuilder::compileMatMesh(std::string matname) const {
-    static unsigned long long int vcount = 0;
-    struct VertexData {
-        Vector3 position;
-        Vector3 normal;
-        Vector2 texcoord;
-    };
+
     Containers::Array<Vector3> positions;
     Containers::Array<Vector3> normals;
     Containers::Array<Vector2> texcoords;
-    Containers::Array<Vector3> positions2;
-    Containers::Array<Vector3> normals2;
-    Containers::Array<Vector2> texcoords2;
     Containers::Array<UnsignedInt> indices;
     int vertexCount = 0;
     int indOffset = 0;
@@ -1397,29 +1390,17 @@ GL::Mesh WorldSceneBuilder::compileMatMesh(std::string matname) const {
     }
 
     Containers::Array<char> meshdata = MeshTools::interleave(positions, normals, texcoords);
-    Containers::StridedArrayView1D<const VertexData> dataview = Containers::arrayCast<const VertexData>(meshdata);
-    Containers::ArrayView<const UnsignedInt> indexview = Containers::arrayCast<const UnsignedInt>(indices);
+    Containers::Pair<Containers::Array<char>, MeshIndexType> idxraw = MeshTools::compressIndices(indices);
 
-    vcount += vertexCount;
-
-    return MeshTools::compile(Trade::MeshData {MeshPrimitive::Triangles, Trade::DataFlags{}, std::move(indices), Trade::MeshIndexData{indexview}, std::move(meshdata), {
-        Trade::MeshAttributeData{Trade::MeshAttribute::Position, dataview.slice(&VertexData::position)},
-        Trade::MeshAttributeData{Trade::MeshAttribute::Normal, dataview.slice(&VertexData::normal)},
-        Trade::MeshAttributeData{Trade::MeshAttribute::TextureCoordinates, dataview.slice(&VertexData::texcoord)}
-        }, static_cast<UnsignedInt>(vertexCount)});
-    
-    // Alternative approach, manual mesh spec
-    /*
-    GL::Mesh *ret = new GL::Mesh;
+    GL::Mesh ret;;
     GL::Buffer indicesbuf;
-    indicesbuf.setData(indices);
+    indicesbuf.setData(idxraw.first());
     GL::Buffer vbuf;
     vbuf.setData(meshdata);
 
-    ret->addVertexBuffer(std::move(vbuf), 0, Shaders::PhongGL::Position{}, Shaders::PhongGL::Normal{}, Shaders::PhongGL::TextureCoordinates{});
-    ret->setIndexBuffer(std::move(indicesbuf), 0, MeshIndexType::UnsignedInt);
-    ret->setCount(indices.size());
+    ret.addVertexBuffer(std::move(vbuf), 0, Shaders::PhongGL::Position{}, Shaders::PhongGL::Normal{}, Shaders::PhongGL::TextureCoordinates{});
+    ret.setIndexBuffer(std::move(indicesbuf), 0, idxraw.second());
+    ret.setCount(indices.size());
     return ret;
-    */
     
 }
