@@ -101,6 +101,11 @@ find_package(ZLIB REQUIRED)
 # Optional for BZAdmin
 find_package(Curses)
 
+# MinGW Specific
+if (MINGW)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpermissive")
+endif()
+
 if(ENABLE_CLIENT)
     # Needed for client
     find_package(SDL2)
