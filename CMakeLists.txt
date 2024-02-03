@@ -111,6 +111,20 @@ if(ENABLE_CLIENT)
     find_package(OpenGL)
     find_package(GLEW)
 
+    # Probably a better way to handle this, but it works for now...
+    if (MINGW)
+        link_libraries(${GLEW_LIBRARIES})
+        link_libraries(png)
+        link_libraries(systre)
+        link_libraries(zlibstatic)
+        link_libraries(winmm)
+        link_libraries(regex)
+        link_libraries(tre)
+        link_libraries(winpthread)
+        link_libraries(wsock32)
+        link_libraries(ws2_32)
+    endif()
+
     # Check if all our dependencies were found, and if not, disable the client
     if(NOT SDL2_FOUND OR NOT Threads_FOUND OR NOT OPENGL_FOUND OR NOT GLEW_FOUND)
         set(CLIENT_INCLUDED FALSE)
@@ -218,7 +232,6 @@ list(APPEND C_HEADERS_TO_CHECK
 # Disabling this for now...
 #    miniupnpc/miniupnpc.h # TODO: Should this be part of a find_package?
     ncurses.h
-
     regex.h
     stdlib.h
     stdint.h
@@ -250,6 +263,17 @@ foreach(cxx_header_to_check ${CXX_HEADERS_TO_CHECK})
     TO_C_DEFINE(def "${cxx_header_to_check}")
     check_include_file_cxx("${cxx_header_to_check}" ${def})
 endforeach()
+
+# We absolutely require regex.h -- though there's a #define in config.h, the
+# build breaks without it!
+if(NOT HAVE_REGEX_H)
+    message("regex.h is required.")
+    if (MINGW)
+        message("MinGW users, it is suggested to install libtre and libsystre.")
+        message("Instructions available at https://bz-next.github.io/building/")
+        message(FATAL_ERROR "Build terminating...")
+    endif()
+endif()
 
 list(APPEND LIBM_FUNCTIONS_TO_CHECK
     acosf

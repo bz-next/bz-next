@@ -4,6 +4,9 @@ set_directory_properties(PROPERTIES CORRADE_USE_PEDANTIC_FLAGS ON)
 
 corrade_add_resource(BZNEXT_RESOURCES resources/resources.conf)
 
+if (MINGW)
+    set(CMAKE_EXE_LINKER_FLAGS "-mconsole")
+endif()
 add_executable(bzflag-next WIN32 bzflag-next.cpp ${BZNEXT_RESOURCES}
     ActionBinding.cxx
     ActionBinding.h
