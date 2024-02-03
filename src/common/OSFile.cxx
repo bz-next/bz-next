@@ -37,12 +37,10 @@ typedef std::vector<std::string> fileNameList;
 // utility functions
 void OSFileStdToOSDir(std::string &dir)
 {
-    if (dir=="") return;
-#ifndef _WIN32
-    return;
-#else
-    std::replace(dir.begin(), dir.end(), '/', '\\');
-#endif//WIN32
+    // Old code replaced "/" with backslash on windows
+    // This is not necessary, as windows can use unix-style paths
+    // This could cause http:// to become http:[backslash][backslash]
+    // which could percolate through the code and cause bugs...
 }
 
 void OSFileOSToStdDir(std::string &dir)
