@@ -1,3 +1,4 @@
+#include "IndexedMeshData.h"
 #include "Magnum/Types.h"
 #include "MagnumDefs.h"
 #include "WorldPrimitiveGenerator.h"
@@ -10,14 +11,14 @@
 using namespace Magnum;
 using namespace Magnum::Math::Literals;
 
-Trade::MeshData WorldPrimitiveGenerator::quad(const float base[3], const float uEdge[3], const float vEdge[3], float uOffset, float vOffset, float uRepeats, float vRepeats) {
-    const Vector3 vertices[]{
+IndexedMeshData WorldPrimitiveGenerator::quad(const float base[3], const float uEdge[3], const float vEdge[3], float uOffset, float vOffset, float uRepeats, float vRepeats) {
+    const std::vector<Vector3> vertices{
         {{base[0] + uEdge[0], base[1] + uEdge[1], base[2] + uEdge[2]}}, /* Bottom right */
         {{base[0] + uEdge[0] + vEdge[0], base[1] + uEdge[1] + vEdge[1], base[2] + uEdge[2] + vEdge[2]}}, /* Top right */
         {{base[0], base[1], base[2]}}, /* Bottom left */
         {{base[0] + vEdge[0], base[1] + vEdge[1], base[2] + vEdge[2]}}  /* Top left */
     };
-    const Vector2 texcoords[]{
+    const std::vector<Vector2> texcoords{
         {uOffset + uRepeats, 0.0f},
         {uOffset + uRepeats, vOffset + vRepeats},
         {uOffset, vOffset},
@@ -40,47 +41,27 @@ Trade::MeshData WorldPrimitiveGenerator::quad(const float base[3], const float u
     plane[1] = n * plane[1];
     plane[2] = n * plane[2];
     plane[3] = n * plane[3];
-    const Vector3 normals[]{
+    const std::vector<Vector3> normals{
         {plane[0], plane[1], plane[2]},
         {plane[0], plane[1], plane[2]},
         {plane[0], plane[1], plane[2]},
         {plane[0], plane[1], plane[2]}
     };
-    const UnsignedInt indices[]{        /* 3--1 1 */
+    const std::vector<UnsignedInt> indices{        /* 3--1 1 */
         0, 1, 2,                        /* | / /| */
         2, 1, 3                         /* |/ / | */
     };
 
-    struct VertexData {
-        Vector3 position;
-        Vector2 texcoord;
-        Vector3 normal;
-    };
-
-    Containers::ArrayView<const Vector3> posview{vertices};
-    Containers::ArrayView<const Vector2> texview{texcoords};
-    Containers::ArrayView<const Vector3> normview{normals};
-
-    // Pack mesh data
-    Containers::Array<char> data{posview.size()*sizeof(VertexData)};
-    data = MeshTools::interleave(posview, texview, normview);
-    Containers::StridedArrayView1D<const VertexData> dataview = Containers::arrayCast<const VertexData>(data);
-
-    return MeshTools::copy(Trade::MeshData {MeshPrimitive::Triangles, Trade::DataFlags{}, indices, Trade::MeshIndexData{indices}, std::move(data), {
-        Trade::MeshAttributeData{Trade::MeshAttribute::Position, dataview.slice(&VertexData::position)},
-        Trade::MeshAttributeData{Trade::MeshAttribute::TextureCoordinates, dataview.slice(&VertexData::texcoord)},
-        Trade::MeshAttributeData{Trade::MeshAttribute::Normal, dataview.slice(&VertexData::normal)}
-    }, static_cast<UnsignedInt>(dataview.size())});
-
+    return IndexedMeshData(std::move(vertices), std::move(normals), std::move(texcoords), std::move(indices));
 }
 
-Trade::MeshData WorldPrimitiveGenerator::tri(const float base[3], const float uEdge[3], const float vEdge[3], float uOffset, float vOffset, float uRepeats, float vRepeats) {
-    const Vector3 vertices[]{
+IndexedMeshData WorldPrimitiveGenerator::tri(const float base[3], const float uEdge[3], const float vEdge[3], float uOffset, float vOffset, float uRepeats, float vRepeats) {
+    const std::vector<Vector3> vertices{
         {{base[0], base[1], base[2]}},
         {{base[0] + uEdge[0], base[1] + uEdge[1], base[2] + uEdge[2]}},
         {{base[0] + vEdge[0], base[1] + vEdge[1], base[2] + vEdge[2]}}
     };
-    const Vector2 texcoords[]{
+    const std::vector<Vector2> texcoords{
         {uOffset, vOffset},
         {uOffset + uRepeats, vOffset},
         {uOffset, vOffset + vRepeats},
@@ -102,51 +83,21 @@ Trade::MeshData WorldPrimitiveGenerator::tri(const float base[3], const float uE
     plane[1] = n * plane[1];
     plane[2] = n * plane[2];
     plane[3] = n * plane[3];
-    const Vector3 normals[]{
+    const std::vector<Vector3> normals{
         {plane[0], plane[1], plane[2]},
         {plane[0], plane[1], plane[2]},
         {plane[0], plane[1], plane[2]}
     };
-    const UnsignedInt indices[]{
+    const std::vector<UnsignedInt> indices{
         0, 1, 2,
     };
 
-    struct VertexData {
-        Vector3 position;
-        Vector2 texcoord;
-        Vector3 normal;
-    };
-
-    Containers::ArrayView<const Vector3> posview{vertices};
-    Containers::ArrayView<const Vector2> texview{texcoords};
-    Containers::ArrayView<const Vector3> normview{normals};
-
-    // Pack mesh data
-    Containers::Array<char> data{posview.size()*sizeof(VertexData)};
-    data = MeshTools::interleave(posview, texview, normview);
-    Containers::StridedArrayView1D<const VertexData> dataview = Containers::arrayCast<const VertexData>(data);
-
-    return MeshTools::copy(Trade::MeshData {MeshPrimitive::Triangles, Trade::DataFlags{}, indices, Trade::MeshIndexData{indices}, std::move(data), {
-        Trade::MeshAttributeData{Trade::MeshAttribute::Position, dataview.slice(&VertexData::position)},
-        Trade::MeshAttributeData{Trade::MeshAttribute::TextureCoordinates, dataview.slice(&VertexData::texcoord)},
-        Trade::MeshAttributeData{Trade::MeshAttribute::Normal, dataview.slice(&VertexData::normal)}
-    }, static_cast<UnsignedInt>(dataview.size())});
+    return IndexedMeshData(std::move(vertices), std::move(normals), std::move(texcoords), std::move(indices));
 }
 
-Magnum::Trade::MeshData WorldPrimitiveGenerator::planarPolyFromTriFan(const std::vector<Magnum::Math::Vector3<float>> &verts, const std::vector<Magnum::Math::Vector3<float>> &norms, const std::vector<Magnum::Math::Vector2<float>> &texcoords) {
-
-    struct VertexData {
-        Vector3 position;
-        Vector2 texcoord;
-        Vector3 normal;
-    };
-
-    Containers::ArrayView<const Vector3> posview{verts};
-    Containers::ArrayView<const Vector2> texview{texcoords};
-    Containers::ArrayView<const Vector3> normview{norms};
-
+IndexedMeshData WorldPrimitiveGenerator::planarPolyFromTriFan(const std::vector<Magnum::Math::Vector3<float>> &verts, const std::vector<Magnum::Math::Vector3<float>> &norms, const std::vector<Magnum::Math::Vector2<float>> &texcoords) {
     // Num triangles = 3(N-2) for triangle fan
-    Containers::Array<UnsignedInt> indices{3*(verts.size()-2)};
+    std::vector<UnsignedInt> indices(3*(verts.size()-2));
 
     // Verts come in as a triangle fan, fixup the indices for triangles instead
     // There are verts-2 triangles
@@ -156,40 +107,11 @@ Magnum::Trade::MeshData WorldPrimitiveGenerator::planarPolyFromTriFan(const std:
         indices[i*3+2] = i+2;
     }
 
-    // Pack mesh data
-    Containers::Array<char> data{posview.size()*sizeof(VertexData)};
-    data = MeshTools::interleave(posview, texview, normview);
-    Containers::StridedArrayView1D<const VertexData> dataview = Containers::arrayCast<const VertexData>(data);
-
-    return MeshTools::copy(Trade::MeshData {MeshPrimitive::Triangles, Trade::DataFlags{}, indices, Trade::MeshIndexData{indices}, std::move(data), {
-        Trade::MeshAttributeData{Trade::MeshAttribute::Position, dataview.slice(&VertexData::position)},
-        Trade::MeshAttributeData{Trade::MeshAttribute::TextureCoordinates, dataview.slice(&VertexData::texcoord)},
-        Trade::MeshAttributeData{Trade::MeshAttribute::Normal, dataview.slice(&VertexData::normal)}
-    }, static_cast<UnsignedInt>(dataview.size())});
+    return IndexedMeshData(std::move(verts), std::move(norms), std::move(texcoords), std::move(indices));
 }
 
-Magnum::Trade::MeshData WorldPrimitiveGenerator::rawIndexedTris(const std::vector<Magnum::Math::Vector3<float>> &verts, const std::vector<Magnum::Math::Vector3<float>> &norms, const std::vector<Magnum::Math::Vector2<float>> &texcoords, const std::vector<UnsignedInt> &indices) {
-
-    struct VertexData {
-        Vector3 position;
-        Vector2 texcoord;
-        Vector3 normal;
-    };
-
-    Containers::ArrayView<const Vector3> posview{verts};
-    Containers::ArrayView<const Vector2> texview{texcoords};
-    Containers::ArrayView<const Vector3> normview{norms};
-
-    // Pack mesh data
-    Containers::Array<char> data{posview.size()*sizeof(VertexData)};
-    data = MeshTools::interleave(posview, texview, normview);
-    Containers::StridedArrayView1D<const VertexData> dataview = Containers::arrayCast<const VertexData>(data);
-
-    return MeshTools::copy(Trade::MeshData {MeshPrimitive::Triangles, Trade::DataFlags{}, indices, Trade::MeshIndexData{indices}, std::move(data), {
-        Trade::MeshAttributeData{Trade::MeshAttribute::Position, dataview.slice(&VertexData::position)},
-        Trade::MeshAttributeData{Trade::MeshAttribute::TextureCoordinates, dataview.slice(&VertexData::texcoord)},
-        Trade::MeshAttributeData{Trade::MeshAttribute::Normal, dataview.slice(&VertexData::normal)}
-    }, static_cast<UnsignedInt>(dataview.size())});
+IndexedMeshData WorldPrimitiveGenerator::rawIndexedTris(const std::vector<Magnum::Math::Vector3<float>> &verts, const std::vector<Magnum::Math::Vector3<float>> &norms, const std::vector<Magnum::Math::Vector2<float>> &texcoords, const std::vector<UnsignedInt> &indices) {
+    return IndexedMeshData(std::move(verts), std::move(norms), std::move(texcoords), std::move(indices));
 }
 
 Trade::MeshData WorldPrimitiveGenerator::debugLine(Magnum::Math::Vector3<float> a, Magnum::Math::Vector3<float> b) {
