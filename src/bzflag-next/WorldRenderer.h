@@ -57,17 +57,8 @@ class WorldRenderer {
             .setFlags(
                 Magnum::Shaders::PhongGL::Flag::DiffuseTexture |
                 Magnum::Shaders::PhongGL::Flag::AmbientTexture |
-                Magnum::Shaders::PhongGL::Flag::UniformBuffers |
                 Magnum::Shaders::PhongGL::Flag::AlphaMask |
-                Magnum::Shaders::PhongGL::Flag::TextureTransformation)
-            .setMaterialCount(1)
-            .setLightCount(1)
-            .setDrawCount(1)};
-        Magnum::Shaders::PhongGL matShaderUntex{Magnum::Shaders::PhongGL::Configuration{}
-            .setFlags(
-                Magnum::Shaders::PhongGL::Flag::UniformBuffers)
-            .setMaterialCount(1)
-            .setLightCount(1)
-            .setDrawCount(1)};
+                Magnum::Shaders::PhongGL::Flag::TextureTransformation)};
+        Magnum::Shaders::PhongGL matShaderUntex{Magnum::Shaders::PhongGL::Configuration{}};
         Magnum::Shaders::LineGL3D _lineShader;
 };
