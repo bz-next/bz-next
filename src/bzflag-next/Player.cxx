@@ -14,12 +14,7 @@
 #include "Player.h"
 
 // common interface headers
-#include "TankSceneNode.h"
-#include "SceneRenderer.h"
-#include "SphereSceneNode.h"
-#include "OpenGLMaterial.h"
 #include "BZDBCache.h"
-#include "TextureManager.h"
 #include "CollisionManager.h"
 #include "ObstacleMgr.h"
 #include "PhysicsDriver.h"

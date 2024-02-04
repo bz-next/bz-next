@@ -35,7 +35,6 @@
 /* local interface headers */
 #include "BaseLocalPlayer.h"
 #include "ShotStrategy.h"
-#include "SceneDatabase.h"
 
 class ShotStrategy;
 

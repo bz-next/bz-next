@@ -38,7 +38,7 @@ static bool     wantJump = false;
 static PlanStack planStack;
 
 void teachAutoPilot(FlagType *type, int adjust)
-{
+{/*
     if (type == Flags::Null)
         return;
 
@@ -52,9 +52,9 @@ void teachAutoPilot(FlagType *type, int adjust)
     else
         flagSuccess[type] = std::pair<int,int>(adjust,1);
     totalSum += adjust;
-    totalCnt++;
+    totalCnt++;*/
 }
-
+/*
 static bool isFlagUseful(FlagType *type)
 {
     if (type == Flags::Null)
@@ -772,10 +772,10 @@ static void dropHardFlags()
         handleFlagDropped(myTank);
     }
 }
-
+*/
 void    doAutoPilot(float &rotation, float &speed)
 {
-    wantJump = false;
+    /*wantJump = false;
 
     dropHardFlags(); //Perhaps we should remove this and let learning do it's work
     if (!avoidBullet(rotation, speed))
@@ -796,7 +796,7 @@ void    doAutoPilot(float &rotation, float &speed)
     myTank->setJumpPressed(wantJump);
     myTank->setJump();
 
-    fireAtTank();
+    fireAtTank();*/
 }
 
 

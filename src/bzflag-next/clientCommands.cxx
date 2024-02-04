@@ -43,6 +43,9 @@
 #include "HUDRenderer.h"
 #include "HUDui.h"
 
+// This all needs to be structured better, relying on global state is asking
+// for trouble...
+
 /** jump
  */
 static std::string cmdJump(const std::string&,
@@ -229,8 +232,8 @@ static std::string cmdToggleFS(const std::string&,
 {
     if (args.size() != 0)
         return "usage: fullscreen";
-    mainWindow->toggleFullscreen();
-    mainWindow->getWindow()->callResizeCallbacks();
+    //mainWindow->toggleFullscreen();
+    //mainWindow->getWindow()->callResizeCallbacks();
     return std::string();
 }
 
@@ -244,7 +247,7 @@ static std::string cmdMouseBox(const std::string&,
     const int value = (int) strtol(args[0].c_str(), &end, 10);
     if (start == end)
         return "bad number";
-    RENDERER.setMaxMotionFactor(value);
+    //RENDERER.setMaxMotionFactor(value);
     return std::string();
 }
 
@@ -255,7 +258,7 @@ static std::string cmdMouseGrab(const std::string&,
         return "usage: mousegrab";
     const bool grabbing = !(BZDB.isTrue("mousegrab"));
     BZDB.set("mousegrab", grabbing ? "true" : "false");
-    mainWindow->enableGrabMouse(grabbing);
+    //mainWindow->enableGrabMouse(grabbing);
     return std::string();
 }
 
@@ -265,8 +268,8 @@ static std::string cmdIconify(const std::string&,
     if (args.size() != 0)
         return "usage: iconify";
 
-    if (!BZDB.isTrue("Win32NoMin"))
-        mainWindow->iconify();
+    //if (!BZDB.isTrue("Win32NoMin"))
+    //    mainWindow->iconify();
     return std::string();
 }
 
@@ -289,12 +292,12 @@ static std::string cmdToggleFlags(const std::string&, const
     if (args[0] == "main")
     {
         CMDMGR.run("toggle displayMainFlags");
-        warnAboutMainFlags();
+        //warnAboutMainFlags();
     }
     else if (args[0] == "radar")
     {
         CMDMGR.run("toggle displayRadarFlags");
-        warnAboutRadarFlags();
+        //warnAboutRadarFlags();
     }
     else
         return "usage: main|radar";
@@ -310,7 +313,7 @@ static std::string cmdToggleRadar(const std::string&,
 
     CMDMGR.run("toggle displayRadar");
 
-    warnAboutRadar();
+    //warnAboutRadar();
 
     return std::string();
 }
@@ -323,7 +326,7 @@ static std::string cmdToggleConsole(const std::string&,
 
     CMDMGR.run("toggle displayConsole");
 
-    warnAboutConsole();
+    //warnAboutConsole();
 
     return std::string();
 }
@@ -335,9 +338,9 @@ static std::string cmdFire(const std::string&,
     if (args.size() != 0)
         return "usage: fire";
     LocalPlayer *myTank = LocalPlayer::getMyTank();
-    if (fireButton && myTank != NULL && myTank->isAlive()
+    /*if (fireButton && myTank != NULL && myTank->isAlive()
             && myTank->getTeam() != ObserverTeam)
-        myTank->fireShot();
+        myTank->fireShot();*/
     return std::string();
 }
 
@@ -346,7 +349,7 @@ static std::string cmdDrop(const std::string&,
 {
     if (args.size() != 0)
         return "usage: drop";
-    LocalPlayer *myTank = LocalPlayer::getMyTank();
+    /*LocalPlayer *myTank = LocalPlayer::getMyTank();
     if (myTank != NULL)
     {
         FlagType* flag = myTank->getFlag();
@@ -360,7 +363,7 @@ static std::string cmdDrop(const std::string&,
             // never comes back to us, so we drop it right away
             handleFlagDropped(myTank);
         }
-    }
+    }*/
     return std::string();
 }
 
@@ -369,10 +372,10 @@ static std::string cmdIdentify(const std::string&,
 {
     if (args.size() != 0)
         return "usage: identify";
-    LocalPlayer *myTank = LocalPlayer::getMyTank();
+    /*LocalPlayer *myTank = LocalPlayer::getMyTank();
     if (myTank != NULL)
         if (myTank->isAlive() && !myTank->isPaused())
-            setTarget();
+            setTarget();*/
     return std::string();
 }
 
@@ -381,7 +384,7 @@ static std::string cmdRestart(const std::string&,
 {
     if (args.size() != 0)
         return "usage: restart";
-    LocalPlayer *myTank = LocalPlayer::getMyTank();
+    /*LocalPlayer *myTank = LocalPlayer::getMyTank();
     if (myTank != NULL)
         if (!gameOver && !myTank->isSpawning() && (myTank->getTeam() != ObserverTeam) && !myTank->isAlive()
                 && !myTank->isExploding())
@@ -392,7 +395,7 @@ static std::string cmdRestart(const std::string&,
             std::string resetArg = "reset";
             zoomArgs.push_back(resetArg);
             cmdViewZoom("", zoomArgs,NULL);
-        }
+        }*/
 
     return std::string();
 }
@@ -402,7 +405,7 @@ static std::string cmdDestruct(const std::string&,
 {
     if (args.size() != 0)
         return "usage: destruct";
-    LocalPlayer *myTank = LocalPlayer::getMyTank();
+    /*LocalPlayer *myTank = LocalPlayer::getMyTank();
     if (myTank != NULL)
     {
         if (destructCountdown > 0.0f)
@@ -417,7 +420,7 @@ static std::string cmdDestruct(const std::string&,
             sprintf(msgBuf, "Self Destructing in %d", (int)(destructCountdown + 0.99f));
             hud->setAlert(1, msgBuf, 1.0f, false);
         }
-    }
+    }*/
     return std::string();
 }
 
@@ -427,7 +430,7 @@ static std::string cmdPause(const std::string&,
     if (args.size() != 0)
         return "usage: pause";
 
-    LocalPlayer *myTank = LocalPlayer::getMyTank();
+    /*LocalPlayer *myTank = LocalPlayer::getMyTank();
     if (!pausedByUnmap && myTank && myTank->isAlive() && !myTank->isAutoPilot())
     {
         if (myTank->isPaused())
@@ -483,7 +486,7 @@ static std::string cmdPause(const std::string&,
             sprintf(msgBuf, "Pausing in %d", (int) (pauseCountdown + 0.99f));
             hud->setAlert(1, msgBuf, 1.0f, false);
         }
-    }
+    }*/
     return std::string();
 }
 
@@ -495,7 +498,7 @@ static std::string cmdAutoPilot(const std::string&,
 
     // don't enable autopilot until we've fully joined and checked the value
     // of the server-side _disableBots
-    if (! BZDB.isSet(StateDatabase::BZDB_DISABLEBOTS))
+    /*if (! BZDB.isSet(StateDatabase::BZDB_DISABLEBOTS))
         return std::string();
 
     LocalPlayer *myTank = LocalPlayer::getMyTank();
@@ -538,7 +541,7 @@ static std::string cmdAutoPilot(const std::string&,
         else
             controlPanel->addMessage("You may not enable the Autopilot more than once every five seconds.");
 
-    }
+    }*/
 
     return std::string();
 }
@@ -625,7 +628,7 @@ static std::string cmdMessagePanel(const std::string&,
     if (args.size() != 1)
         return "usage: messagepanel {all|chat|server|misc}";
 
-    int oldMode = controlPanel->getMessagesMode();
+    /*int oldMode = controlPanel->getMessagesMode();
     int newMode;
     if (args[0] == "all")
         newMode = 0;
@@ -640,7 +643,7 @@ static std::string cmdMessagePanel(const std::string&,
 
     if (newMode == oldMode)
         newMode = -1;
-    controlPanel->setMessagesMode(newMode);
+    controlPanel->setMessagesMode(newMode);*/
 
     return std::string();
 }

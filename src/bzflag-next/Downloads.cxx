@@ -23,8 +23,9 @@
 #include "cURLManager.h"
 
 /* local implementation headers */
-#include "playing.h"
 #include "HUDDialogStack.h"
+
+#include "BZDBCache.h"
 
 
 // local variables for file tracker

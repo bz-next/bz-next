@@ -17,7 +17,10 @@
 
 #include "common.h"
 
+// GLEW doesn't like being included after OpenGL
+#ifndef BUILDING_CLIENT
 #include <GL/glew.h>
+#endif
 
 #ifndef GL_VERSION_1_1
 # error OpenGL version 1.1 functionality is required

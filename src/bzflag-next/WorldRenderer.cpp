@@ -13,7 +13,9 @@
 #include "WorldSceneBuilder.h"
 #include <Magnum/Trade/MeshData.h>
 #include <Magnum/MeshTools/Compile.h>
+#ifndef MAGNUM_TARGET_GLES2
 #include <Magnum/MeshTools/CompileLines.h>
+#endif
 #include <Magnum/Primitives/Cube.h>
 #include <Magnum/GL/Buffer.h>
 #include <Magnum/MeshTools/RemoveDuplicates.h>
@@ -72,6 +74,7 @@ void WorldRenderer::createWorldObject(const WorldSceneBuilder *sb) {
     worldParent = new Object3D{};
     worldParent->scale({0.05, 0.05, 0.05});
 
+#ifndef MAGNUM_TARGET_GLES2
     {
         debugLine = new GL::Mesh{
             MeshTools::compileLines(
@@ -108,6 +111,7 @@ void WorldRenderer::createWorldObject(const WorldSceneBuilder *sb) {
         zline->rotateY(Deg(90.0));
         new DebugLineDrawable{*zline, _lineShader, 0.5*Color3{0.0f, 0.0f, 1.0f}, *debugLine, *worldDebugDrawables};
     }
+#endif
 
     std::vector<std::string> matnames = sb->getMaterialList();
     // Render opaque objects first

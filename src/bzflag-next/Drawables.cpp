@@ -143,6 +143,7 @@ void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::C
     }
 }
 
+#ifndef MAGNUM_TARGET_GLES2
 void DebugLineDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::Camera3D& camera) {
     _shader
         .setColor(_color)
@@ -151,3 +152,4 @@ void DebugLineDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::Ca
         .setWidth(2.0f)
         .draw(_mesh);
 }
+#endif

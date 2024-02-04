@@ -15,7 +15,6 @@
 
 /* local headers */
 #include "LocalPlayer.h"
-#include "HUDRenderer.h"
 #include "ParseColor.h"
 #include "Team.h"
 #include "playing.h"
@@ -41,10 +40,10 @@ void setFlagHelp(const std::string& name, void*)
     if (LocalPlayer::getMyTank() == NULL)
         return;
     static const float FlagHelpDuration = 60.0f;
-    if (BZDB.isTrue(name))
+    /*if (BZDB.isTrue(name))
         hud->setFlagHelp(LocalPlayer::getMyTank()->getFlag(), FlagHelpDuration);
     else
-        hud->setFlagHelp(Flags::Null, 0.0);
+        hud->setFlagHelp(Flags::Null, 0.0);*/
 }
 
 void setColor(const std::string& name, void*)
@@ -88,7 +87,7 @@ void setColor(const std::string& name, void*)
 void setDepthBuffer(const std::string& name, void*)
 {
     /* if zbuffer was set and not available, unset it */
-    if (BZDB.isTrue(name))
+    /*if (BZDB.isTrue(name))
     {
         GLint value;
         glGetIntegerv(GL_DEPTH_BITS, &value);
@@ -100,7 +99,7 @@ void setDepthBuffer(const std::string& name, void*)
             // add it again
             BZDB.addCallback(name, setDepthBuffer, NULL);
         }
-    }
+    }*/
 }
 
 // Local Variables: ***

@@ -11,7 +11,9 @@
 #include <Magnum/SceneGraph/Drawable.h>
 #include <Magnum/SceneGraph/Scene.h>
 #include <Magnum/Shaders/PhongGL.h>
+#ifndef MAGNUM_TARGET_GLES2
 #include <Magnum/Shaders/LineGL.h>
+#endif
 
 #include "WorldSceneBuilder.h"
 
@@ -60,5 +62,7 @@ class WorldRenderer {
                 Magnum::Shaders::PhongGL::Flag::AlphaMask |
                 Magnum::Shaders::PhongGL::Flag::TextureTransformation)};
         Magnum::Shaders::PhongGL matShaderUntex{Magnum::Shaders::PhongGL::Configuration{}};
+#ifndef MAGNUM_TARGET_GLES2
         Magnum::Shaders::LineGL3D _lineShader;
+#endif
 };

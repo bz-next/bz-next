@@ -8,7 +8,10 @@
 #include <Magnum/Math/Matrix4.h>
 #include <Magnum/Mesh.h>
 #include <Magnum/Math/Color.h>
+
+#ifndef MAGNUM_TARGET_GLES2
 #include <Magnum/Shaders/LineGL.h>
+#endif
 
 #include "MagnumBZMaterial.h"
 
@@ -79,7 +82,7 @@ class BZMaterialDrawable : public Magnum::SceneGraph::Drawable3D {
         Magnum::GL::Mesh& _mesh;
         const MagnumBZMaterial *_matPtr;
 };
-
+#ifndef MAGNUM_TARGET_GLES2
 class DebugLineDrawable : public Magnum::SceneGraph::Drawable3D {
     public:
         explicit DebugLineDrawable(Object3D& object, Magnum::Shaders::LineGL3D& shader, const Magnum::Color3& color, Magnum::GL::Mesh& mesh, Magnum::SceneGraph::DrawableGroup3D& group) :
@@ -97,3 +100,4 @@ class DebugLineDrawable : public Magnum::SceneGraph::Drawable3D {
         Magnum::Color3 _color;
         std::string _matName;
 };
+#endif

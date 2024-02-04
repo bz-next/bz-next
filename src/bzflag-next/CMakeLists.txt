@@ -7,17 +7,19 @@ corrade_add_resource(BZNEXT_RESOURCES resources/resources.conf)
 if (MINGW)
     set(CMAKE_EXE_LINKER_FLAGS "-mconsole")
 endif()
+
+add_compile_definitions(BUILDING_CLIENT)
 add_executable(bzflag-next WIN32 bzflag-next.cpp ${BZNEXT_RESOURCES}
     ActionBinding.cxx
     ActionBinding.h
     AutoPilot.cxx
     AutoPilot.h
-    BackgroundRenderer.cxx
-    BackgroundRenderer.h
+    #BackgroundRenderer.cxx
+    #BackgroundRenderer.h
     BaseLocalPlayer.cxx
     BaseLocalPlayer.h
-    CacheMenu.cxx
-    CacheMenu.h
+    #CacheMenu.cxx
+    #CacheMenu.h
     callbacks.cxx
     callbacks.h
     clientCommands.cxx
@@ -27,20 +29,20 @@ add_executable(bzflag-next WIN32 bzflag-next.cpp ${BZNEXT_RESOURCES}
     CommandsImplementation.cxx
     ComposeDefaultKey.cxx
     ComposeDefaultKey.h
-    ControlPanel.cxx
-    ControlPanel.h
+    #ControlPanel.cxx
+    #ControlPanel.h
     daylight.cxx
     daylight.h
     defaultBZDB.cxx
     defaultBZDB.h
-    DisplayMenu.cxx
-    DisplayMenu.h
+    #DisplayMenu.cxx
+    #DisplayMenu.h
     Downloads.cxx
     Downloads.h
-    EffectsMenu.cxx
-    EffectsMenu.h
-    effectsRenderer.cxx
-    effectsRenderer.h
+    #EffectsMenu.cxx
+    #EffectsMenu.h
+    #effectsRenderer.cxx
+    #effectsRenderer.h
     EntryZone.cxx
     EntryZone.h
     FlashClock.cxx
@@ -51,64 +53,64 @@ add_executable(bzflag-next WIN32 bzflag-next.cpp ${BZNEXT_RESOURCES}
     FormatMenu.h
     GuidedMissleStrategy.cxx
     GuidedMissleStrategy.h
-    GUIOptionsMenu.cxx
-    GUIOptionsMenu.h
-    HelpMenu.cxx
-    HelpMenu.h
-    HUDDialog.cxx
-    HUDDialog.h
-    HUDDialogStack.cxx
-    HUDDialogStack.h
-    HUDRenderer.cxx
-    HUDRenderer.h
-    HUDuiControl.cxx
-    HUDuiControl.h
-    HUDui.cxx
-    HUDuiDefaultKey.cxx
-    HUDuiDefaultKey.h
-    HUDui.h
-    HUDuiLabel.cxx
-    HUDuiLabel.h
-    HUDuiList.cxx
-    HUDuiList.h
-    HUDuiTextureLabel.cxx
-    HUDuiTextureLabel.h
-    HUDuiTypeIn.cxx
-    HUDuiTypeIn.h
-    InputMenu.cxx
-    InputMenu.h
-    JoinMenu.cxx
-    JoinMenu.h
-    KeyboardMapMenu.cxx
-    KeyboardMapMenu.h
+    #GUIOptionsMenu.cxx
+    #GUIOptionsMenu.h
+    #HelpMenu.cxx
+    #HelpMenu.h
+    #HUDDialog.cxx
+    #HUDDialog.h
+    #HUDDialogStack.cxx
+    #HUDDialogStack.h
+    #HUDRenderer.cxx
+    #HUDRenderer.h
+    #HUDuiControl.cxx
+    #HUDuiControl.h
+    #HUDui.cxx
+    #HUDuiDefaultKey.cxx
+    #HUDuiDefaultKey.h
+    #HUDui.h
+    #HUDuiLabel.cxx
+    #HUDuiLabel.h
+    #HUDuiList.cxx
+    #HUDuiList.h
+    #HUDuiTextureLabel.cxx
+    #HUDuiTextureLabel.h
+    #HUDuiTypeIn.cxx
+    #HUDuiTypeIn.h
+    #InputMenu.cxx
+    #InputMenu.h
+    #JoinMenu.cxx
+    #JoinMenu.h
+    #KeyboardMapMenu.cxx
+    #KeyboardMapMenu.h
     LocalCommand.cxx
     LocalCommand.h
     LocalPlayer.cxx
     LocalPlayer.h
-    MainMenu.cxx
-    MainMenu.h
-    MainWindow.cxx
-    MainWindow.h
-    MenuDefaultKey.cxx
-    MenuDefaultKey.h
+    #MainMenu.cxx
+    #MainMenu.h
+    #MainWindow.cxx
+    #MainWindow.h
+    #MenuDefaultKey.cxx
+    #MenuDefaultKey.h
     motd.cxx
     motd.h
-    NewVersionMenu.cxx
-    NewVersionMenu.h
-    OptionsMenu.cxx
-    OptionsMenu.h
+    #NewVersionMenu.cxx
+    #NewVersionMenu.h
+    #OptionsMenu.cxx
+    #OptionsMenu.h
     Plan.cxx
     Plan.h
     Player.cxx
     Player.h
-    playing.cxx
+    #playing.cxx
     playing.h
-    QuickKeysMenu.cxx
-    QuickKeysMenu.h
-    QuitMenu.cxx
-    QuitMenu.h
-    RadarRenderer.cxx
-    RadarRenderer.h
+    #QuickKeysMenu.cxx
+    #QuickKeysMenu.h
+    #QuitMenu.cxx
+    #QuitMenu.h
+    #RadarRenderer.cxx
+    #RadarRenderer.h
     Region.cxx
     Region.h
     RegionPriorityQueue.cxx
@@ -123,29 +125,29 @@ add_executable(bzflag-next WIN32 bzflag-next.cpp ${BZNEXT_RESOURCES}
     RoofTops.h
     Roster.cxx
     Roster.h
-    SaveWorldMenu.cxx
-    SaveWorldMenu.h
-    SceneBuilder.cxx
-    SceneBuilder.h
-    SceneRenderer.cxx
-    ScoreboardRenderer.cxx
-    ScoreboardRenderer.h
+    #SaveWorldMenu.cxx
+    #SaveWorldMenu.h
+    #SceneBuilder.cxx
+    #SceneBuilder.h
+    #SceneRenderer.cxx
+    #ScoreboardRenderer.cxx
+    #ScoreboardRenderer.h
     SegmentedShotStrategy.cxx
     SegmentedShotStrategy.h
     ServerCommandKey.cxx
     ServerCommandKey.h
     ServerLink.cxx
     ServerLink.h
-    ServerListFilter.cxx
-    ServerListFilter.h
-    ServerListFilterHelpMenu.cxx
-    ServerListFilterHelpMenu.h
-    ServerListFilterMenu.cxx
-    ServerListFilterMenu.h
-    ServerMenu.cxx
-    ServerMenu.h
-    ServerStartMenu.cxx
-    ServerStartMenu.h
+    #ServerListFilter.cxx
+    #ServerListFilter.h
+    #ServerListFilterHelpMenu.cxx
+    #ServerListFilterHelpMenu.h
+    #ServerListFilterMenu.cxx
+    #ServerListFilterMenu.h
+    #ServerMenu.cxx
+    #ServerMenu.h
+    #ServerStartMenu.cxx
+    #ServerStartMenu.h
     ShockWaveStrategy.cxx
     ShockWaveStrategy.h
     ShotPath.cxx
@@ -154,10 +156,10 @@ add_executable(bzflag-next WIN32 bzflag-next.cpp ${BZNEXT_RESOURCES}
     ShotPathSegment.h
     ShotStatistics.cxx
     ShotStatistics.h
-    ShotStats.cxx
-    ShotStatsDefaultKey.cxx
-    ShotStatsDefaultKey.h
-    ShotStats.h
+    #ShotStats.cxx
+    #ShotStatsDefaultKey.cxx
+    #ShotStatsDefaultKey.h
+    #ShotStats.h
     ShotStrategy.cxx
     ShotStrategy.h
     SilenceDefaultKey.cxx
@@ -168,12 +170,12 @@ add_executable(bzflag-next WIN32 bzflag-next.cpp ${BZNEXT_RESOURCES}
     stars.h
     TargetingUtils.cxx
     TargetingUtils.h
-    TrackMarks.cxx
-    TrackMarks.h
+    #TrackMarks.cxx
+    #TrackMarks.h
     Weapon.cxx
     Weapon.h
-    WeatherRenderer.cxx
-    WeatherRenderer.h
+    #WeatherRenderer.cxx
+    #WeatherRenderer.h
     WorldBuilder.cxx
     WorldBuilder.h
     World.cxx

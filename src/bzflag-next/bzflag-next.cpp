@@ -339,7 +339,7 @@ class BZFlagNew: public Platform::Sdl2Application {
         std::string worldCachePath;
         bool firstLife = false;
         bool fireButton = false;
-        ShotStats *shotStats = NULL;
+        //ShotStats *shotStats = NULL;
         bool wasRabbit = false;
         char *worldDatabase = NULL;
         std::ostream *cacheOut = NULL;
@@ -481,7 +481,9 @@ void BZFlagNew::showMainMenuBar() {
 void BZFlagNew::showMenuView() {
     if (ImGui::MenuItem("Scoreboard", NULL, &showScoreboard)) {}
     if (ImGui::MenuItem("Console", NULL, &showConsole)) {}
+#ifndef MAGNUM_TARGET_GLES2
     if (ImGui::MenuItem("Grid", NULL, &showGrid)) {}
+#endif
 }
 
 void BZFlagNew::showMenuTools() {
@@ -1144,11 +1146,11 @@ void BZFlagNew::enteringServer(const void *buf) {
     lastEpochOffset = epochOffset;*/
 
     // restore the sound
-    if (savedVolume != -1)
-    {
+    //if (savedVolume != -1)
+    //{
         //setSoundVolume(savedVolume);
-        savedVolume = -1;
-    }
+    //    savedVolume = -1;
+    //}
 
     // initialize some other stuff
     updateFlag(::Flags::Null);
@@ -1296,10 +1298,10 @@ Player* BZFlagNew::addPlayer(PlayerId id, const void* msg, int showMessage) {
         }
         addMessage (remotePlayers[i], message);
     }
-    completer.registerWord(callsign, true /* quote spaces */);
+    //completer.registerWord(callsign, true /* quote spaces */);
 
-    if (shotStats)
-        shotStats->refresh();
+    //if (shotStats)
+    //    shotStats->refresh();
 
     return remotePlayers[i];
 }
@@ -1331,7 +1333,7 @@ bool BZFlagNew::removePlayer(PlayerId id) {
     if (myTank->getNemesis() == p)
         myTank->setNemesis(0);
 
-    completer.unregisterWord(p->getCallSign());
+    //completer.unregisterWord(p->getCallSign());
 
     delete remotePlayers[playerIndex];
     remotePlayers[playerIndex] = NULL;
@@ -1345,8 +1347,8 @@ bool BZFlagNew::removePlayer(PlayerId id) {
     }
     World::getWorld()->setCurMaxPlayers(curMaxPlayers);
 
-    if (shotStats)
-        shotStats->refresh();
+    //if (shotStats)
+    //    shotStats->refresh();
 
     return true;
 }
@@ -1518,7 +1520,7 @@ void BZFlagNew::joinInternetGame2()
 
     //HUDDialogStack::get()->setFailedMessage("Entering game...");
 
-    ServerLink::setServer(serverLink);
+    ServerLink::setServer(_serverLink);
     World::setWorld(world);
 
     // prep teams
@@ -1529,11 +1531,11 @@ void BZFlagNew::joinInternetGame2()
     remotePlayers = world->getPlayers();
 
     // reset the autocompleter
-    completer.setDefaults();
+    //completer.setDefaults();
     //BZDB.iterate(addVarToAutoComplete, NULL);
 
     // prep flags
-    numFlags = world->getMaxFlags();
+    //numFlags = world->getMaxFlags();
 
     // make scene database
     //setSceneDatabase();
@@ -1681,11 +1683,11 @@ bool BZFlagNew::gotBlowedUp(BaseLocalPlayer* tank, BlowedUpReason reason, Player
 
     // restore the sound, this happens when paused tank dies
     // (genocide or team flag captured)
-    if (savedVolume != -1)
+    /*if (savedVolume != -1)
     {
         //setSoundVolume(savedVolume);
         savedVolume = -1;
-    }
+    }*/
 
     // take care of explosion business -- don't want to wait for
     // round trip of killed message.  waiting would simplify things,
@@ -2197,9 +2199,9 @@ void BZFlagNew::playingLoop()
                 const Player* targetdPlayer = myTank->getTarget();
                 if (targetdPlayer && targetdPlayer->isAlive() && targetdPlayer->getFlag() != ::Flags::Stealth)
                 {
-                    hud->AddLockOnMarker(Float3ToVec3(myTank->getTarget()->getPosition()),
+                    /*hud->AddLockOnMarker(Float3ToVec3(myTank->getTarget()->getPosition()),
                                          myTank->getTarget()->getCallSign(),
-                                         !isKillable(myTank->getTarget()));
+                                         !isKillable(myTank->getTarget()));*/
                 }
                 else // if we should not have a target, force that target to be cleared
                     myTank->setTarget(NULL);
@@ -2510,8 +2512,9 @@ void BZFlagNew::handleServerMessage(bool human, uint16_t code, uint16_t len, con
         //hud->setTimeLeft(timeLeft);
         if (timeLeft == 0)
         {
-            if (myTank->getTeam() != ObserverTeam)
-                gameOver = true;
+            // TODO: Track gameOver state
+            /*if (myTank->getTeam() != ObserverTeam)
+                gameOver = true;*/
             myTank->explodeTank();
             //controlPanel->addMessage("Time Expired");
             //hud->setAlert(0, "Time Expired", 10.0f, true);
@@ -2559,8 +2562,8 @@ void BZFlagNew::handleServerMessage(bool human, uint16_t code, uint16_t len, con
         }
         msg2 += " won the game";
 
-        if (myTank->getTeam() != ObserverTeam)
-            gameOver = true;
+        //if (myTank->getTeam() != ObserverTeam)
+        //    gameOver = true;
         //hud->setTimeLeft((uint32_t)~0);
         myTank->explodeTank();
         //controlPanel->addMessage(msg2);
@@ -2658,28 +2661,28 @@ void BZFlagNew::handleServerMessage(bool human, uint16_t code, uint16_t len, con
                 myTank->restart(pos, forward);
                 firstLife = false;
                 justJoined = false;
-                if (!myTank->isAutoPilot())
-                    mainWindow->warpMouse();
+                /*if (!myTank->isAutoPilot())
+                    mainWindow->warpMouse();*/
                 //hud->setAltitudeTape(World::getWorld()->allowJumping());
             }
 
             tank->setDeathEffect(NULL);
-            if (SceneRenderer::instance().useQuality() >= 2)
+            /*if (SceneRenderer::instance().useQuality() >= 2)
             {
                 if (((tank != myTank)
                         && ((ROAM.getMode() != Roaming::roamViewFP)
                             || (tank != ROAM.getTargetTank())))
                         || BZDB.isTrue("enableLocalSpawnEffect"))
                 {
-                    /*if (myTank->getFlag() == Flags::Colorblindness)
+                    if (myTank->getFlag() == Flags::Colorblindness)
                     {
                         static float cbColor[4] = {1,1,1,1};
                         EFFECTS.addSpawnEffect(cbColor, pos);
                     }
                     else
-                        EFFECTS.addSpawnEffect(tank->getColor(), pos);*/
+                        EFFECTS.addSpawnEffect(tank->getColor(), pos);
                 }
-            }
+            }*/
             tank->setStatus(PlayerState::Alive);
             tank->move(pos, forward);
             tank->setVelocity(zero);
@@ -3192,7 +3195,7 @@ void BZFlagNew::handleServerMessage(bool human, uint16_t code, uint16_t len, con
             {
                 shooter->addShot(firingInfo);
 
-                if (SceneRenderer::instance().useQuality() >= 2)
+                /*if (SceneRenderer::instance().useQuality() >= 2)
                 {
                     float shotPos[3];
                     shooter->getMuzzle(shotPos);
@@ -3205,11 +3208,11 @@ void BZFlagNew::handleServerMessage(bool human, uint16_t code, uint16_t len, con
                             || (shooterid != ROAM.getTargetTank()->getId())
                             || BZDB.isTrue("enableLocalShotEffect"))
                     {
-                        /*EFFECTS.addShotEffect(shooter->getColor(), shotPos,
+                        EFFECTS.addShotEffect(shooter->getColor(), shotPos,
                                               shooter->getAngle(),
-                                              shooter->getVelocity());*/
+                                              shooter->getVelocity());
                     }
-                }
+                }*/
             }
             else
                 break;
@@ -3615,13 +3618,13 @@ void BZFlagNew::handleServerMessage(bool human, uint16_t code, uint16_t len, con
         }
 
         // remove all of the flags
-        for (i=0 ; i<numFlags; i++)
+        /*for (i=0 ; i<numFlags; i++)
         {
             ::Flag& flag = world->getFlag(i);
             flag.owner = (PlayerId) -1;
             flag.status = FlagNoExist;
             world->initFlag (i);
-        }
+        }*/
         break;
     }
 
@@ -3738,7 +3741,7 @@ void BZFlagNew::handleServerMessage(bool human, uint16_t code, uint16_t len, con
 }
 
 void BZFlagNew::updateFlags(float dt) {
-    for (int i = 0; i < numFlags; i++)
+    /*for (int i = 0; i < numFlags; i++)
     {
         ::Flag& flag = world->getFlag(i);
         if (flag.status == FlagOnTank)
@@ -3754,7 +3757,7 @@ void BZFlagNew::updateFlags(float dt) {
             }
         }
         world->updateFlag(i, dt);
-    }
+    }*/
     //FlagSceneNode::waveFlag(dt);
 }
 
@@ -3912,7 +3915,7 @@ void BZFlagNew::joinInternetGame()
         case ServerLink::BadVersion:
         {
             char versionError[37];
-            snprintf(versionError, sizeof(versionError), "Incompatible server version %s", serverLink->getVersion());
+            snprintf(versionError, sizeof(versionError), "Incompatible server version %s", _serverLink->getVersion());
             //std::cout << versionError << std::endl;
             //HUDDialogStack::get()->setFailedMessage(versionError);
             console.addLog(versionError);
@@ -4033,7 +4036,7 @@ void BZFlagNew::leaveGame() {
     world = NULL;
     teams = NULL;
     curMaxPlayers = 0;
-    numFlags = 0;
+    //numFlags = 0;
     remotePlayers = NULL;
 
     ServerLink::setServer(NULL);
@@ -4041,7 +4044,7 @@ void BZFlagNew::leaveGame() {
     _serverLink = NULL;
     serverNetworkAddress = Address();
 
-    gameOver = false;
+    //gameOver = false;
     serverError = false;
     serverDied = false;
 

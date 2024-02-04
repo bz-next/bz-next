@@ -26,7 +26,6 @@
 #include "Ray.h"
 #include "Obstacle.h"
 #include "Teleporter.h"
-#include "SceneDatabase.h"
 
 /* local interface headers */
 #include "BaseLocalPlayer.h"
