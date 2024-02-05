@@ -388,7 +388,7 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
     Platform::Sdl2Application{arguments, Configuration{}
         .setTitle("BZFlag Experimental Client")
         .setWindowFlags(Configuration::WindowFlag::Resizable),
-#ifdef defined(MAGNUM_TARGET_GLES) || defined(MAGNUM_TARGET_GLES2)
+#if defined(MAGNUM_TARGET_GLES) || defined(MAGNUM_TARGET_GLES2)
         // No multisampling for GLES, assume less capable machine
         GLConfiguration{}.setVersion(GL::Version::GLES200)
 #else
