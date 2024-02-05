@@ -317,9 +317,16 @@ TextureData MagnumTextureManager::loadTexture(FileTextureInit &init, bool report
 
     GL::Texture2D *texture = new GL::Texture2D{};
     texture->setWrapping(GL::SamplerWrapping::Repeat)
+#if defined(MAGNUM_TARGET_GLES) || defined(MAGNUM_TARGET_GLES2)
+        // If targeting GLES2 assume less capable system
+        .setMagnificationFilter(GL::SamplerFilter::Nearest)
+        .setMinificationFilter(GL::SamplerFilter::Nearest, GL::SamplerMipmap::Nearest)
+        .setMaxAnisotropy(1.0f)
+#else
         .setMagnificationFilter(GL::SamplerFilter::Linear)
         .setMinificationFilter(GL::SamplerFilter::Linear, GL::SamplerMipmap::Linear)
         .setMaxAnisotropy(GL::Sampler::maxMaxAnisotropy())
+#endif
         .setStorage(4, GL::textureFormat(image->format()), image->size())
         .setSubImage(0, {}, *image)
         .generateMipmap();

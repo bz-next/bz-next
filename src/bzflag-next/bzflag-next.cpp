@@ -44,6 +44,7 @@
 #include <Corrade/Utility/Arguments.h>
 #include <Corrade/Utility/DebugStl.h>
 
+#include <Magnum/GL/Version.h>
 #include <Magnum/ImageView.h>
 #include <Magnum/Mesh.h>
 #include <Magnum/PixelFormat.h>
@@ -387,7 +388,13 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
     Platform::Sdl2Application{arguments, Configuration{}
         .setTitle("BZFlag Experimental Client")
         .setWindowFlags(Configuration::WindowFlag::Resizable),
-        GLConfiguration{}.setSampleCount(4)},
+#ifdef defined(MAGNUM_TARGET_GLES) || defined(MAGNUM_TARGET_GLES2)
+        // No multisampling for GLES, assume less capable machine
+        GLConfiguration{}.setVersion(GL::Version::GLES200)
+#else
+        GLConfiguration{}.setSampleCount(4)
+#endif
+        },
     motd(NULL),
     ServerAccessList("ServerAccess.txt", NULL)
 {
