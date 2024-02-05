@@ -7,7 +7,7 @@ Check out the project homepage: [https://bz-next.github.io/](https://bz-next.git
 
 BZ-Next is an experimental fork of BZFlag that redoes the rendering engine from the ground-up, using modern OpenGL, and the Magnum graphics library.
 
-See the [about the project](about) page for more information!
+See the [about the project](https://bz-next.github.io/about) page for more information!
 
 ## What does it currently look like?
 
@@ -52,11 +52,19 @@ $ cd build
 
 Specify any build options here. You can build a release build (more optimized) by specifying `-DCMAKE_BUILD_TYPE=Release` instead of `Debug`. `-DCMAKE_EXPORT_COMPILE_COMMANDS=On` generates a `compile-commands.json` that can be fed to `clangd` for editor instrumentation.
 
-The following will build a debug build, and disable the server, bzadmin, and clients:
+The following will build a debug build, and disable the server, bzadmin, etc:
 
 ```
 $ cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=On -DCMAKE_BUILD_TYPE=Debug -DENABLE_CLIENT=TRUE -DENABLE_SERVER=FALSE -DENABLE_PLUGINS=FALSE ..
 ```
+
+If you're building for an embedded device with GLES, add the following defines to your cmake step:
+
+```
+-DMAGNUM_TARGET_GLES=ON -DMAGNUM_TARGET_GLES2=ON
+```
+
+GLES builds currently disable multisampling (defaults to 4x on non-GLES builds), sets texture filters to nearest instead of linear, and sets anisotropy to minimums.
 
 ### Run make
 
