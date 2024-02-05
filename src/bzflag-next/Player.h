@@ -226,7 +226,7 @@ protected:
     // pause message
     bool pauseMessageState;
 
-    std::vector<ShotPath*> shots;
+    //std::vector<ShotPath*> shots;
     float       handicap;
 
 private:

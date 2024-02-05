@@ -77,9 +77,9 @@ LocalPlayer::~LocalPlayer()
 {
     // free shots
     const int numShots = World::getWorld()->getMaxShots();
-    for (int i = 0; i < numShots; i++)
+    /*for (int i = 0; i < numShots; i++)
         if (shots[i])
-            delete shots[i];
+            delete shots[i];*/
     //delete[] shots;
 
     // free antidote flag
@@ -131,22 +131,22 @@ void            LocalPlayer::doUpdate(float dt)
 
     // reap dead (reloaded) shots
     for (i = 0; i < numShots; i++)
-        if (shots[i] && shots[i]->isReloaded())
+        /*if (shots[i] && shots[i]->isReloaded())
         {
             //if (!shots[i]->isExpired())
             //    shots[i]->setExpired();
             delete shots[i];
             shots[i] = NULL;
-        }
+        }*/
 
     // update shots
     anyShotActive = false;
     for (i = 0; i < numShots; i++)
-        if (shots[i])
+        /*if (shots[i])
         {
             //shots[i]->update(dt);
             //if (!shots[i]->isExpired()) anyShotActive = true;
-        }
+        }*/
 
     // if no shots now out (but there had been) then reset target
     if (!anyShotActive && hadShotActive)
@@ -1042,10 +1042,11 @@ const float*      LocalPlayer::getAntidoteLocation() const
 
 ShotPath*       LocalPlayer::getShot(int index) const
 {
-    index &= 0x00FF;
+    /*index &= 0x00FF;
     if ((index < 0) || (index >= World::getWorld()->getMaxShots()))
         return NULL;
-    return shots[index];
+    return shots[index];*/
+    return NULL;
 }
 
 void            LocalPlayer::restart(const float* pos, float _azimuth)
@@ -1059,12 +1060,12 @@ void            LocalPlayer::restart(const float* pos, float _azimuth)
     // get rid of existing shots
     const int numShots = World::getWorld()->getMaxShots();
     // get rid of existing shots
-    for (int i = 0; i < numShots; i++)
+    /*for (int i = 0; i < numShots; i++)
         if (shots[i])
         {
             delete shots[i];
             shots[i] = NULL;
-        }
+        }*/
     anyShotActive = false;
 
     // no target
@@ -1224,9 +1225,9 @@ bool            LocalPlayer::fireShot()
     // find an empty slot
     const int numShots = World::getWorld()->getMaxShots();
     int i;
-    for (i = 0; i < numShots; i++)
+    /*for (i = 0; i < numShots; i++)
         if (!shots[i])
-            break;
+            break;*/
     if (i == numShots) return false;
 
     // make sure we're allowed to shoot
@@ -1340,12 +1341,12 @@ float           LocalPlayer::getReloadTime() const
     int i;
     for (i = 0; i < numShots; i++)
     {
-        if (!shots[i])
-            return 0.0f;
+        //if (!shots[i])
+        //    return 0.0f;
     }
 
     // look for the shot fired least recently
-    float minTime = float(shots[0]->getReloadTime() -
+    /*float minTime = float(shots[0]->getReloadTime() -
                           (shots[0]->getCurrentTime() - shots[0]->getStartTime()));
     for (i = 1; i < numShots; i++)
     {
@@ -1358,12 +1359,13 @@ float           LocalPlayer::getReloadTime() const
     if (minTime < 0.0f)
         minTime = 0.0f;
 
-    return minTime;
+    return minTime;*/
+    return 0.0f;
 }
 
 bool LocalPlayer::doEndShot(int ident, bool isHit, float* pos)
 {
-    const int index = ident & 255;
+    /*const int index = ident & 255;
     const int slt   = (ident >> 8) & 127;
 
     // special id used in some messages (and really shouldn't be sent here)
@@ -1394,7 +1396,7 @@ bool LocalPlayer::doEndShot(int ident, bool isHit, float* pos)
     //    return false;
 
     // end it
-   /*const float* shotPos = shots[index]->getPosition();
+   const float* shotPos = shots[index]->getPosition();
     pos[0] = shotPos[0];
     pos[1] = shotPos[1];
     pos[2] = shotPos[2];
