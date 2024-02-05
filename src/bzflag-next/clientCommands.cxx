@@ -28,7 +28,6 @@
 #include "FileManager.h"
 #include "DirectoryNames.h"
 #include "version.h"
-#include "SceneRenderer.h"
 #include "bzglob.h"
 #include "BzPNG.h"
 
@@ -39,9 +38,6 @@
 #include "SilenceDefaultKey.h"
 #include "ServerCommandKey.h"
 #include "Roaming.h"
-#include "playing.h"
-#include "HUDRenderer.h"
-#include "HUDui.h"
 
 // This all needs to be structured better, relying on global state is asking
 // for trouble...
@@ -605,15 +601,15 @@ static std::string cmdViewZoom(const std::string&,
             fov = 15.0f;
         BZDB.setFloat("displayFOV", fov);
         // also toggle the observer fov
-        if (ROAM.getZoom() != defFov)
+        /*if (ROAM.getZoom() != defFov)
             ROAM.setZoom(defFov);
         else
-            ROAM.setZoom(15.0f);
+            ROAM.setZoom(15.0f);*/
     }
     else if (args[0] == "reset")
     {
         fov = defFov;
-        ROAM.setZoom(defFov);
+        //ROAM.setZoom(defFov);
         BZDB.setFloat("displayFOV", fov);
     }
     else
@@ -651,7 +647,7 @@ static std::string cmdMessagePanel(const std::string&,
 static std::string cmdSend(const std::string&,
                            const CommandManager::ArgList& args, bool*)
 {
-    static ComposeDefaultKey composeKeyHandler;
+    /*static ComposeDefaultKey composeKeyHandler;
     if (args.size() != 1)
         return "usage: send {all|team|nemesis|recipient|admin}";
     LocalPlayer *myTank = LocalPlayer::getMyTank();
@@ -725,7 +721,7 @@ static std::string cmdSend(const std::string&,
         return "usage: send {all|team|nemesis|recipient|admin}";
     messageHistoryIndex = 0;
     hud->setComposing(composePrompt);
-    HUDui::setDefaultKey(&composeKeyHandler);
+    HUDui::setDefaultKey(&composeKeyHandler);*/
     return std::string();
 }
 
@@ -745,7 +741,7 @@ static DWORD WINAPI writeScreenshot(void* data)
 static void* writeScreenshot(void* data)
 #endif
 {
-    ScreenshotData* ssdata = (ScreenshotData*)data;
+    /*ScreenshotData* ssdata = (ScreenshotData*)data;
 
     const std::string dirname = getScreenShotDirName();
     const std::string prefix  = "bzfi";
@@ -841,7 +837,7 @@ static void* writeScreenshot(void* data)
     }
 
     delete[] ssdata->pixels;
-    delete ssdata;
+    delete ssdata;*/
 
     return NULL;
 }
@@ -851,7 +847,7 @@ static std::string cmdScreenshot(const std::string&, const CommandManager::ArgLi
     if (args.size() != 0)
         return "usage: screenshot";
 
-    ScreenshotData* ssdata = new ScreenshotData;
+    /*ScreenshotData* ssdata = new ScreenshotData;
     ssdata->renderer += (const char*)(glGetString(GL_VENDOR));
     ssdata->renderer += ": ";
     ssdata->renderer += (const char*)(glGetString(GL_RENDERER));
@@ -885,7 +881,7 @@ static std::string cmdScreenshot(const std::string&, const CommandManager::ArgLi
 #else
     // no threads?  sucks to be you, but we'll still write the screenshot
     writeScreenshot(ssdata);
-#endif
+#endif*/
 
     return std::string();
 }
@@ -896,12 +892,12 @@ static std::string cmdTime(const std::string&,
     // FIXME - time should be moved into BZDB
     if (args.size() != 1)
         return "usage: time {forward|backward}";
-    if (args[0] == "forward")
+    /*if (args[0] == "forward")
         clockAdjust += 5.0f * 60.0f;
     else if (args[0] == "backward")
         clockAdjust -= 5.0f * 60.0f;
     else
-        return "usage: time {forward|backward}";
+        return "usage: time {forward|backward}";*/
     return std::string();
 }
 
@@ -910,7 +906,7 @@ static std::string cmdRoam(const std::string&,
 {
     if (args.size() == 0)
         return "usage: roam {zoom|cycle} <args>";
-    if (!ROAM.isRoaming())
+    /*if (!ROAM.isRoaming())
         return std::string();
     if (args[0] == "zoom")
     {
@@ -957,29 +953,29 @@ static std::string cmdRoam(const std::string&,
             return "usage: roam cycle {type|subject} {forward|backward}";
     }
     else
-        return "usage: roam {zoom|cycle} <args>";
+        return "usage: roam {zoom|cycle} <args>";*/
     return std::string();
 }
 
 static std::string cmdSilence(const std::string&,
                               const CommandManager::ArgList& args, bool*)
 {
-    static SilenceDefaultKey silenceKeyHandler;
+    //static SilenceDefaultKey silenceKeyHandler;
     if (args.size() != 0)
         return "usage: silence";
-    messageHistoryIndex = 0;
+    /*messageHistoryIndex = 0;
     hud->setComposing("[Un]Silence: ");
-    HUDui::setDefaultKey(&silenceKeyHandler);
+    HUDui::setDefaultKey(&silenceKeyHandler);*/
     return std::string();
 }
 
 static std::string cmdServerCommand(const std::string&,
                                     const CommandManager::ArgList& args, bool*)
 {
-    static ServerCommandKey serverCommandKeyHandler;
+    //static ServerCommandKey serverCommandKeyHandler;
     if (args.size() != 0)
         return "usage: servercommand";
-    LocalPlayer *myTank = LocalPlayer::getMyTank();
+    /*LocalPlayer *myTank = LocalPlayer::getMyTank();
     if (!myTank)
         return "use only when connected";
     static bool prevAdmin = myTank->isAdmin();
@@ -989,7 +985,7 @@ static std::string cmdServerCommand(const std::string&,
 
     messageHistoryIndex = 0;
     serverCommandKeyHandler.init();
-    HUDui::setDefaultKey(&serverCommandKeyHandler);
+    HUDui::setDefaultKey(&serverCommandKeyHandler);*/
     return std::string();
 }
 
@@ -998,7 +994,7 @@ static std::string cmdScrollPanel(const std::string&,
 {
     if ((args.size() < 1) || (args.size() > 2))
         return "usage: scrollpanel {up|up_page|down|down_page|top|bottom} [count]\n";
-    int count = 1;
+    /*int count = 1;
     int linecount = 2;
     if (args.size() == 2)
     {
@@ -1006,20 +1002,20 @@ static std::string cmdScrollPanel(const std::string&,
         linecount = count;
     }
     // whence - (0 = set, 1 = cur, 2 = end)
-    if (args[0] == "up")
-        controlPanel->setMessagesOffset(+linecount, 1 /* current */, false);
-    else if (args[0] == "down")
-        controlPanel->setMessagesOffset(-linecount, 1 /* current */, false);
-    else if (args[0] == "up_page")
-        controlPanel->setMessagesOffset(+count, 1 /* current */, true);
-    else if (args[0] == "down_page")
-        controlPanel->setMessagesOffset(-count, 1 /* current */, true);
-    else if (args[0] == "top")
-        controlPanel->setMessagesOffset(123456789, 0 /* set */, false);
-    else if (args[0] == "bottom")
-        controlPanel->setMessagesOffset(0, 0 /* set */, false);
-    else if (args[0] == "pause")
-        controlPanel->togglePaused();
+    if (args[0] == "up")*/
+    //    controlPanel->setMessagesOffset(+linecount, 1 /* current */, false);
+    //else if (args[0] == "down")
+    //    controlPanel->setMessagesOffset(-linecount, 1 /* current */, false);
+    //else if (args[0] == "up_page")
+    //    controlPanel->setMessagesOffset(+count, 1 /* current */, true);
+    //else if (args[0] == "down_page")
+    //    controlPanel->setMessagesOffset(-count, 1 /* current */, true);
+    //else if (args[0] == "top")
+    //    controlPanel->setMessagesOffset(123456789, 0 /* set */, false);
+    //else if (args[0] == "bottom")
+    //    controlPanel->setMessagesOffset(0, 0 /* set */, false);
+    //else if (args[0] == "pause")
+    //    controlPanel->togglePaused();
     return std::string();
 }
 
@@ -1029,10 +1025,10 @@ static std::string cmdHunt(const std::string&,
 {
     if (args.size() != 0)
         return "usage: hunt";
-    LocalPlayer *myTank = LocalPlayer::getMyTank();
+    /*LocalPlayer *myTank = LocalPlayer::getMyTank();
     if (!myTank)
         return "use only when connected";
-    hud->getScoreboard()->huntKeyEvent (false);
+    hud->getScoreboard()->huntKeyEvent (false);*/
     return std::string();
 }
 
@@ -1041,10 +1037,10 @@ static std::string cmdAddHunt(const std::string&,
 {
     if (args.size() != 0)
         return "usage: addhunt";
-    LocalPlayer *myTank = LocalPlayer::getMyTank();
+    /*LocalPlayer *myTank = LocalPlayer::getMyTank();
     if (!myTank)
         return "use only when connected";
-    hud->getScoreboard()->huntKeyEvent (true);
+    hud->getScoreboard()->huntKeyEvent (true);*/
     return std::string();
 }
 
@@ -1056,7 +1052,7 @@ static std::string cmdCycleRadar(const std::string&,
     if (args.size() == 0)
         return usageText;
 
-    std::vector<float> radarLevels;
+    /*std::vector<float> radarLevels;
 
     for (size_t i = 0; i < args.size(); ++i)
         if (args[i] == "off")
@@ -1101,7 +1097,7 @@ static std::string cmdCycleRadar(const std::string&,
     {
         BZDB.setFloat("displayRadarRange", radarLevels[radarLevelIndex]);
         BZDB.set("displayRadar", "1");
-    }
+    }*/
 
     return std::string();
 }
@@ -1112,7 +1108,7 @@ static std::string cmdCyclePanel(const std::string&,
     if (args.size() != 1)
         return "usage: cyclePanel {left[_off]|right[_off]}\n";
 
-    bool forward = args[0] == "right" || args[0] == "right_off";
+    /*bool forward = args[0] == "right" || args[0] == "right_off";
     bool includeOff = args[0] == "left_off" || args[0] == "right_off";
 
     if (! BZDB.isTrue("displayConsole"))
@@ -1146,7 +1142,7 @@ static std::string cmdCyclePanel(const std::string&,
             if (forward && includeOff)
                 BZDB.setBool("displayConsole", false);
         }
-    }
+    }*/
 
     return std::string();
 }
@@ -1155,7 +1151,7 @@ static std::string cmdCyclePanel(const std::string&,
 // Local Variables: ***
 // mode: C++ ***
 // tab-width: 4 ***
-// c-basic-offset: 4 ***
+// c-basic-offset: 4 *,**
 // indent-tabs-mode: nil ***
 // End: ***
 // ex: shiftwidth=4 tabstop=4

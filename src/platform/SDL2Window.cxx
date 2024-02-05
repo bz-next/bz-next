@@ -376,7 +376,7 @@ bool SDLWindow::create(void)
         SDL_GL_SetSwapInterval(1);
 
     // init opengl context
-    OpenGLGState::initContext();
+    //OpenGLGState::initContext();
 
     return true;
 }

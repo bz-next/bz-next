@@ -1925,7 +1925,7 @@ void BZFlagNew::handlePlayerMessage(uint16_t code, uint16_t, const void* msg)
         RemotePlayer* remoteTank = (RemotePlayer*)tank;
         RemoteShotPath* shotPath =
             (RemoteShotPath*)remoteTank->getShot(shot.id);
-        if (shotPath) shotPath->update(shot, code, msg);
+        //if (shotPath) shotPath->update(shot, code, msg);
         PlayerId targetId;
         msg = nboUnpackUByte(msg, targetId);
         Player* targetTank = lookupPlayer(targetId);
@@ -2001,8 +2001,8 @@ void BZFlagNew::startPlaying()
 
     if (!BZDB.isTrue("disableMOTD"))
     {
-        motd = new MessageOfTheDay;
-        motd->getURL(BZDB.get("motdServer"));
+        //motd = new MessageOfTheDay;
+        //motd->getURL(BZDB.get("motdServer"));
     }
 
     if (startupInfo.autoConnect &&
@@ -2829,9 +2829,9 @@ void BZFlagNew::handleServerMessage(bool human, uint16_t code, uint16_t len, con
         }
         else if (killerPlayer)
         {
-            const ShotPath* shot = killerPlayer->getShot(int(shotId));
-            if (shot && !shot->isStoppedByHit())
-                killerPlayer->addHitToStats(shot->getFlag());
+            //const ShotPath* shot = killerPlayer->getShot(int(shotId));
+            //if (shot && !shot->isStoppedByHit())
+            //    killerPlayer->addHitToStats(shot->getFlag());
         }
 
         // handle my personal score against other players

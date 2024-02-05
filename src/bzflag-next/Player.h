@@ -219,7 +219,7 @@ protected:
 
 protected:
     // shot statistics
-    ShotStatistics    shotStatistics;
+    //ShotStatistics    shotStatistics;
     const Obstacle* lastObstacle; // last obstacle touched
     TimeKeeper    jamTime;
 
@@ -262,9 +262,9 @@ private:
     bool          haveIpAddr;
 
     // data use for drawing
-    TankSceneNode*    tankNode;
-    TankIDLSceneNode* tankIDLNode;
-    SphereSceneNode*  pausedSphere;
+    //TankSceneNode*    tankNode;
+    //TankIDLSceneNode* tankIDLNode;
+    //SphereSceneNode*  pausedSphere;
 #ifndef BUILDING_BZADMIN
     float       color[4];
     float       teleAlpha;
@@ -512,7 +512,7 @@ inline float        Player::getTeleporterProximity() const
 
 inline const ShotStatistics*  Player::getShotStatistics() const
 {
-    return &shotStatistics;
+    return NULL;//&shotStatistics;
 }
 
 inline bool     Player::isAlive() const
@@ -632,7 +632,7 @@ inline void     Player::setPlayerList(bool _playerList)
 
 inline void     Player::addHitToStats(FlagType* flag)
 {
-    shotStatistics.recordHit(flag);
+    //shotStatistics.recordHit(flag);
 }
 
 inline void*        Player::pack(void* buf, uint16_t& code)

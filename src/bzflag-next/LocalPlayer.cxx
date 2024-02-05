@@ -16,7 +16,6 @@
 /* common implementation headers */
 #include "CommandManager.h"
 #include "BZDBCache.h"
-#include "FlagSceneNode.h"
 #include "CollisionManager.h"
 #include "PhysicsDriver.h"
 #include "BzfEvent.h"
@@ -26,8 +25,6 @@
 /* local implementation headers */
 #include "World.h"
 #include "sound.h"
-#include "ForceFeedback.h"
-#include "effectsRenderer.h"
 
 /* system implementation headers */
 #include <algorithm>
@@ -43,7 +40,7 @@ LocalPlayer::LocalPlayer(const PlayerId& _id,
     firingStatus(Deceased),
     flagShakingTime(0.0f),
     flagShakingWins(0),
-    antidoteFlag(NULL),
+    //antidoteFlag(NULL),
     desiredSpeed(0.0f),
     desiredAngVel(0.0f),
     lastSpeed(0.0f),
@@ -65,10 +62,10 @@ LocalPlayer::LocalPlayer(const PlayerId& _id,
     deathPhyDrv(-1)
 {
     // initialize shots array to no shots fired
-    const int numShots = World::getWorld()->getMaxShots();
+    /*const int numShots = World::getWorld()->getMaxShots();
     shots = new LocalShotPath*[numShots];
     for (int i = 0; i < numShots; i++)
-        shots[i] = NULL;
+        shots[i] = NULL;*/
     // set input method
     if (BZDB.isTrue("allowInputChange"))
         inputMethod = Mouse;
@@ -83,10 +80,10 @@ LocalPlayer::~LocalPlayer()
     for (int i = 0; i < numShots; i++)
         if (shots[i])
             delete shots[i];
-    delete[] shots;
+    //delete[] shots;
 
     // free antidote flag
-    delete antidoteFlag;
+    //delete antidoteFlag;
 }
 
 void            LocalPlayer::setMyTank(LocalPlayer* player)
@@ -106,11 +103,11 @@ void            LocalPlayer::doUpdate(float dt)
     int i;
     if (isPaused())
     {
-        for (i = 0; i < numShots; i++)
+        /*for (i = 0; i < numShots; i++)
         {
             if (shots[i])
                 shots[i]->boostReloadTime(dt);
-        }
+        }*/
 
         // if we've been paused for a long time, drop our flag
         if (!wasPaused)
@@ -136,8 +133,8 @@ void            LocalPlayer::doUpdate(float dt)
     for (i = 0; i < numShots; i++)
         if (shots[i] && shots[i]->isReloaded())
         {
-            if (!shots[i]->isExpired())
-                shots[i]->setExpired();
+            //if (!shots[i]->isExpired())
+            //    shots[i]->setExpired();
             delete shots[i];
             shots[i] = NULL;
         }
@@ -147,8 +144,8 @@ void            LocalPlayer::doUpdate(float dt)
     for (i = 0; i < numShots; i++)
         if (shots[i])
         {
-            shots[i]->update(dt);
-            if (!shots[i]->isExpired()) anyShotActive = true;
+            //shots[i]->update(dt);
+            //if (!shots[i]->isExpired()) anyShotActive = true;
         }
 
     // if no shots now out (but there had been) then reset target
@@ -861,7 +858,7 @@ void            LocalPlayer::doUpdateMotion(float dt)
     newAzimuth = getAngle(); // pickup the limited angle range from move()
 
     // see if I'm over my antidote
-    if (antidoteFlag && location == OnGround)
+    /*if (antidoteFlag && location == OnGround)
     {
         float dist =
             ((flagAntidotePos[0] - newPos[0]) * (flagAntidotePos[0] - newPos[0])) +
@@ -869,7 +866,7 @@ void            LocalPlayer::doUpdateMotion(float dt)
         const float twoRads = getRadius() + BZDBCache::flagRadius;
         if (dist < (twoRads * twoRads))
             server->sendDropFlag(getPosition());
-    }
+    }*/
 
     if ((getFlag() == Flags::Bouncy) && ((location == OnGround) || (location == OnBuilding)))
     {
@@ -1037,9 +1034,10 @@ int         LocalPlayer::getFlagShakingWins() const
     return flagShakingWins;
 }
 
-const GLfloat*      LocalPlayer::getAntidoteLocation() const
+const float*      LocalPlayer::getAntidoteLocation() const
 {
-    return (const GLfloat*)(antidoteFlag ? antidoteFlag->getSphere() : NULL);
+    //return (const GLfloat*)(antidoteFlag ? antidoteFlag->getSphere() : NULL);
+    return NULL;
 }
 
 ShotPath*       LocalPlayer::getShot(int index) const
@@ -1236,6 +1234,7 @@ bool            LocalPlayer::fireShot()
             ((location == InBuilding) && !isPhantomZoned()))
         return false;
 
+    /*
     // prepare shot
     FiringInfo firingInfo(*this, i + getSalt());
     // FIXME team coloring of shot is never used; it was meant to be used
@@ -1277,47 +1276,47 @@ bool            LocalPlayer::fireShot()
     // Insert timestamp, useful for dead reckoning jitter fixing
     // TODO should maybe use getTick() instead? must double check
     const float timeStamp = float(TimeKeeper::getCurrent() - TimeKeeper::getNullTime());
-    firingInfo.timeSent = timeStamp;
+    firingInfo.timeSent = timeStamp;*/
 
     // always send a player-update message. To synchronize movement and
     // shot start. They should generally travel on the same frame, when
     // flushing the output queues.
-    server->sendPlayerUpdate(this);
-    server->sendBeginShot(firingInfo);
+    //server->sendPlayerUpdate(this);
+    //server->sendBeginShot(firingInfo);
 
     /*if (BZDB.isTrue("enableLocalShotEffect") && SceneRenderer::instance().useQuality() >= 2)
         EFFECTS.addShotEffect(getColor(), firingInfo.shot.pos, getAngle(), getVelocity());*/
 
     if (gettingSound)
     {
-        if (firingInfo.flagType == Flags::ShockWave)
+        /*if (firingInfo.flagType == Flags::ShockWave)
         {
             playLocalSound(SFX_SHOCK);
-            ForceFeedback::shockwaveFired();
+            //ForceFeedback::shockwaveFired();
         }
         else if (firingInfo.flagType == Flags::Laser)
         {
             playLocalSound(SFX_LASER);
-            ForceFeedback::laserFired();
+            //ForceFeedback::laserFired();
         }
         else if (firingInfo.flagType == Flags::GuidedMissile)
         {
             playLocalSound(SFX_MISSILE);
-            ForceFeedback::shotFired();
+            //ForceFeedback::shotFired();
         }
         else if (firingInfo.flagType == Flags::Thief)
         {
             playLocalSound(SFX_THIEF);
-            ForceFeedback::shotFired();
+            //ForceFeedback::shotFired();
         }
         else
         {
             playLocalSound(SFX_FIRE);
-            ForceFeedback::shotFired();
-        }
+            //ForceFeedback::shotFired();
+        }*/
     }
 
-    shotStatistics.recordFire(firingInfo.flagType,getForward(),firingInfo.shot.vel);
+    //shotStatistics.recordFire(firingInfo.flagType,getForward(),firingInfo.shot.vel);
 
     if (getFlag() == Flags::TriggerHappy)
     {
@@ -1387,19 +1386,19 @@ bool LocalPlayer::doEndShot(int ident, bool isHit, float* pos)
         return false;
 
     // keep shot statistics
-    shotStatistics.recordHit(shots[index]->getFlag());
+    //shotStatistics.recordHit(shots[index]->getFlag());
 
     // don't stop if it's because were hitting something and we don't stop
     // when we hit something.
-    if (isHit && !shots[index]->isStoppedByHit())
-        return false;
+    //if (isHit && !shots[index]->isStoppedByHit())
+    //    return false;
 
     // end it
-    const float* shotPos = shots[index]->getPosition();
+   /*const float* shotPos = shots[index]->getPosition();
     pos[0] = shotPos[0];
     pos[1] = shotPos[1];
     pos[2] = shotPos[2];
-    shots[index]->setExpired();
+    shots[index]->setExpired();*/
     return true;
 }
 
@@ -1533,7 +1532,7 @@ void            LocalPlayer::explodeTank()
     else
         newVelocity[2] = oldVelocity[2];
     TankDeathOverride* death = getDeathEffect();
-    if (death)
+    /*if (death)
     {
         fvec3 v(newVelocity[0],newVelocity[1],newVelocity[2]);
         if (death->GetDeathVector(v))
@@ -1542,7 +1541,7 @@ void            LocalPlayer::explodeTank()
             newVelocity[1] = v.y;
             newVelocity[2] = v.z;
         }
-    }
+    }*/
     setVelocity(newVelocity);
     location = Exploding;
     target = NULL;        // lose lock when dead
@@ -1649,7 +1648,7 @@ bool            LocalPlayer::checkHit(const Player* source,
             continue;
 
         // test myself against shot
-        float position[3];
+        /*float position[3];
         const float t = shot->checkHit(this, position);
         if (t >= minTime) continue;
 
@@ -1663,7 +1662,7 @@ bool            LocalPlayer::checkHit(const Player* source,
         // okay, shot hit
         goodHit = true;
         hit = shot;
-        minTime = t;
+        minTime = t;*/
     }
     return goodHit;
 }
@@ -1706,15 +1705,15 @@ void            LocalPlayer::setFlag(FlagType* flag)
             }
             while (World::getWorld()->inBuilding(flagAntidotePos, tankRadius,
                                                  BZDBCache::tankHeight));
-            antidoteFlag = new FlagSceneNode(flagAntidotePos);
-            antidoteFlag->setColor(1.0f, 1.0f, 0.0f);
+            //antidoteFlag = new FlagSceneNode(flagAntidotePos);
+            //antidoteFlag->setColor(1.0f, 1.0f, 0.0f);
             //World::setFlagTexture(antidoteFlag);
         }
     }
     else
     {
-        delete antidoteFlag;
-        antidoteFlag = NULL;
+        //delete antidoteFlag;
+        //antidoteFlag = NULL;
         flagShakingTime = 0.0f;
         flagShakingWins = 0;
     }
@@ -1739,8 +1738,8 @@ void            LocalPlayer::changeScore(short deltaWins,
 
 void            LocalPlayer::addAntidote(SceneDatabase* scene)
 {
-    if (antidoteFlag)
-        scene->addDynamicNode(antidoteFlag);
+    //if (antidoteFlag)
+    //    scene->addDynamicNode(antidoteFlag);
 }
 
 std::string     LocalPlayer::getInputMethodName(InputMethod whatInput)

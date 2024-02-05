@@ -18,12 +18,9 @@
 
 // common implementation headers
 #include "TextUtils.h"
-#include "AnsiCodes.h"
 #include "version.h"
 
 // local implementation headers
-#include "playing.h"
-#include "NewVersionMenu.h"
 #include "HUDDialogStack.h"
 
 typedef struct

@@ -23,13 +23,10 @@ SOFTWARE.
 #include "BZScoreboard.h"
 
 /* common implementation headers */
-#include "Bundle.h"
 #include "Team.h"
-#include "FontManager.h"
 #include "BZDBCache.h"
-#include "OpenGLGState.h"
 #include "TextUtils.h"
-#include "TimeKeeper.h"
+#include "AnsiCodes.h"
 
 /* local implementation headers */
 #include "LocalPlayer.h"

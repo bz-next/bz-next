@@ -26,13 +26,13 @@ add_executable(bzflag-next WIN32 bzflag-next.cpp ${BZNEXT_RESOURCES}
     clientConfig.cxx
     clientConfig.h
     commands.h
-    CommandsImplementation.cxx
-    ComposeDefaultKey.cxx
-    ComposeDefaultKey.h
+    #CommandsImplementation.cxx
+    #ComposeDefaultKey.cxx
+    #ComposeDefaultKey.h
     #ControlPanel.cxx
     #ControlPanel.h
-    daylight.cxx
-    daylight.h
+    #daylight.cxx
+    #daylight.h
     defaultBZDB.cxx
     defaultBZDB.h
     #DisplayMenu.cxx
@@ -47,10 +47,10 @@ add_executable(bzflag-next WIN32 bzflag-next.cpp ${BZNEXT_RESOURCES}
     EntryZone.h
     FlashClock.cxx
     FlashClock.h
-    ForceFeedback.cxx
-    ForceFeedback.h
-    FormatMenu.cxx
-    FormatMenu.h
+    #ForceFeedback.cxx
+    #ForceFeedback.h
+    #FormatMenu.cxx
+    #FormatMenu.h
     GuidedMissleStrategy.cxx
     GuidedMissleStrategy.h
     #GUIOptionsMenu.cxx
@@ -93,8 +93,8 @@ add_executable(bzflag-next WIN32 bzflag-next.cpp ${BZNEXT_RESOURCES}
     #MainWindow.h
     #MenuDefaultKey.cxx
     #MenuDefaultKey.h
-    motd.cxx
-    motd.h
+    #motd.cxx
+    #motd.h
     #NewVersionMenu.cxx
     #NewVersionMenu.h
     #OptionsMenu.cxx
@@ -132,10 +132,10 @@ add_executable(bzflag-next WIN32 bzflag-next.cpp ${BZNEXT_RESOURCES}
     #SceneRenderer.cxx
     #ScoreboardRenderer.cxx
     #ScoreboardRenderer.h
-    SegmentedShotStrategy.cxx
-    SegmentedShotStrategy.h
-    ServerCommandKey.cxx
-    ServerCommandKey.h
+    #SegmentedShotStrategy.cxx
+    #SegmentedShotStrategy.h
+    #ServerCommandKey.cxx
+    #ServerCommandKey.h
     ServerLink.cxx
     ServerLink.h
     #ServerListFilter.cxx
@@ -148,26 +148,26 @@ add_executable(bzflag-next WIN32 bzflag-next.cpp ${BZNEXT_RESOURCES}
     #ServerMenu.h
     #ServerStartMenu.cxx
     #ServerStartMenu.h
-    ShockWaveStrategy.cxx
-    ShockWaveStrategy.h
-    ShotPath.cxx
-    ShotPath.h
-    ShotPathSegment.cxx
-    ShotPathSegment.h
-    ShotStatistics.cxx
-    ShotStatistics.h
+    #ShockWaveStrategy.cxx
+    #ShockWaveStrategy.h
+    #ShotPath.cxx
+    #ShotPath.h
+    #ShotPathSegment.cxx
+    #ShotPathSegment.h
+    #ShotStatistics.cxx
+    #ShotStatistics.h
     #ShotStats.cxx
     #ShotStatsDefaultKey.cxx
     #ShotStatsDefaultKey.h
     #ShotStats.h
-    ShotStrategy.cxx
-    ShotStrategy.h
-    SilenceDefaultKey.cxx
-    SilenceDefaultKey.h
+    #ShotStrategy.cxx
+    #ShotStrategy.h
+    #SilenceDefaultKey.cxx
+    #SilenceDefaultKey.h
     sound.cxx
     sound.h
-    stars.cxx
-    stars.h
+    #stars.cxx
+    #stars.h
     TargetingUtils.cxx
     TargetingUtils.h
     #TrackMarks.cxx
@@ -221,8 +221,7 @@ target_link_libraries(bzflag-next PRIVATE
     bzscene
     bzmediafile
     bzdate
-    bzgeometry
-    bzogl)
+    bzgeometry)
 target_compile_options(bzflag-next PRIVATE -w)
 add_dependencies(bzflag-next Magnum::AnyImageImporter MagnumPlugins::PngImporter Magnum::AnySceneImporter Magnum::ObjImporter GLEW::GLEW)
 

@@ -20,16 +20,14 @@
 #include <vector>
 
 /* common interface headers */
-#include "SceneDatabase.h"
 #include "TimeKeeper.h"
-#include "BoltSceneNode.h"
 
 /* local interface headers */
 #include "BaseLocalPlayer.h"
 #include "ShotPathSegment.h"
 
 
-class GuidedMissileStrategy : public ShotStrategy
+class GuidedMissileStrategy //: public ShotStrategy
 {
 public:
     GuidedMissileStrategy(ShotPath*);
@@ -49,12 +47,12 @@ private:
 private:
     TimeKeeper      prevTime;
     TimeKeeper      currentTime;
-    std::vector<ShotPathSegment>    segments;
+    //std::vector<ShotPathSegment>    segments;
     int         renderTimes;
     float       azimuth;
     float       elevation;
     float       nextPos[3];
-    BoltSceneNode*  ptSceneNode;
+    //BoltSceneNode*  ptSceneNode;
 
     float   puffTime,rootPuff;
     TimeKeeper lastPuff;

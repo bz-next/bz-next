@@ -194,7 +194,7 @@ void CachedTexture::collectData(char* ptr, int len)
     sprintf (buffer, "Downloading texture (%d of %d): %d KB", currentTex, totalTex, byteTransferred/1024);
     runs++;
 
-    HUDDialogStack::get()->setFailedMessage(buffer);
+    //HUDDialogStack::get()->setFailedMessage(buffer);
 }
 
 static std::vector<CachedTexture*> cachedTexVector;

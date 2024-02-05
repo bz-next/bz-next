@@ -26,7 +26,6 @@
 #include "World.h"
 #include "TrackMarks.h"
 #include "sound.h"
-#include "effectsRenderer.h"
 #include "Roaming.h"
 
 // for dead reckoning
@@ -485,8 +484,8 @@ void Player::updateTrackMarks()
 
             if (drawMark)
             {
-                TrackMarks::addMark(markPos, dimensionsScale[1],
-                                    state.azimuth, state.phydrv);
+                /*TrackMarks::addMark(markPos, dimensionsScale[1],
+                                    state.azimuth, state.phydrv);*/
                 lastTrackDraw = TimeKeeper::getTick();
             }
         }
@@ -777,8 +776,8 @@ void Player::updateFlagEffect(FlagType* effectFlag)
 void Player::endShot(int index, bool isHit, bool showExplosion)
 {
     float pos[3];
-    if (doEndShot(index, isHit, pos) && showExplosion)
-        addShotExplosion(pos);
+    //if (doEndShot(index, isHit, pos) && showExplosion)
+    //    addShotExplosion(pos);
     return;
 }
 
@@ -1075,9 +1074,9 @@ void Player::addShots(SceneDatabase* scene, bool colorblind) const
     const int count = getMaxShots();
     for (int i = 0; i < count; i++)
     {
-        ShotPath* shot = getShot(i);
+        /*ShotPath* shot = getShot(i);
         if (shot && !shot->isExpiring() && !shot->isExpired())
-            shot->addShot(scene, colorblind);
+            shot->addShot(scene, colorblind);*/
     }
 }
 

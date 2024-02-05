@@ -66,17 +66,17 @@ void WorldSceneBuilder::addBox(BoxBuilding& o) {
     // TextureMatrix
     // TODO: Add a texmat to box materials and remove this!
 
-    Magnum::GL::Texture2D *bwtex = NULL;
+    TextureData bwtex = {NULL, 0, 0};
 
     if (o.userTextures[0].size())
         bwtex = tm.getTexture(o.userTextures[0].c_str());
-    if (bwtex == NULL)
+    if (bwtex.texture == NULL)
         bwtex = MagnumTextureManager::instance().getTexture(BZDB.get("boxWallTexture").c_str());
 
     float boxTexWidth, boxTexHeight;
     boxTexWidth = boxTexHeight = 0.2f * BZDB.eval(StateDatabase::BZDB_BOXHEIGHT);
-    if (bwtex)
-        boxTexWidth = (float)bwtex->imageSize(0)[0] / (float)bwtex->imageSize(0)[1] * boxTexHeight;
+    if (bwtex.texture)
+        boxTexWidth = (float)bwtex.width / (float)bwtex.height * boxTexHeight;
 
 
     float base[3], sCorner[3], tCorner[3];
@@ -305,23 +305,25 @@ void WorldSceneBuilder::addBase(BaseBuilding& o) {
 
     WorldObject baseObj;
 
-    Magnum::GL::Texture2D *bwtex = NULL;
+    TextureData bwtex = {NULL, 0, 0};
 
+    // TODO: Actually use these if we have them...
+    // This is a mess wrt the material system
     if (o.userTextures[0].size())
         bwtex = tm.getTexture(o.userTextures[0].c_str());
-    if (bwtex == NULL) {
+    if (bwtex.texture == NULL) {
         std::string teamBase = Team::getImagePrefix((TeamColor)o.getTeam());
         teamBase += BZDB.get("baseWallTexture");
         bwtex = tm.getTexture(teamBase.c_str());
     }
-    if (bwtex == NULL)
+    if (bwtex.texture == NULL)
         bwtex = tm.getTexture(BZDB.get("boxWallTexture").c_str());
 
-    Magnum::GL::Texture2D *bttex = NULL;
+    TextureData bttex = {NULL, 0, 0};
 
     if (o.userTextures[1].size())
         bttex = tm.getTexture(o.userTextures[1].c_str());
-    if (bwtex == NULL) {
+    if (bwtex.texture == NULL) {
         std::string teamBase = Team::getImagePrefix((TeamColor)o.getTeam());
         teamBase += BZDB.get("baseTopTexture");
         bttex = tm.getTexture(teamBase.c_str());
@@ -432,11 +434,11 @@ void WorldSceneBuilder::addWall(WallObstacle& o) {
 
 
     // make styles -- first the outer wall
-    auto *wallTexture = tm.getTexture( "wall" );
+    auto wallTexture = tm.getTexture( "wall" );
     float wallTexWidth, wallTexHeight;
     wallTexWidth = wallTexHeight = 10.0f;
-    if (wallTexture != NULL)
-        wallTexWidth = (float)wallTexture->imageSize(0)[0] / (float)wallTexture->imageSize(0)[1] * wallTexHeight;
+    if (wallTexture.texture != NULL)
+        wallTexWidth = (float)wallTexture.width / (float)wallTexture.height * wallTexHeight;
 
     float base[3], sCorner[3], tCorner[3];
     float sEdge[3], tEdge[3];
@@ -744,14 +746,14 @@ void WorldSceneBuilder::addGround(float worldSize) {
     const auto *mat = MAGNUMMATERIALMGR.findMaterial("GroundMaterial");
     if (mat) {
         const auto &tname = mat->getTexture(0);
-        auto* tex = MagnumTextureManager::instance().getTexture(tname.c_str());
-        if (tex) {
+        auto tex = MagnumTextureManager::instance().getTexture(tname.c_str());
+        if (tex.texture) {
             float repeat = 100.0;
             if (BZDB.isSet("groundHighResTexRepeat")) {
                 repeat = 1.0f/BZDB.eval("groundHighResTexRepeat");
             }
-            uRepeat = 2*repeat*(worldSize)/tex->imageSize(0)[0];
-            vRepeat = 2*repeat*(worldSize)/tex->imageSize(0)[1];;
+            uRepeat = 2*repeat*(worldSize)/tex.width;
+            vRepeat = 2*repeat*(worldSize)/tex.height;
         }
     }
 
@@ -764,7 +766,7 @@ static bool translucentMaterial(const MagnumBZMaterial* mat)
 {
     // translucent texture?
     MagnumTextureManager &tm = MagnumTextureManager::instance();
-    GL::Texture2D *faceTexture = NULL;
+    TextureData faceTexture = {NULL, 0, 0};
     if (mat->getTextureCount() > 0)
     {
         faceTexture = tm.getTexture(mat->getTexture(0).c_str());
@@ -785,8 +787,8 @@ static bool translucentMaterial(const MagnumBZMaterial* mat)
     // is the color used?
     if (translucentColor)
     {
-        if (((faceTexture != NULL) && mat->getUseColorOnTexture(0)) ||
-                (faceTexture == NULL))
+        if (((faceTexture.texture != NULL) && mat->getUseColorOnTexture(0)) ||
+                (faceTexture.texture == NULL))
         {
             // modulate with the color if asked to, or
             // if the specified texture was not available

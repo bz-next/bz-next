@@ -45,42 +45,18 @@
 using namespace Magnum;
 using namespace Magnum::Math::Literals;
 
-MatViewerShader::MatViewerShader() {
-    MAGNUM_ASSERT_GL_VERSION_SUPPORTED(GL::Version::GL330);
-
-    const Utility::Resource rs{"matviewer-data"};
-
-    GL::Shader vert{GL::Version::GL330, GL::Shader::Type::Vertex};
-    GL::Shader frag{GL::Version::GL330, GL::Shader::Type::Fragment};
-
-    vert.addSource(rs.getString("MatViewer.vert"));
-    frag.addSource(rs.getString("MatViewer.frag"));
-
-    CORRADE_INTERNAL_ASSERT_OUTPUT(vert.compile() && frag.compile());
-
-    attachShaders({vert, frag});
-
-    CORRADE_INTERNAL_ASSERT_OUTPUT(link());
-
-    _colorUniform = uniformLocation("color");
-    setUniform(uniformLocation("textureData"), TextureUnit);
-}
-
 BZMaterialViewer::BZMaterialViewer() :
     phong {
         Shaders::PhongGL::Configuration{}
-            .setFlags(Shaders::PhongGL::Flag::DiffuseTexture | Shaders::PhongGL::Flag::AmbientTexture | Shaders::PhongGL::Flag::UniformBuffers | Shaders::PhongGL::Flag::AlphaMask | Shaders::PhongGL::Flag::TextureTransformation)
-            .setMaterialCount(1)
-            .setLightCount(1)
-            .setDrawCount(1)
-    },
+            .setFlags(
+                Shaders::PhongGL::Flag::DiffuseTexture |
+                Shaders::PhongGL::Flag::AmbientTexture |
+                Shaders::PhongGL::Flag::AlphaMask |
+                Shaders::PhongGL::Flag::TextureTransformation)},
     phongUntex {
-        Shaders::PhongGL::Configuration{}
-            .setFlags(Shaders::PhongGL::Flag::UniformBuffers)
-            .setMaterialCount(1)
-            .setLightCount(1)
-            .setDrawCount(1)
-    } {
+        Shaders::PhongGL::Configuration{}}
+    
+    {
     
     renderTex
         .setWrapping(GL::SamplerWrapping::ClampToEdge)
@@ -161,13 +137,13 @@ Color3 toMagnumColor(const float *cp) {
 
 void BZMaterialViewer::renderPreview() {
     static float tt = 0.0;
-    GL::Renderbuffer depthStencil;
-    depthStencil.setStorage(GL::RenderbufferFormat::Depth24Stencil8, bufsize);
+    GL::Renderbuffer depth;
+    depth.setStorage(GL::RenderbufferFormat::DepthComponent16, bufsize);
     GL::Framebuffer framebuffer{ {{}, bufsize} };
     framebuffer.attachTexture(GL::Framebuffer::ColorAttachment{ 0 }, renderTex, 0);
 
     framebuffer.attachRenderbuffer(
-    GL::Framebuffer::BufferAttachment::DepthStencil, depthStencil);
+    GL::Framebuffer::BufferAttachment::Depth, depth);
 
     framebuffer.clear(GL::FramebufferClear::Color|GL::FramebufferClear::Depth).bind();
 
@@ -175,30 +151,10 @@ void BZMaterialViewer::renderPreview() {
 
     std::vector<std::string> names = MAGNUMMATERIALMGR.getMaterialNames();
 
-    GL::Buffer projectionUniform, lightUniform, materialUniform, transformationUniform, drawUniform, textureTransformationUniform;
     Math::Matrix4<float> normalMat;
 
     Matrix4 transformationMatrix = Matrix4::translation(Vector3::zAxis(-2.0f));
     Matrix4 projectionMatrix = Matrix4::perspectiveProjection(35.0_degf, 1.0f, 0.001f, 100.0f);
-
-    projectionUniform.setData({
-        Shaders::ProjectionUniform3D{}
-            .setProjectionMatrix(projectionMatrix)
-    });
-    lightUniform.setData({
-        Shaders::PhongLightUniform{}
-            .setPosition({0.0, 0.0, 1.0, 0.0})
-            .setColor({1.0, 1.0, 1.0})
-    });
-    transformationUniform.setData({
-        Shaders::TransformationUniform3D{}
-            .setTransformationMatrix(transformationMatrix)
-    });
-    drawUniform.setData({
-        Shaders::PhongDrawUniform{}
-            .setNormalMatrix(transformationMatrix.normalMatrix())
-            .setMaterialId(0)
-    });
 
 
     if (itemCurrent < names.size()) {
@@ -213,64 +169,56 @@ void BZMaterialViewer::renderPreview() {
             }
             
 
-            GL::Texture2D *t = tm.getTexture(mat->getTexture(0).c_str());
-            if (t) {
-                    materialUniform.setData({
-                    Shaders::PhongMaterialUniform{}
-                        .setDiffuseColor(Color4{toMagnumColor(mat->getDiffuse())+dyncol, 0.0f})
-                        .setAmbientColor(Color4{toMagnumColor(mat->getAmbient()) + toMagnumColor(mat->getEmission()), mat->getDiffuse()[3]})
-                        .setSpecularColor(Color4{toMagnumColor(mat->getSpecular()), 0.0f})
-                        .setShininess(mat->getShininess())
-                        .setAlphaMask(mat->getAlphaThreshold())
-                });
-                    textureTransformationUniform.setData({
-                        Shaders::TextureTransformationUniform{}
-                            .setTextureMatrix(Matrix3{})
-                    });
-                if (mat->getTextureMatrix(0) != -1) {
-                    const TextureMatrix *texmat_internal = TEXMATRIXMGR.getMatrix(mat->getTextureMatrix(0));
-                    Matrix3 texmat;
-                    
-                    auto &tmd = texmat.data();
-                    const float *tmid = texmat_internal->getMatrix();
+            TextureData t = tm.getTexture(mat->getTexture(0).c_str());
+            if (t.texture) {
+                    float alphathresh = mat->getAlphaThreshold();
+            // The map "duck dodgers" set alphathresh=1 for many materials
+            // and the old client still rendered them. Max out alphathresh at
+            // 0.999, since some map makers might just max out the value
+            // to get transparency working.
+            if (alphathresh > 0.999f) alphathresh = 0.999f;
 
-                    // BZFlag TextureMatrix packs the data weirdly
-                    tmd[MAGNUMROWCOL(0, 0)] = tmid[INTROWCOL(0, 0)];
-                    tmd[MAGNUMROWCOL(0, 1)] = tmid[INTROWCOL(0, 1)];
-                    tmd[MAGNUMROWCOL(1, 0)] = tmid[INTROWCOL(1, 0)];
-                    tmd[MAGNUMROWCOL(1, 1)] = tmid[INTROWCOL(1, 1)];
-                    tmd[MAGNUMROWCOL(0, 2)] = tmid[INTROWCOL(0, 3)];
-                    tmd[MAGNUMROWCOL(1, 2)] = tmid[INTROWCOL(1, 3)];
-                    
-                    textureTransformationUniform.setData({
-                        Shaders::TextureTransformationUniform{}
-                            .setTextureMatrix(texmat)
-                    });
-                }
-                phong.bindDiffuseTexture(*t)
-                    .bindAmbientTexture(*t)
-                    .bindLightBuffer(lightUniform)
-                    .bindProjectionBuffer(projectionUniform)
-                    .bindMaterialBuffer(materialUniform)
-                    .bindTransformationBuffer(transformationUniform)
-                    .bindDrawBuffer(drawUniform)
-                    .bindTextureTransformationBuffer(textureTransformationUniform)
-                    .draw(mesh);
+            Matrix3 texmat;
+
+            if (mat->getTextureMatrix(0) != -1) {
+                const TextureMatrix *texmat_internal = TEXMATRIXMGR.getMatrix(mat->getTextureMatrix(0));
+                
+                
+                auto &tmd = texmat.data();
+                const float *tmid = texmat_internal->getMatrix();
+
+                // BZFlag TextureMatrix packs the data weirdly
+                tmd[MAGNUMROWCOL(0, 0)] = tmid[INTROWCOL(0, 0)];
+                tmd[MAGNUMROWCOL(0, 1)] = tmid[INTROWCOL(0, 1)];
+                tmd[MAGNUMROWCOL(1, 0)] = tmid[INTROWCOL(1, 0)];
+                tmd[MAGNUMROWCOL(1, 1)] = tmid[INTROWCOL(1, 1)];
+                tmd[MAGNUMROWCOL(0, 2)] = tmid[INTROWCOL(0, 3)];
+                tmd[MAGNUMROWCOL(1, 2)] = tmid[INTROWCOL(1, 3)];
+                
+            }
+            phong.bindDiffuseTexture(*t.texture)
+                .bindAmbientTexture(*t.texture)
+                .setDiffuseColor(Color4{toMagnumColor(mat->getDiffuse()), 0.0f})
+                .setAmbientColor(Color4{0.2*toMagnumColor(mat->getAmbient()) + toMagnumColor(mat->getEmission()) + dyncol, mat->getDiffuse()[3]})
+                .setSpecularColor(Color4{toMagnumColor(mat->getSpecular()), 0.0f})
+                .setShininess(mat->getShininess())
+                .setAlphaMask(alphathresh)
+                .setNormalMatrix(transformationMatrix.normalMatrix())
+                .setTransformationMatrix(transformationMatrix)
+                .setProjectionMatrix(projectionMatrix)
+                .setLightPositions({{0.0, 0.0, 1.0, 0.0}})
+                .setTextureMatrix(texmat)
+                .draw(mesh);
             } else {
-                materialUniform.setData({
-                Shaders::PhongMaterialUniform{}
-                    .setDiffuseColor(Color4{toMagnumColor(mat->getDiffuse())+dyncol, 0.0f})
-                    .setAmbientColor(Color4{toMagnumColor(mat->getAmbient()) + toMagnumColor(mat->getEmission()), mat->getDiffuse()[3]})
+                phongUntex
+                    .setDiffuseColor(Color4{toMagnumColor(mat->getDiffuse()), 0.0f})
+                    .setAmbientColor(Color4{0.2*toMagnumColor(mat->getAmbient()) + toMagnumColor(mat->getEmission()) + dyncol, mat->getDiffuse()[3]})
                     .setSpecularColor(Color4{toMagnumColor(mat->getSpecular()), 0.0f})
                     .setShininess(mat->getShininess())
-                    // No alpha mask on untextured materials
-                });
-                phongUntex
-                    .bindLightBuffer(lightUniform)
-                    .bindProjectionBuffer(projectionUniform)
-                    .bindMaterialBuffer(materialUniform)
-                    .bindTransformationBuffer(transformationUniform)
-                    .bindDrawBuffer(drawUniform)
+                    .setNormalMatrix(transformationMatrix.normalMatrix())
+                    .setTransformationMatrix(transformationMatrix)
+                    .setProjectionMatrix(projectionMatrix)
+                    .setLightPositions({{0.0, 0.0, 1.0, 0.0}})
                     .draw(mesh);
             }
         }

@@ -24,7 +24,6 @@
 // BZFlag common header
 #include "Magnum/GL/GL.h"
 #include "Magnum/GL/Sampler.h"
-#include "Magnum/Trade/AbstractImageConverter.h"
 #include "Magnum/Trade/Trade.h"
 #include "common.h"
 
@@ -48,7 +47,7 @@
 
 using namespace Magnum;
 
-static GL::Texture2D *magnumNoiseProc(MagnumProcTextureInit &init);
+static TextureData magnumNoiseProc(MagnumProcTextureInit &init);
 
 MagnumProcTextureInit magnumProcLoader[1];
 
@@ -68,10 +67,12 @@ MagnumTextureManager::MagnumTextureManager()
     for (i = 0; i < numTextures; i++)
     {
         magnumProcLoader[i].manager = this;
+
+        auto result = magnumProcLoader[i].proc(magnumProcLoader[i]);
         
         addTexture(
             magnumProcLoader[i].name.c_str(),
-            magnumProcLoader[i].proc(magnumProcLoader[i]));
+            {result.texture, result.width, result.height});
     }
 
     importer = manager.loadAndInstantiate("AnyImageImporter");
@@ -84,8 +85,8 @@ MagnumTextureManager::~MagnumTextureManager()
     for (TextureNameMap::iterator it = textureNames.begin(); it != textureNames.end(); ++it)
     {
         MagnumImageInfo &tex = it->second;
-        if (tex.texture != NULL)
-            delete tex.texture;
+        if (tex.data.texture != NULL)
+            delete tex.data.texture;
     }
     textureNames.clear();
 }
@@ -98,18 +99,18 @@ std::vector<std::string> MagnumTextureManager::getTextureNames() {
     return keys;
 }
 
-Magnum::GL::Texture2D *MagnumTextureManager::getTexture( const char* name, bool reportFail )
+TextureData MagnumTextureManager::getTexture( const char* name, bool reportFail )
 {
     if (!name)
     {
         logDebugMessage(2,"Could not get texture ID; no provided name\n");
-        return NULL;
+        return {NULL, 0, 0};
     }
 
     // see if we have the texture
     TextureNameMap::iterator it = textureNames.find(name);
     if (it != textureNames.end())
-        return it->second.texture;
+        return it->second.data;
     else   // we don't have it so try and load it
     {
 
@@ -119,10 +120,10 @@ Magnum::GL::Texture2D *MagnumTextureManager::getTexture( const char* name, bool 
         FileTextureInit texInfo;
         texInfo.name = filename;
 
-        GL::Texture2D *texture = loadTexture(texInfo, reportFail);
-        return addTexture(name, texture);
+        TextureData data = loadTexture(texInfo, reportFail);
+        return addTexture(name, data);
     }
-    return NULL;
+    return {NULL, 0, 0};
 }
 
 
@@ -143,8 +144,8 @@ bool MagnumTextureManager::removeTexture(const std::string& name)
 
     // delete the OpenGLTexture
     MagnumImageInfo& info = it->second;
-    delete info.texture;
-    info.texture = NULL;
+    delete info.data.texture;
+    info.data.texture = NULL;
 
     // clear the maps
     textureNames.erase(name);
@@ -171,8 +172,8 @@ void MagnumTextureManager::clear()
     for (TextureNameMap::iterator it = textureNames.begin(); it != textureNames.end(); ++it)
     {
         MagnumImageInfo &tex = it->second;
-        if (tex.texture != NULL)
-            delete tex.texture;
+        if (tex.data.texture != NULL)
+            delete tex.data.texture;
     }
     textureNames.clear();
 }
@@ -185,21 +186,21 @@ bool MagnumTextureManager::reloadTextureImage(const std::string& name)
         return false;
 
     MagnumImageInfo& info = it->second;
-    GL::Texture2D* oldTex = info.texture;
+    GL::Texture2D* oldTex = info.data.texture;
 
     // make the new texture object
     FileTextureInit fileInit;
 
     fileInit.name = name;
-    GL::Texture2D* newTex = loadTexture(fileInit, false);
-    if (newTex == NULL)
+    TextureData newTex = loadTexture(fileInit, false);
+    if (newTex.texture == NULL)
     {
         // couldn't reload, leave it alone
         return false;
     }
 
     //  name and id fields are not changed
-    info.texture = newTex;
+    info.data = newTex;
 
     delete oldTex;
 
@@ -211,36 +212,36 @@ void MagnumTextureManager::updateTextureFilters()
     // We just assume linear mipmap linear for now
 }
 
-GL::Texture2D *MagnumTextureManager::addTexture( const char* name, GL::Texture2D *texture )
+TextureData MagnumTextureManager::addTexture( std::string name, TextureData data )
 {
-    if (!name || !texture)
-        return NULL;
+    if (!data.texture)
+        return {NULL, 0, 0};
 
     // if the texture already exists kill it
     // this is why IDs are way better than objects for this stuff
     TextureNameMap::iterator it = textureNames.find(name);
     if (it != textureNames.end())
     {
-        logDebugMessage(3,"Texture %s already exists, overwriting\n", name);
-        delete it->second.texture;
+        logDebugMessage(3,"Texture %s already exists, overwriting\n", name.c_str());
+        delete it->second.data.texture;
     }
     MagnumImageInfo info;
     info.name = name;
-    info.texture = texture;
+    info.data = data;
 
     textureNames[name] = info;
 
-    logDebugMessage(4,"Added texture %s\n", name);
+    logDebugMessage(4,"Added texture %s\n", name.c_str());
 
-    return info.texture;
+    return info.data;
 }
 
-GL::Texture2D* MagnumTextureManager::loadTexture(FileTextureInit &init, bool reportFail)
+TextureData MagnumTextureManager::loadTexture(FileTextureInit &init, bool reportFail)
 {
     
     std::string filename = init.name;
     if (filename == "") {
-        return NULL;
+        return {NULL, 0, 0};
     }
     if (CACHEMGR.isCacheFileType(init.name))
         filename = CACHEMGR.getLocalName(filename);
@@ -271,13 +272,13 @@ GL::Texture2D* MagnumTextureManager::loadTexture(FileTextureInit &init, bool rep
 
     if (!importer || !importer->openFile(fullfilepath)) {
         logDebugMessage(2,"Image not found or unloadable: %s\n", filename.c_str());
-        return NULL;
+        return {NULL, 0, 0};
     }
     Containers::Optional<Trade::ImageData2D> image = importer->image2D(0);
     if (!image)
     {
         logDebugMessage(2,"Image not found or unloadable: %s\n", filename.c_str());
-        return NULL;
+        return {NULL, 0, 0};
     }
     if (image->format() != PixelFormat::RGBA8Unorm && image->format() != PixelFormat::RGB8Unorm) {
         auto data = image->data();
@@ -323,15 +324,18 @@ GL::Texture2D* MagnumTextureManager::loadTexture(FileTextureInit &init, bool rep
         .setSubImage(0, {}, *image)
         .generateMipmap();
     Warning{} << image->format();
-    return texture;
+    return {
+        texture,
+        (unsigned int)image->size()[0],
+        (unsigned int)image->size()[1]};
 }
 
 
 /* --- Procs --- */
 
-GL::Texture2D *magnumNoiseProc(MagnumProcTextureInit &init)
+TextureData magnumNoiseProc(MagnumProcTextureInit &init)
 {
-    size_t noiseSize = 128;
+    unsigned int noiseSize = 128;
     const size_t size = 4 * noiseSize * noiseSize;
     Containers::Array<char> noise{size};
     for (int i = 0; i < size; i += 4 )
@@ -349,7 +353,7 @@ GL::Texture2D *magnumNoiseProc(MagnumProcTextureInit &init)
         .setMinificationFilter(GL::SamplerFilter::Linear)
         .setStorage(1, GL::textureFormat(image.format()), image.size())
         .setSubImage(0, {}, image);
-    return texture;
+    return {texture, noiseSize, noiseSize};
 }
 
 

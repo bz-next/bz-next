@@ -19,7 +19,6 @@
 #include "DynamicColor.h"
 #include "TextureMatrix.h"
 #include "PhysicsDriver.h"
-#include "FlagSceneNode.h"
 #include "ObstacleMgr.h"
 #include "BaseBuilding.h"
 

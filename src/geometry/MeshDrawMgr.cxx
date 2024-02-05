@@ -14,8 +14,6 @@
 #include "MeshDrawMgr.h"
 
 // common headers
-#include "bzfgl.h"
-#include "OpenGLGState.h"
 #include "MeshDrawInfo.h"
 #include "bzfio.h" // for DEBUGx()
 
@@ -44,7 +42,7 @@ MeshDrawMgr::MeshDrawMgr(const MeshDrawInfo* drawInfo_)
 
     // size each LodList to the corresponding DrawLod
     for (auto &item : lodLists)
-        item.assign((curDrawLod++)->count, INVALID_GL_LIST_ID);
+        item.assign((curDrawLod++)->count, 0);
 
     //makeLists();
     //OpenGLGState::registerContextInitializer(freeContext, initContext, this);
@@ -125,26 +123,27 @@ void MeshDrawMgr::executeSet(int lod, int set, bool useNormals, bool useTexcoord
 void MeshDrawMgr::executeSetGeometry(int lod, int set)
 {
     // FIXME
-    const AnimationInfo* animInfo = drawInfo->getAnimationInfo();
+   /* const AnimationInfo* animInfo = drawInfo->getAnimationInfo();
     if (animInfo != NULL)
     {
         glPushMatrix();
         glRotatef(animInfo->angle, 0.0f, 0.0f, 1.0f);
-    }
+    }*/
 
-    const GLuint list = lodLists[lod][set];
-    if (list != INVALID_GL_LIST_ID)
-        glCallList(list);
+    const unsigned int list = lodLists[lod][set];
+    if (list != 0) {
+        //glCallList(list);
+    }
     else
     {
-        auto vertices = reinterpret_cast<GLfloat const *>(drawInfo->getVertices());
+        auto vertices = reinterpret_cast<float const *>(drawInfo->getVertices());
 
-        glVertexPointer(3, GL_FLOAT, 0, vertices);
+        //glVertexPointer(3, GL_FLOAT, 0, vertices);
         rawExecuteCommands(lod, set);
     }
 
-    if (animInfo != NULL)
-        glPopMatrix();
+    //if (animInfo != NULL)
+    //    glPopMatrix();
 
     return;
 }

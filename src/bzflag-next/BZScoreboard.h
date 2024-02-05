@@ -1,12 +1,14 @@
 #ifndef BZSCOREBOARD_H
 #define BZSCOREBOARD_H
 
-#include "Player.h"
+
 
 #include <functional>
 #include <cstring>
 #include <cctype>
 #include <Magnum/ImGuiIntegration/Context.hpp>
+
+#include "Player.h"
 
 
 

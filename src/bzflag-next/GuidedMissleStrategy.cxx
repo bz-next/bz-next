@@ -15,14 +15,12 @@
 
 /* common implementation headers */
 #include "BZDBCache.h"
-#include "TextureManager.h"
 #include "Intersect.h"
 
 /* local implementation headers */
 #include "LocalPlayer.h"
 #include "World.h"
 #include "Roster.h"
-#include "playing.h"
 
 static float limitAngle(float a)
 {
@@ -32,7 +30,7 @@ static float limitAngle(float a)
 }
 
 GuidedMissileStrategy::GuidedMissileStrategy(ShotPath* _path) :
-    ShotStrategy(_path),
+    //ShotStrategy(_path),
     renderTimes(0),
     needUpdate(true)
 {
@@ -50,7 +48,7 @@ GuidedMissileStrategy::GuidedMissileStrategy(ShotPath* _path) :
     }*/
 
     // get initial shot info
-    FiringInfo& f = getFiringInfo(_path);
+    /*FiringInfo& f = getFiringInfo(_path);
     f.lifetime *= BZDB.eval(StateDatabase::BZDB_GMADLIFE);
     const float* vel = getPath().getVelocity();
     const float d = 1.0f / hypotf(vel[0], hypotf(vel[1], vel[2]));
@@ -100,7 +98,7 @@ GuidedMissileStrategy::GuidedMissileStrategy(ShotPath* _path) :
     rootPuff = BZDB.eval("gmPuffTime");
     puffTime = -1;
     if (RENDERER.useQuality() >= 3)
-        rootPuff /= (10.0f + ((float)bzfrand()* 5.0f));
+        rootPuff /= (10.0f + ((float)bzfrand()* 5.0f));*/
 }
 
 GuidedMissileStrategy::~GuidedMissileStrategy()
@@ -113,7 +111,7 @@ GuidedMissileStrategy::~GuidedMissileStrategy()
 
 void GuidedMissileStrategy::update(float dt)
 {
-    const bool isRemote = (getPath().getPlayer() !=
+    /*const bool isRemote = (getPath().getPlayer() !=
                            LocalPlayer::getMyTank()->getId());
 
     // ignore packets that arrive out of order
@@ -128,7 +126,6 @@ void GuidedMissileStrategy::update(float dt)
     if (!isRemote &&
             currentTime - getPath().getStartTime() >= getPath().getLifetime())
     {
-        /* NOTE -- comment out to not explode when shot expires */
         addShotExplosion(nextPos);
         setExpiring();
         return;
@@ -237,7 +234,7 @@ void GuidedMissileStrategy::update(float dt)
 
     // see if we hit something
     TimeKeeper segmentEndTime(currentTime);
-    /* if (!isRemote) */
+    // if (!isRemote)
     {
         if (nextPos[2] <= 0.0f)
         {
@@ -271,12 +268,12 @@ void GuidedMissileStrategy::update(float dt)
     newDirection[1] *= shotSpeed;
     newDirection[2] *= shotSpeed;
     setPosition(nextPos);
-    setVelocity(newDirection);
+    setVelocity(newDirection);*/
 }
 
 float GuidedMissileStrategy::checkBuildings(const Ray& ray)
 {
-    float shotSpeed = BZDB.eval(StateDatabase::BZDB_SHOTSPEED);
+    /*float shotSpeed = BZDB.eval(StateDatabase::BZDB_SHOTSPEED);
     float t = float((currentTime - prevTime) * shotSpeed);
     int face;
     const Obstacle* building = getFirstBuilding(ray, Epsilon, t);
@@ -305,13 +302,13 @@ float GuidedMissileStrategy::checkBuildings(const Ray& ray)
         ray.getPoint(t / shotSpeed, pos);
         addShotExplosion(pos);
         return t / shotSpeed;
-    }
+    }*/
     return -1.0f;
 }
 
 float GuidedMissileStrategy::checkHit(const BaseLocalPlayer* tank, float position[3]) const
 {
-    float minTime = Infinity;
+    /*float minTime = Infinity;
     if (getPath().isExpired()) return minTime;
 
     // GM is not active until activation time passes (for any tank)
@@ -398,9 +395,10 @@ float GuidedMissileStrategy::checkHit(const BaseLocalPlayer* tank, float positio
             position[1] = tankPos[1] + closestPos[1];
             position[2] = tankPos[2] + closestPos[2];
         }
-    }
+    }*/
 
-    return minTime;
+    //return minTime;
+    return 1.0f;
 }
 
 void GuidedMissileStrategy::sendUpdate(const FiringInfo& firingInfo) const
@@ -429,7 +427,7 @@ void GuidedMissileStrategy::readUpdate(uint16_t code, const void* msg)
     // to be rare anyway.
 
     // read the lastTarget
-    nboUnpackUByte(msg, lastTarget);
+    /*nboUnpackUByte(msg, lastTarget);
 
     // fix up dependent variables
     const float* vel = getPath().getVelocity();
@@ -443,7 +441,7 @@ void GuidedMissileStrategy::readUpdate(uint16_t code, const void* msg)
     const float* pos = getPath().getPosition();
     nextPos[0] = pos[0];
     nextPos[1] = pos[1];
-    nextPos[2] = pos[2];
+    nextPos[2] = pos[2];*/
 
     // note that we do not call update(float).  let that happen on the
     // next time step.
@@ -457,17 +455,17 @@ void GuidedMissileStrategy::addShot(SceneDatabase* scene, bool)
 
 void GuidedMissileStrategy::expire()
 {
-    if (getPath().getPlayer() == LocalPlayer::getMyTank()->getId())
+    /*if (getPath().getPlayer() == LocalPlayer::getMyTank()->getId())
     {
         const ShotPath& shot = getPath();
-        /* NOTE -- change 0 to 1 to not explode when shot expires (I think) */
+        // NOTE -- change 0 to 1 to not explode when shot expires (I think)
         ServerLink::getServer()->sendEndShot(shot.getPlayer(), shot.getShotId(), 0);
-    }
+    }*/
 }
 
 void GuidedMissileStrategy::radarRender() const
 {
-    const float *orig = getPath().getPosition();
+    /*const float *orig = getPath().getPosition();
     const int length = (int)BZDBCache::linedRadarShots;
     const int size   = (int)BZDBCache::sizedRadarShots;
 
@@ -532,7 +530,7 @@ void GuidedMissileStrategy::radarRender() const
             glVertex2fv(orig);
             glEnd();
         }
-    }
+    }*/
 }
 
 // Local Variables: ***

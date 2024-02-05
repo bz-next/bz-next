@@ -52,7 +52,6 @@ void TexturedDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::Cam
 
 void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::Camera3D& camera) {
     MagnumTextureManager &tm = MagnumTextureManager::instance();
-    GL::Buffer projectionUniform, lightUniform, materialUniform, transformationUniform, drawUniform, textureTransformationUniform;
 
     const MagnumBZMaterial *mat = _matPtr;
 
@@ -75,8 +74,8 @@ void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::C
         else
             GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
 
-        GL::Texture2D *t = tm.getTexture(mat->getTexture(0).c_str());
-        if (t) {
+        TextureData t = tm.getTexture(mat->getTexture(0).c_str());
+        if (t.texture) {
             float alphathresh = mat->getAlphaThreshold();
             // The map "duck dodgers" set alphathresh=1 for many materials
             // and the old client still rendered them. Max out alphathresh at
@@ -102,8 +101,8 @@ void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::C
                 tmd[MAGNUMROWCOL(1, 2)] = tmid[INTROWCOL(1, 3)];
                 
             }
-            _shader.bindDiffuseTexture(*t)
-                .bindAmbientTexture(*t)
+            _shader.bindDiffuseTexture(*t.texture)
+                .bindAmbientTexture(*t.texture)
                 .setDiffuseColor(Color4{toMagnumColor(mat->getDiffuse()), 0.0f})
                 .setAmbientColor(Color4{0.2*toMagnumColor(mat->getAmbient()) + toMagnumColor(mat->getEmission()) + dyncol, mat->getDiffuse()[3]})
                 .setSpecularColor(Color4{toMagnumColor(mat->getSpecular()), 0.0f})
@@ -118,13 +117,6 @@ void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::C
                 .setTextureMatrix(texmat)
                 .draw(_mesh);
         } else {
-            materialUniform.setData({
-            Shaders::PhongMaterialUniform{}
-                .setDiffuseColor(Color4{toMagnumColor(mat->getDiffuse()), 0.0f})
-                .setAmbientColor(Color4{0.2*toMagnumColor(mat->getAmbient()) + toMagnumColor(mat->getEmission()) + dyncol, mat->getDiffuse()[3]})
-                .setSpecularColor(Color4{toMagnumColor(mat->getSpecular()), 0.0f})
-                .setShininess(mat->getShininess())
-        });
             _shaderUntex
                 .setDiffuseColor(Color4{toMagnumColor(mat->getDiffuse()), 0.0f})
                 .setAmbientColor(Color4{0.2*toMagnumColor(mat->getAmbient()) + toMagnumColor(mat->getEmission()) + dyncol, mat->getDiffuse()[3]})

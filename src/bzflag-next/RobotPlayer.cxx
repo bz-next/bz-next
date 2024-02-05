@@ -127,7 +127,7 @@ void            RobotPlayer::doUpdate(float dt)
 {
     LocalPlayer::doUpdate(dt);
 
-    float tankRadius = BZDBCache::tankRadius;
+    /*float tankRadius = BZDBCache::tankRadius;
     const float shotRange  = BZDB.eval(StateDatabase::BZDB_SHOTRANGE);
     const float shotRadius = BZDB.eval(StateDatabase::BZDB_SHOTRADIUS);
 
@@ -204,7 +204,7 @@ void            RobotPlayer::doUpdate(float dt)
                 }
             }
         }
-    }
+    }*/
 }
 
 void            RobotPlayer::doUpdateMotion(float dt)

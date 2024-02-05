@@ -22,6 +22,7 @@
 #include <Magnum/Trade/AbstractImporter.h>
 #include <Magnum/Trade/AbstractImageConverter.h>
 
+#include "Magnum/GL/GL.h"
 #include "Singleton.h"
 
 struct FileTextureInit
@@ -31,11 +32,16 @@ struct FileTextureInit
     //OpenGLTexture::Filter filter;
 };
 
+struct TextureData
+{
+    Magnum::GL::Texture2D *texture;
+    unsigned int width, height;
+};
 
 typedef  struct
 {
-    Magnum::GL::Texture2D *texture;
     std::string   name;
+    TextureData data;
 } MagnumImageInfo;
 
 class MagnumTextureManager;
@@ -44,7 +50,7 @@ struct MagnumProcTextureInit
 {
     std::string       name;
     MagnumTextureManager    *manager;
-    Magnum::GL::Texture2D           *(*proc)(MagnumProcTextureInit &init);
+    TextureData           (*proc)(MagnumProcTextureInit &init);
 };
 
 
@@ -53,7 +59,7 @@ class MagnumTextureManager : public Singleton<MagnumTextureManager>
 public:
     // No longer juggle texture IDs manually!
     //int getTextureID( const char* name, bool reportFail = true );
-    Magnum::GL::Texture2D *getTexture(const char* name, bool reportFail = true);
+    TextureData getTexture(const char* name, bool reportFail = true);
 
     bool isLoaded(const std::string& name);
     bool removeTexture(const std::string& name);
@@ -75,8 +81,8 @@ private:
     MagnumTextureManager& operator=(const MagnumTextureManager &tm);
     ~MagnumTextureManager();
 
-    Magnum::GL::Texture2D *addTexture( const char*, Magnum::GL::Texture2D *texture );
-    Magnum::GL::Texture2D* loadTexture( FileTextureInit &init, bool reportFail = true );
+    TextureData addTexture( std::string name, TextureData data );
+    TextureData loadTexture( FileTextureInit &init, bool reportFail = true );
 
     typedef std::map<std::string, MagnumImageInfo> TextureNameMap;
     typedef std::map<int, MagnumImageInfo*> TextureIDMap;

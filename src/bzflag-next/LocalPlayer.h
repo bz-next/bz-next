@@ -132,7 +132,7 @@ protected:
     void      doMomentum(float dt, float& speed, float& angVel);
     void      doFriction(float dt, const float *oldVelocity, float *newVelocity);
     void      doForces(float dt, float* velocity, float& angVel);
-    LocalShotPath**   shots;
+    //LocalShotPath**   shots;
     bool    gettingSound;
     ServerLink*   server;
 
@@ -150,7 +150,7 @@ private:
     float     flagShakingTime;
     int       flagShakingWins;
     float     flagAntidotePos[3];
-    FlagSceneNode*    antidoteFlag;
+    //FlagSceneNode*    antidoteFlag;
     float     desiredSpeed;
     float     desiredAngVel;
     float     lastSpeed;

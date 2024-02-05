@@ -17,7 +17,6 @@
 #include <assert.h>
 
 /* common implementation headers */
-#include "TextureManager.h"
 #include "Intersect.h"
 #include "BZDBCache.h"
 #include "WallObstacle.h"
@@ -26,16 +25,14 @@
 #include "sound.h"
 #include "LocalPlayer.h"
 #include "World.h"
-#include "effectsRenderer.h"
 #include "Roster.h"
-#include "playing.h"
 
 SegmentedShotStrategy::SegmentedShotStrategy(ShotPath* _path, bool useSuperTexture, bool faint) :
     ShotStrategy(_path), bbox()
 {
     // initialize times
-    prevTime = getPath().getStartTime();
-    lastTime = currentTime = prevTime;
+    //prevTime = getPath().getStartTime();
+    //lastTime = currentTime = prevTime;
 
     // start at first segment
     lastSegment = segment = 0;
@@ -88,7 +85,7 @@ void  SegmentedShotStrategy::update(float dt)
     currentTime += dt;
 
     // see if we've moved to another segment
-    const int numSegments = segments.size();
+    /*const int numSegments = segments.size();
     if (segment < numSegments && segments[segment].end <= currentTime)
     {
         lastSegment = segment;
@@ -159,7 +156,6 @@ void  SegmentedShotStrategy::update(float dt)
             const float speed = hypotf(dir[0], hypotf(dir[1], dir[2]));
             float pos[3];
             segm.ray.getPoint(float(segm.end - segm.start - 1.0 / speed), pos);
-            /* NOTE -- comment out to not explode when shot expires */
             addShotExplosion(pos);
         }
     }
@@ -171,7 +167,7 @@ void  SegmentedShotStrategy::update(float dt)
         segments[segment].ray.getPoint(float(currentTime - segments[segment].start), p);
         setPosition(p);
         setVelocity(segments[segment].ray.getDirection());
-    }
+    }*/
 }
 
 void  SegmentedShotStrategy::setCurrentTime(const

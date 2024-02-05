@@ -19,7 +19,6 @@
 #include <vector>
 
 // common interface headers
-#include "bzfgl.h"
 #include "MeshDrawInfo.h"
 
 class MeshDrawMgr

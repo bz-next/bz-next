@@ -25,7 +25,6 @@
 #include "DynamicColor.h"
 #include "TextureMatrix.h"
 #include "PhysicsDriver.h"
-#include "FlagSceneNode.h"
 #include "ObstacleMgr.h"
 #include "MeshDrawInfo.h"
 #include "MeshDrawMgr.h"
@@ -678,7 +677,7 @@ void            World::initFlag(int index)
     Flag& flag = flags[index];
     if (flag.status == FlagComing || flag.status == FlagGoing)
     {
-        GLfloat pos[3];
+        float pos[3];
         pos[0] = flag.position[0];
         pos[1] = flag.position[1];
         pos[2] = 0.5f * flag.flightEnd * (flag.initialVelocity +
@@ -1239,12 +1238,12 @@ static void drawLines (int count, float (*vertices)[3], int color)
         color = 0;
     else if (color >= colorCount)
         color = colorCount - 1;
-    glColor4fv (colors[color]);
+   // glColor4fv (colors[color]);
 
-    glBegin (GL_LINE_STRIP);
+    /*glBegin (GL_LINE_STRIP);
     for (int i = 0; i < count; i++)
         glVertex3fv (vertices[i]);
-    glEnd ();
+    glEnd ();*/
 
     return;
 }
@@ -1284,7 +1283,7 @@ static void drawInsideOutsidePoints()
         }
     }
 
-    glPushAttrib(GL_DEPTH_BUFFER_BIT | GL_POINT_BIT | GL_LINE_BIT);
+    /*glPushAttrib(GL_DEPTH_BUFFER_BIT | GL_POINT_BIT | GL_LINE_BIT);
 
     glDisable(GL_DEPTH_TEST);
     glEnable(GL_POINT_SMOOTH);
@@ -1320,13 +1319,13 @@ static void drawInsideOutsidePoints()
     }
     glEnd();
 
-    glPopAttrib();
+    glPopAttrib();*/
 }
 
 
 void World::drawCollisionGrid() const
 {
-    GLboolean usingTextures;
+    /*GLboolean usingTextures;
 
     glGetBooleanv (GL_TEXTURE_2D, &usingTextures);
     glDisable (GL_TEXTURE_2D);
@@ -1336,7 +1335,7 @@ void World::drawCollisionGrid() const
     drawInsideOutsidePoints();
 
     if (usingTextures)
-        glEnable (GL_TEXTURE_2D);
+        glEnable (GL_TEXTURE_2D);*/
 
     return;
 }

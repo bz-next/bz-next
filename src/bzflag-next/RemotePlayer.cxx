@@ -37,7 +37,7 @@ RemotePlayer::~RemotePlayer()
 
 void            RemotePlayer::addShot(const FiringInfo& info)
 {
-    float newpos[3];
+    /*float newpos[3];
     const float *f = getForward();
     RemoteShotPath* newShot = new RemoteShotPath(info);
     int shotNum = int(newShot->getShotId() & 255);
@@ -65,7 +65,7 @@ void            RemotePlayer::addShot(const FiringInfo& info)
         newpos[1] = info.shot.pos[1] - (front * f[1]);
         newpos[2] = info.shot.pos[2] - BZDB.eval(StateDatabase::BZDB_MUZZLEHEIGHT);
     }
-    shotStatistics.recordFire(info.flagType,f,info.shot.vel);
+    //shotStatistics.recordFire(info.flagType,f,info.shot.vel);
     // FIXME - with dynamic dimensions, this may not be a good idea
     //     (flag each shot with a 'default dimensions' state?)
     move(newpos, getAngle());
@@ -73,7 +73,7 @@ void            RemotePlayer::addShot(const FiringInfo& info)
     //     tank position updates, better so ignore them for now
     //     detail: settick | shot: current() | move | draw | tankpos: tick()
     //setDeadReckoning(info.timeSent);
-    setDeadReckoning(-1.0f);
+    setDeadReckoning(-1.0f);*/
 }
 
 ShotPath*       RemotePlayer::getShot(int index) const
@@ -110,27 +110,27 @@ bool            RemotePlayer::doEndShot(
         return false;
 
     // keep statistics
-    shotStatistics.recordHit(shots[index]->getFlag());
+    //shotStatistics.recordHit(shots[index]->getFlag());
 
     // don't stop if it's because were hitting something and we don't stop
     // when we hit something.
-    if (isHit && !shots[index]->isStoppedByHit())
-        return false;
+    //if (isHit && !shots[index]->isStoppedByHit())
+    //    return false;
 
     // end it
     const float* shotPos = shots[index]->getPosition();
     pos[0] = shotPos[0];
     pos[1] = shotPos[1];
     pos[2] = shotPos[2];
-    shots[index]->setExpired();
+    //shots[index]->setExpired();
     return true;
 }
 
 void            RemotePlayer::updateShots(float dt)
 {
-    for (int i = 0; i < numShots; i++)
-        if (shots[i])
-            shots[i]->update(dt);
+    //for (int i = 0; i < numShots; i++)
+        //if (shots[i])
+        //    shots[i]->update(dt);
 }
 
 // Local Variables: ***

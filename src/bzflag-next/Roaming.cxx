@@ -19,7 +19,7 @@
 #include "Team.h"
 
 /* local headers */
-#include "ScoreboardRenderer.h"
+
 
 Roaming::Roaming() : view(roamViewDisabled),
     targetManual(-1),
@@ -107,7 +107,7 @@ bool Roaming::changePlayer(RoamingTarget target)
     World* world = World::getWorld();
 
     std::vector<Player*> players;
-    ScoreboardRenderer::getPlayerList(players);
+    //ScoreboardRenderer::getPlayerList(players);
 
     const int pCount = int(players.size());
     if (!world || (pCount <= 0))
@@ -247,7 +247,7 @@ void Roaming::buildRoamingLabel(void)
         if (top == NULL)
         {
             // find the leader
-            top = ScoreboardRenderer::getLeader(&playerString);
+            //top = ScoreboardRenderer::getLeader(&playerString);
             if (top == NULL)
                 targetWinner = 0;
             else

@@ -17,29 +17,6 @@
 #include "MagnumTextureManager.h"
 #include <Magnum/Shaders/PhongGL.h>
 
-class MatViewerShader: public Magnum::GL::AbstractShaderProgram {
-    public:
-        typedef Magnum::GL::Attribute<0, Magnum::Math::Vector2<float>> Position;
-        typedef Magnum::GL::Attribute<1, Magnum::Math::Vector2<float>> TextureCoordinates;
-
-        explicit MatViewerShader();
-
-        MatViewerShader& setColor(const Magnum::Color3& color) {
-            setUniform(_colorUniform, color);
-            return *this;
-        }
-
-        MatViewerShader& bindTexture(Magnum::GL::Texture2D& texture) {
-            texture.bind(TextureUnit);
-            return *this;
-        }
-
-    private:
-        enum: Magnum::Int { TextureUnit = 0 };
-
-        Magnum::Int _colorUniform;
-};
-
 class BZMaterialViewer {
     public:
     BZMaterialViewer();
@@ -52,7 +29,6 @@ class BZMaterialViewer {
 
     Magnum::GL::Texture2D tex;
     Magnum::GL::Mesh mesh;
-    MatViewerShader shader;
     Magnum::Shaders::PhongGL phong;
     Magnum::Shaders::PhongGL phongUntex;
     

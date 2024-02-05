@@ -25,9 +25,8 @@ void BZTextureBrowser::draw(const char *title, bool *p_open) {
         ImGui::Text("No Textures Loaded");
     }
     if (names_cc.size() >= 0) {
-        GL::Texture2D *tex = tm.getTexture(names[itemCurrent].c_str());
-        auto size = tex->imageSize(0);
-        ImGuiIntegration::image(*tex, {(float)size.x(), (float)size.y()});
+        TextureData tex = tm.getTexture(names[itemCurrent].c_str());
+        ImGuiIntegration::image(*tex.texture, {(float)tex.width, (float)tex.height});
     }
     ImGui::End();
 }

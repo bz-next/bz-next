@@ -31,7 +31,7 @@ WorldPlayer::~WorldPlayer()
 
 void            WorldPlayer::addShot(const FiringInfo& info)
 {
-    RemoteShotPath* newShot = new RemoteShotPath(info);
+    /*RemoteShotPath* newShot = new RemoteShotPath(info);
     int shotNum = int(newShot->getShotId() & 255);
     if (shotNum >= (int)shots.size())
         shots.resize(shotNum+1);
@@ -40,7 +40,7 @@ void            WorldPlayer::addShot(const FiringInfo& info)
         if (shots[shotNum] != NULL)
             delete shots[shotNum];
     }
-    shots[shotNum] = newShot;
+    shots[shotNum] = newShot;*/
 }
 
 ShotPath*       WorldPlayer::getShot(int index) const
@@ -76,23 +76,23 @@ bool            WorldPlayer::doEndShot(
 
     // don't stop if it's because were hitting something and we don't stop
     // when we hit something.
-    if (isHit && !shots[index]->isStoppedByHit())
-        return false;
+    //if (isHit && !shots[index]->isStoppedByHit())
+    //    return false;
 
     // end it
     const float* shotPos = shots[index]->getPosition();
     pos[0] = shotPos[0];
     pos[1] = shotPos[1];
     pos[2] = shotPos[2];
-    shots[index]->setExpired();
+    //shots[index]->setExpired();
     return true;
 }
 
 void            WorldPlayer::updateShots(float dt)
 {
-    for (int i = 0; i < (int)shots.size(); i++)
+    /*for (int i = 0; i < (int)shots.size(); i++)
         if (shots[i])
-            shots[i]->update(dt);
+            shots[i]->update(dt);*/
 }
 
 void            WorldPlayer::addShots(SceneDatabase* scene,
@@ -101,9 +101,9 @@ void            WorldPlayer::addShots(SceneDatabase* scene,
     const int count = shots.size();
     for (int i = 0; i < count; i++)
     {
-        ShotPath* shot = getShot(i);
-        if (shot && !shot->isExpiring() && !shot->isExpired())
-            shot->addShot(scene, colorblind);
+        //ShotPath* shot = getShot(i);
+        //if (shot && !shot->isExpiring() && !shot->isExpired())
+        //    shot->addShot(scene, colorblind);
     }
 }
 

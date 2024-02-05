@@ -112,8 +112,9 @@ bool TargetingUtils::isLocationObscured( const float *src, const float *target )
 
     Ray tankRay( src, dir );
     float targetDistance = getTargetDistance(src, target);
-    const Obstacle *building = ShotStrategy::getFirstBuilding(tankRay, -0.5f, targetDistance);
-    return building != NULL;
+    //const Obstacle *building = ShotStrategy::getFirstBuilding(tankRay, -0.5f, targetDistance);
+    //return building != NULL;
+    return false;
 }
 
 float TargetingUtils::getOpenDistance( const float *src, const float azimuth )
@@ -123,7 +124,7 @@ float TargetingUtils::getOpenDistance( const float *src, const float azimuth )
     float dir[3] = { cosf(azimuth), sinf(azimuth), 0.0f };
     const float pos[3] = { src[0], src[1], src[2] + 0.1f };   // Don't hit building because you're sitting on one.
     Ray tankRay( pos, dir );
-    ShotStrategy::getFirstBuilding(tankRay, -0.5f, t);
+    //ShotStrategy::getFirstBuilding(tankRay, -0.5f, t);
     return t;
 }
 
@@ -134,14 +135,15 @@ bool TargetingUtils::getFirstCollisionPoint( const float *src, const float *targ
     get3DUnitVector(src, target, dir);
 
     Ray tankRay( src, dir );
-    const Obstacle *building = ShotStrategy::getFirstBuilding(tankRay, 0.0f, t);
+    /*const Obstacle *building = ShotStrategy::getFirstBuilding(tankRay, 0.0f, t);
     if (building == NULL)
         return false;
 
     collisionPt[0] = src[0] + dir[0] * t;
     collisionPt[1] = src[1] + dir[1] * t;
     collisionPt[2] = src[2] + dir[2] * t;
-    return true;
+    return true;*/
+    return false;
 }
 
 // Local Variables: ***
