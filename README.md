@@ -18,7 +18,7 @@ Map: Rats Nest by Winny
 Map: Urban Jungle by Army of One
 
 ![Fairground by Ian](https://bz-next.github.io/assets/img/screen2.jpg)
-Map: Fairground
+Map: Fairground by Ian
 
 ## Building
 
