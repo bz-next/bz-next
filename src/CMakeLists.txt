@@ -22,6 +22,7 @@ if(CLIENT_INCLUDED)
     add_subdirectory(platform)
     add_subdirectory(scene)
     add_subdirectory(bzflag-next)
+    add_subdirectory(mapviewer)
 endif(CLIENT_INCLUDED)
 
 if(ENABLE_BZADMIN)
