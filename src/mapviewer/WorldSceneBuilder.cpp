@@ -1009,10 +1009,6 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
             return;
         }
 
-        auto drawMgr = drawInfo->getDrawMgr();
-        if (drawMgr == NULL)
-            return;
-
         const MeshTransform::Tool* xformTool = drawInfo->getTransformTool();
 
         // Get LOD (just get the highest level one for now, can expand this later)

@@ -1040,8 +1040,6 @@ void MapViewer::joinInternetGame2()
 
     worldRenderer.destroyWorldObject();
 
-    world->makeMeshDrawMgrs();
-
     const ObstacleList& boxes = OBSTACLEMGR.getBoxes();
     for (int i = 0; i < boxes.size(); ++i) {
         worldSceneBuilder.addBox(*((BoxBuilding*) boxes[i]));
