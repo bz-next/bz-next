@@ -58,11 +58,12 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 
-set(ENABLE_CLIENT TRUE CACHE BOOL "Enable the graphical client")
-set(ENABLE_ROBOTS TRUE CACHE BOOL "Enable robot players") # Is ths only in the client?
-set(ENABLE_SERVER TRUE CACHE BOOL "Enable the server")
-set(ENABLE_PLUGINS TRUE CACHE BOOL "Enable plugins in the server")
-set(ENABLE_BZADMIN TRUE CACHE BOOL "Enable the text client")
+set(ENABLE_CLIENT FALSE CACHE BOOL "Enable the graphical client")
+set(ENABLE_ROBOTS FALSE CACHE BOOL "Enable robot players") # Is ths only in the client?
+set(ENABLE_SERVER FALSE CACHE BOOL "Enable the server")
+set(ENABLE_PLUGINS FALSE CACHE BOOL "Enable plugins in the server")
+set(ENABLE_BZADMIN FALSE CACHE BOOL "Enable the text client")
+set(ENABLE_MAPVIEWER FALSE CACHE BOOL "Enable the map viewer")
 
 # TODO: Just use ENABLE_PLUGINS in the code? Or just always enable them?
 if (ENABLE_PLUGINS)
@@ -107,7 +108,7 @@ if (MINGW)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpermissive")
 endif()
 
-if(ENABLE_CLIENT)
+if(ENABLE_CLIENT OR ENABLE_MAPVIEWER)
     # Needed for client
     find_package(SDL2)
     set(THREADS_PREFER_PTHREAD_FLAG ON)

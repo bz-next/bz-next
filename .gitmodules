@@ -13,3 +13,6 @@
 [submodule "magnum-plugins"]
 	path = magnum-plugins
 	url = https://github.com/mosra/magnum-plugins.git
+[submodule "toolchains"]
+	path = toolchains
+	url = https://github.com/mosra/toolchains.git

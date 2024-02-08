@@ -14,16 +14,22 @@ if(ENABLE_SERVER)
 endif(ENABLE_SERVER)
 
 # The client makes use of several of our libraries
-if(CLIENT_INCLUDED)
+if(CLIENT_INCLUDED OR ENABLE_MAPVIEWER)
     add_subdirectory(3D)
     add_subdirectory(geometry)
     add_subdirectory(mediafile)
     add_subdirectory(ogl)
     add_subdirectory(platform)
     add_subdirectory(scene)
+endif()
+
+if(CLIENT_INCLUDED)
     add_subdirectory(bzflag-next)
+endif()
+
+if (ENABLE_MAPVIEWER)
     add_subdirectory(mapviewer)
-endif(CLIENT_INCLUDED)
+endif()
 
 if(ENABLE_BZADMIN)
     add_subdirectory(bzadmin)
