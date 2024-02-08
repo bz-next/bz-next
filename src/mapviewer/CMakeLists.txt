@@ -8,7 +8,7 @@ if (MINGW)
     set(CMAKE_EXE_LINKER_FLAGS "-mconsole")
 endif()
 
-add_executable(mapviewer WIN32 mapviewer.cpp ${MAPVIEWER_RESOURCES}
+add_executable(mapviewer WIN32 mapviewer.cpp ${MAPVIEWER_RESOURCES} ${BZFLAG_DATA_RESOURCES}
     ActionBinding.cxx
     ActionBinding.h
     AutoPilot.cxx
