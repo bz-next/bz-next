@@ -120,6 +120,3 @@ set(    DATA_FILES
 
 install(FILES ${DATA_FILES} DESTINATION ${INSTALL_DATA_DIR})
 install(DIRECTORY fonts l10n DESTINATION ${INSTALL_DATA_DIR})
-
-# Pack resources with corrade
-corrade_add_resource(BZFLAG_DATA_RESOURCES resources.conf)

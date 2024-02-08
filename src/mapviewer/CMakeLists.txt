@@ -3,12 +3,13 @@ cmake_minimum_required(VERSION 3.5)
 set_directory_properties(PROPERTIES CORRADE_USE_PEDANTIC_FLAGS ON)
 
 corrade_add_resource(MAPVIEWER_RESOURCES resources/resources.conf)
+corrade_add_resource(MAPVIEWER_BZFLAG_DATA_RESOURCES "${PROJECT_SOURCE_DIR}/data/resources.conf")
 
 if (MINGW)
     set(CMAKE_EXE_LINKER_FLAGS "-mconsole")
 endif()
 
-add_executable(mapviewer WIN32 mapviewer.cpp ${MAPVIEWER_RESOURCES} ${BZFLAG_DATA_RESOURCES}
+add_executable(mapviewer WIN32 mapviewer.cpp ${MAPVIEWER_RESOURCES} ${MAPVIEWER_BZFLAG_DATA_RESOURCES}
     ActionBinding.cxx
     ActionBinding.h
     AutoPilot.cxx

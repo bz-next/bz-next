@@ -1502,10 +1502,10 @@ int BZFlagNew::main() {
 
     // TM test
     MagnumTextureManager &tm = MagnumTextureManager::instance();
-    tm.getTexture("boxwall");
-    tm.getTexture("moon");
-    tm.getTexture("mountain1");
-    tm.getTexture("tetrawall");
+    //tm.getTexture("boxwall");
+    //tm.getTexture("moon");
+    //tm.getTexture("mountain1");
+    //tm.getTexture("tetrawall");
 
     MAGNUMMATERIALMGR.loadDefaultMaterials();
 

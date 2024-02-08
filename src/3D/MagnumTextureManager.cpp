@@ -14,6 +14,7 @@
 #include "MagnumTextureManager.h"
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/Optional.h>
+#include <Corrade/Utility/Resource.h>
 #include <Magnum/Magnum.h>
 #include <Magnum/Trade/ImageData.h>
 #include <Magnum/PixelFormat.h>
@@ -266,14 +267,29 @@ TextureData MagnumTextureManager::loadTexture(FileTextureInit &init, bool report
     FileTextureInit texInfo;
     texInfo.name = filename;
 
+    // Check if we have this in our packed resources
+    Utility::Resource rs{"bzflag-data"};
+    if (rs.hasFile(filename)) {
+        Warning{} << "We have" << filename.c_str() << "in our packed resources.";
+    }
+
     std::string fullfilepath = FileManager::instance().getFullFilePath(filename);
 
     std::cout << "the full path is " << fullfilepath << std::endl;
 
-    if (!importer || !importer->openFile(fullfilepath)) {
-        logDebugMessage(2,"Image not found or unloadable: %s\n", filename.c_str());
-        return {NULL, 0, 0};
+    // Try to load from packed resources if we can
+    if (rs.hasFile(filename)) {
+        if (!importer || !importer->openData(rs.getRaw(filename))) {
+            logDebugMessage(2,"Image not found or unloadable: %s\n", filename.c_str());
+            return {NULL, 0, 0};
+        }
+    } else {
+        if (!importer || !importer->openFile(fullfilepath)) {
+            logDebugMessage(2,"Image not found or unloadable: %s\n", filename.c_str());
+            return {NULL, 0, 0};
+        }
     }
+    
     Containers::Optional<Trade::ImageData2D> image = importer->image2D(0);
     if (!image)
     {
