@@ -249,17 +249,10 @@ class MapViewer: public Platform::Sdl2Application {
 
         static void startupErrorCallback(const char* msg);
 
-        void initAres();
-        void killAres();
-
         void joinInternetGame();
         void joinInternetGame2();
-        void sendFlagNegotiation();
-        void leaveGame();
 
-        void addMessage(const Player *_player, const std::string& msg, int mode = 3,
-                           bool highlight = false,
-                           const char* oldColor = NULL);
+        void leaveGame();
 
         void setTankFlags();
         void updateFlag(FlagType *flag);
@@ -268,31 +261,17 @@ class MapViewer: public Platform::Sdl2Application {
 
         void enteringServer(const void *buf);
 
-        bool isKillable(const Player* target);
         void checkEnvironment();
 
         void updateFlags(float dt);
 
-        void doMessages();
-
         bool isCached(char *hexDigest);
         void loadCachedWorld();
 
-        Player* addPlayer(PlayerId id, const void* msg, int showMessage);
-        bool removePlayer(PlayerId id);
-        ServerLink* lookupServer(const Player *_player);
-        void handleFlagDropped(Player* tank);
-
-        bool gotBlowedUp(BaseLocalPlayer* tank, BlowedUpReason reason, PlayerId killer, const ShotPath* hit = NULL, int phydrv = -1);
-
         const void *handleMsgSetVars(const void *msg);
-        void handlePlayerMessage(uint16_t, uint16_t, const void*);
 
         void markOld(std::string &fileName);
 
-        void handleFlagTransferred(Player *fromTank, Player *toTank, int flagIndex);
-
-        void handleServerMessage(bool human, uint16_t code, uint16_t len, const void* msg);
         bool processWorldChunk(const void *buf, uint16_t len, int bytesLeft);
 
         static void resetServerVar(const std::string& name, void*);
@@ -897,68 +876,6 @@ void MapViewer::loadCachedWorld() {
     downloadingInitialTexture  = true;
 }
 
-void MapViewer::addMessage(const Player *_player, const std::string& msg, int mode, bool highlight, const char* oldColor) {
-    std::string fullMessage;
-
-    if (BZDB.isTrue("colorful"))
-    {
-        if (_player)
-        {
-            if (highlight)
-            {
-                if (BZDB.get("killerhighlight") == "1")
-                    fullMessage += ColorStrings[PulsatingColor];
-                else if (BZDB.get("killerhighlight") == "2")
-                    fullMessage += ColorStrings[UnderlineColor];
-            }
-            const PlayerId pid = _player->getId();
-            if (pid < 200)
-            {
-                TeamColor color = _player->getTeam();
-                fullMessage += Team::getAnsiCode(color);
-            }
-            else if (pid == ServerPlayer)
-                fullMessage += ColorStrings[YellowColor];
-            else
-            {
-                fullMessage += ColorStrings[CyanColor]; //replay observers
-            }
-            fullMessage += _player->getCallSign();
-
-            if (highlight)
-                fullMessage += ColorStrings[ResetColor];
-#ifdef BWSUPPORT
-            fullMessage += " (";
-            fullMessage += Team::getName(_player->getTeam());
-            fullMessage += ")";
-#endif
-            fullMessage += ColorStrings[DefaultColor] + ": ";
-        }
-        fullMessage += msg;
-    }
-    else
-    {
-        if (oldColor != NULL)
-            fullMessage = oldColor;
-
-        if (_player)
-        {
-            fullMessage += _player->getCallSign();
-
-#ifdef BWSUPPORT
-            fullMessage += " (";
-            fullMessage += Team::getName(_player->getTeam());
-            fullMessage += ")";
-#endif
-            fullMessage += ": ";
-        }
-        fullMessage += stripAnsiCodes(msg);
-    }
-    //controlPanel->addMessage(fullMessage, mode);
-    //std::cout << fullMessage << std::endl;
-    console.addLog(fullMessage.c_str());
-}
-
 bool MapViewer::isCached(char *hexDigest) {
     std::istream *cachedWorld;
     bool cached    = false;
@@ -971,17 +888,6 @@ bool MapViewer::isCached(char *hexDigest) {
         delete cachedWorld;
     }
     return cached;
-}
-
-void MapViewer::initAres()
-{
-    //ares = new AresHandler(0);
-}
-
-void MapViewer::killAres()
-{
-    //delete ares;
-    //ares = NULL;
 }
 
 void MapViewer::tickEvent() {
@@ -998,16 +904,6 @@ void MapViewer::setTankFlags()
 }
 
 void MapViewer::updateFlag(FlagType *flag) {
-}
-
-Player* MapViewer::addPlayer(PlayerId id, const void* msg, int showMessage) {
-
-    return remotePlayers[0];
-}
-
-bool MapViewer::removePlayer(PlayerId id) {
-
-    return true;
 }
 
 void MapViewer::viewportEvent(ViewportEvent& e) {
@@ -1141,9 +1037,6 @@ void MapViewer::joinInternetGame2()
     // prep teams
     teams = world->getTeams();
 
-    // prep players
-    curMaxPlayers = 0;
-    remotePlayers = world->getPlayers();
 
     worldRenderer.destroyWorldObject();
 
@@ -1182,29 +1075,7 @@ void MapViewer::joinInternetGame2()
     joiningGame = false;
 }
 
-ServerLink* MapViewer::lookupServer(const Player *_player) {
-    return NULL;
-}
-
-void MapViewer::handleFlagDropped(Player* tank) {
-    
-}
-
-bool MapViewer::gotBlowedUp(BaseLocalPlayer* tank, BlowedUpReason reason, PlayerId killer, const ShotPath* hit, int phydrv) {
-    return false;
-}
-
 const void *MapViewer::handleMsgSetVars(const void *msg) {
-    
-}
-
-void MapViewer::handleFlagTransferred(Player *fromTank, Player *toTank, int flagIndex)
-{
-    
-}
-
-void MapViewer::handlePlayerMessage(uint16_t code, uint16_t, const void* msg)
-{
     
 }
 
@@ -1285,12 +1156,6 @@ void MapViewer::playingLoop()
     }
 }
 
-void MapViewer::doMessages() {
-}
-
-void MapViewer::handleServerMessage(bool human, uint16_t code, uint16_t len, const void* msg) {
-}
-
 void MapViewer::updateFlags(float dt) {
 }
 
@@ -1312,11 +1177,6 @@ bool MapViewer::processWorldChunk(const void *buf, uint16_t len, int bytesLeft) 
 void MapViewer::checkEnvironment() {
 }
 
-bool MapViewer::isKillable(const Player* target) {
-
-    return false;
-}
-
 void MapViewer::doMotion() {
         // Implement based on playing.cxx
 }
@@ -1325,9 +1185,6 @@ void MapViewer::joinInternetGame()
 {
     joiningGame = true;
     GameTime::reset();
-}
-
-void MapViewer::sendFlagNegotiation() {
 }
 
 void MapViewer::leaveGame() {
@@ -1352,9 +1209,6 @@ void MapViewer::leaveGame() {
     delete world;
     world = NULL;
     teams = NULL;
-    curMaxPlayers = 0;
-    //numFlags = 0;
-    remotePlayers = NULL;
 
     serverError = false;
     serverDied = false;
