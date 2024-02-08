@@ -225,10 +225,6 @@ add_compile_definitions(
 
 add_subdirectory(data)
 
-# Pack resources with corrade
-#corrade_add_resource(BZFLAG_DATA_RESOURCES data/resources.conf)
-message("CORRADE RSC: ${BZFLAG_DATA_RESOURCES}")
-
 add_subdirectory(src)
 if(BZ_PLUGINS)
     add_subdirectory(plugins)
