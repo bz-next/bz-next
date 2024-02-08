@@ -20,7 +20,9 @@
 #ifdef _WIN32
 #include <winsock2.h>
 #endif
+#ifndef EMSCRIPTEN
 #include <curl/curl.h>
+#endif
 #include <string>
 #include <string.h>
 #include <algorithm>
@@ -276,6 +278,7 @@ bool parseDuration(const char *duration, int &durationInt)
 std::string url_encode(const std::string &text)
 {
     std::string encoded = "";
+#ifndef EMSCRIPTEN
     char *output = curl_easy_escape(NULL, text.c_str(), 0);
 
     if (output)
@@ -283,6 +286,7 @@ std::string url_encode(const std::string &text)
         encoded = output;
         curl_free(output);
     }
+#endif
 
     return encoded;
 }
@@ -290,6 +294,7 @@ std::string url_encode(const std::string &text)
 std::string url_decode(const std::string &text)
 {
     std::string decoded = "";
+#ifndef EMSCRIPTEN
     char *output = curl_easy_unescape(NULL, text.c_str(), 0, NULL);
 
     if (output)
@@ -297,6 +302,7 @@ std::string url_decode(const std::string &text)
         decoded = output;
         curl_free(output);
     }
+#endif
 
     return decoded;
 }

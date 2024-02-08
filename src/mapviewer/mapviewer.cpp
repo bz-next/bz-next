@@ -116,7 +116,6 @@
 #include "BZDBLocal.h"
 #include "CommandsStandard.h"
 #include "ServerListCache.h"
-#include "cURLManager.h"
 #include "AresHandler.h"
 #include "TimeKeeper.h"
 #include "commands.h"
@@ -125,10 +124,8 @@
 #include "World.h"
 #include "bzfio.h"
 #include "version.h"
-#include "motd.h"
 #include "common.h"
 #include "GameTime.h"
-#include "ServerList.h"
 #include "AccessList.h"
 #include "Flag.h"
 #include "Roster.h"
@@ -243,7 +240,7 @@ class MapViewer: public Platform::Sdl2Application {
 
         friend class WorldDownLoader;
         void startPlaying();
-        void playingLoop();
+        void playingLoopIteration();
 
         void onConsoleText(const char* txt);
 
@@ -281,10 +278,8 @@ class MapViewer: public Platform::Sdl2Application {
         // but there are still some important global objects, like ::World()
         // Managing the state of even these objects is a mess. A lot of this
         // needs to be encapsulated. Expect bugs...
-        WorldDownLoader *worldDownLoader;
         double lastObserverUpdateTime = -1;
         StartupInfo startupInfo;
-        MessageOfTheDay *motd;
         bool joinRequested = false;
         bool justJoined = false;
         bool serverDied = false;
@@ -305,9 +300,6 @@ class MapViewer: public Platform::Sdl2Application {
         bool wasRabbit = false;
         char *worldDatabase = NULL;
         std::ostream *cacheOut = NULL;
-
-        DebugTools::FrameProfilerGL _profiler{DebugTools::FrameProfilerGL::Value::FrameTime|
-    DebugTools::FrameProfilerGL::Value::GpuDuration, 50};
 
         std::vector<PlayingCallbackItem> playingCallbacks;
 
@@ -348,12 +340,12 @@ MapViewer::MapViewer(const Arguments& arguments):
         .setWindowFlags(Configuration::WindowFlag::Resizable),
 #if defined(MAGNUM_TARGET_GLES) || defined(MAGNUM_TARGET_GLES2)
         // No multisampling for GLES, assume less capable machine
-        GLConfiguration{}.setVersion(GL::Version::GLES200)
+        //GLConfiguration{}.setVersion(GL::Version::GLES200)
+        GLConfiguration{}
 #else
-        GLConfiguration{}.setSampleCount(4)
+        //GLConfiguration{}.setSampleCount(4)
 #endif
         },
-    motd(NULL),
     ServerAccessList("ServerAccess.txt", NULL)
 {
     using namespace Math::Literals;
@@ -362,7 +354,7 @@ MapViewer::MapViewer(const Arguments& arguments):
     debugLevel = 4;
 
     Utility::Arguments args;
-    args/*.addArgument("file").setHelp("file", "file to load")*/
+    args
         .addOption("importer", "AnySceneImporter").setHelp("importer", "importer plugin to use")
         .addSkippedPrefix("magnum", "engine-specific options")
         .setGlobalHelp("Displays a 3D scene file provided on command line.")
@@ -419,8 +411,8 @@ MapViewer::MapViewer(const Arguments& arguments):
     GL::Renderer::setBlendFunction(GL::Renderer::BlendFunction::SourceAlpha,
         GL::Renderer::BlendFunction::OneMinusSourceAlpha);
 
-    setMinimalLoopPeriod(0);
     //setSwapInterval(0);
+    main();
 }
 
 void MapViewer::showMainMenuBar() {
@@ -574,10 +566,11 @@ void MapViewer::onConsoleText(const char* msg) {
 
 void MapViewer::drawEvent() {
     //_profiler.beginFrame();
+    playingLoopIteration();
     GL::defaultFramebuffer.clear(GL::FramebufferClear::Color | GL::FramebufferClear::Depth);
 
     _imgui.newFrame();
-    /* Enable text input, if needed */
+
     if(ImGui::GetIO().WantTextInput && !isTextInputActive())
         startTextInput();
     else if(!ImGui::GetIO().WantTextInput && isTextInputActive())
@@ -594,11 +587,8 @@ void MapViewer::drawEvent() {
     maybeShowGLInfo();
     maybeShowMatExclude();
 
-    /* Update application cursor */
     _imgui.updateApplicationCursor(*this);
 
-    /* Reset state. Only needed if you want to draw something else with
-       different state after. */
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
     GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
     GL::Renderer::disable(GL::Renderer::Feature::ScissorTest);
@@ -613,8 +603,6 @@ void MapViewer::drawEvent() {
     if (auto* dg = worldRenderer.getTransDrawableGroup())
         _camera->draw(*dg);
 
-        /* Set appropriate states. If you only draw ImGui, it is sufficient to
-       just enable blending and scissor test in the constructor. */
     GL::Renderer::enable(GL::Renderer::Feature::Blending);
     GL::Renderer::enable(GL::Renderer::Feature::ScissorTest);
     GL::Renderer::disable(GL::Renderer::Feature::FaceCulling);
@@ -627,115 +615,6 @@ void MapViewer::drawEvent() {
     swapBuffers();
     //_profiler.endFrame();
     //_profiler.printStatistics(10);
-}
-
-/* This whole class is an extremely dirty hack just to get a basic client working.
-   It should be replaced with something that isn't insane. */
-class WorldDownLoader : cURLManager
-{
-public:
-    WorldDownLoader(MapViewer *app);
-    void start(char * hexDigest);
-private:
-    void askToBZFS();
-    static int curlProgressFunc(void* UNUSED(clientp),
-                     double dltotal, double dlnow,
-                     double UNUSED(ultotal), double UNUSED(ulnow));
-    virtual void finalization(char *data, unsigned int length, bool good);
-    static MapViewer *_app;
-};
-
-MapViewer *WorldDownLoader::_app;
-
-WorldDownLoader::WorldDownLoader(MapViewer *app) {
-    _app = app;
-}
-
-void WorldDownLoader::start(char * hexDigest)
-{
-    if (_app->isCached(hexDigest))
-        _app->loadCachedWorld();
-    else if (_app->worldUrl.size())
-    {
-        //HUDDialogStack::get()->setFailedMessage
-        _app->console.addLog(("Loading world from " + _app->worldUrl).c_str());
-        //std::cout << "Loading world from " << _app->worldUrl;
-        setProgressFunction(curlProgressFunc, _app->worldUrl.c_str());
-        setURL(_app->worldUrl);
-        addHandle();
-        _app->worldUrl = ""; // clear the state
-    }
-    else
-        askToBZFS();
-}
-
-int WorldDownLoader::curlProgressFunc(void* UNUSED(clientp),
-                     double dltotal, double dlnow,
-                     double UNUSED(ultotal), double UNUSED(ulnow))
-{
-    // update the status
-    double percentage = 0.0;
-    if ((int)dltotal > 0)
-        percentage = 100.0 * dlnow / dltotal;
-    char buffer[128];
-    sprintf (buffer, "%2.1f%% (%i/%i)", percentage, (int)dlnow, (int)dltotal);
-    _app->console.addLog(buffer);
-
-    return 0;
-}
-
-void WorldDownLoader::finalization(char *data, unsigned int length, bool good)
-{
-    if (good)
-    {
-        _app->worldDatabase = data;
-        theData       = NULL;
-        MD5 md5;
-        md5.update((unsigned char *)_app->worldDatabase, length);
-        md5.finalize();
-        std::string digest = md5.hexdigest();
-        if (digest != _app->md5Digest)
-        {
-            //HUDDialogStack::get()->setFailedMessage("Download from URL failed");
-            //std::cout << "Download from URL failed" << std::endl;
-            _app->console.addLog("Download from URL failed");
-            askToBZFS();
-        }
-        else
-        {
-            std::ostream* cache =
-                FILEMGR.createDataOutStream(_app->worldCachePath, true, true);
-            if (cache != NULL)
-            {
-                cache->write(_app->worldDatabase, length);
-                delete cache;
-                _app->loadCachedWorld();
-            }
-            else
-            {
-                //HUDDialogStack::get()->setFailedMessage("Problem writing cache");
-                //std::cout << "Problem writing cache" << std::endl;
-                _app->console.addLog("Problem writing cache");
-                askToBZFS();
-            }
-        }
-    }
-    else
-        askToBZFS();
-}
-
-void WorldDownLoader::askToBZFS() {
-    //HUDDialogStack::get()->setFailedMessage("Downloading World...");
-    //std::cout << "Downloading world..." << std::endl;
-    _app->console.addLog("Downloading World...");
-    char message[MaxPacketLen];
-    // ask for world
-    nboPackUInt(message, 0);
-    //_app->_serverLink->send(MsgGetWorld, sizeof(uint32_t), message);
-    _app->worldPtr = 0;
-    if (_app->cacheOut)
-        delete _app->cacheOut;
-    _app->cacheOut = FILEMGR.createDataOutStream(_app->worldCachePath, true, true);
 }
 
 void MapViewer::markOld(std::string &fileName) {
@@ -914,20 +793,24 @@ void MapViewer::viewportEvent(ViewportEvent& e) {
 }
 
 void MapViewer::keyPressEvent(KeyEvent& event) {
+    event.setAccepted();
     if(_imgui.handleKeyPressEvent(event)) return;
 }
 
 void MapViewer::keyReleaseEvent(KeyEvent& event) {
+    event.setAccepted();
     if(_imgui.handleKeyReleaseEvent(event)) return;
 }
 
 void MapViewer::mousePressEvent(MouseEvent& e) {
+    e.setAccepted();
     if(_imgui.handleMousePressEvent(e)) return;
     if (e.button() == MouseEvent::Button::Left)
         _previousPosition = positionOnSphere(e.position());
 }
 
 void MapViewer::mouseReleaseEvent(MouseEvent& e) {
+    e.setAccepted();
     if(_imgui.handleMouseReleaseEvent(e)) return;
     if (e.button() == MouseEvent::Button::Left)
         _previousPosition = Vector3{};
@@ -939,6 +822,7 @@ void MapViewer::mouseScrollEvent(MouseScrollEvent& e) {
         e.setAccepted();
         return;
     }
+    e.setAccepted();
     if (!e.offset().y()) return;
     const Float distance = _cameraObject.transformation().translation().z();
     _cameraObject.translate(Vector3::zAxis(distance*(1.0f - (e.offset().y() > 0 ? 1/0.85f : 0.85f))));
@@ -946,6 +830,7 @@ void MapViewer::mouseScrollEvent(MouseScrollEvent& e) {
 }
 
 void MapViewer::mouseMoveEvent(MouseMoveEvent &e) {
+    e.setAccepted();
     if(_imgui.handleMouseMoveEvent(e)) return;
     if (!(e.buttons() & MouseMoveEvent::Button::Left)) return;
 
@@ -961,10 +846,12 @@ void MapViewer::mouseMoveEvent(MouseMoveEvent &e) {
 }
 
 void MapViewer::textInputEvent(TextInputEvent& e) {
+    e.setAccepted();
     if(_imgui.handleTextInputEvent(e)) return;
 }
 
 void MapViewer::exitEvent(ExitEvent& e) {
+    e.setAccepted();
     isQuit = true;
 }
 
@@ -976,6 +863,7 @@ Vector3 MapViewer::positionOnSphere(const Vector2i& position) const {
 }
 
 int MapViewer::main() {
+    Warning{} << "Init rng";
     bzfsrand((unsigned int)time(0));
 
     // set default DB entries
@@ -1010,21 +898,24 @@ int MapViewer::main() {
     Team::updateShotColors();
 
     // TM test
-    MagnumTextureManager &tm = MagnumTextureManager::instance();
-    tm.getTexture("boxwall");
-    tm.getTexture("moon");
-    tm.getTexture("mountain1");
-    tm.getTexture("tetrawall");
+    //Warning{} << "Loading some textures";
+    //MagnumTextureManager &tm = MagnumTextureManager::instance();
+    //tm.getTexture("boxwall");
+    //tm.getTexture("moon");
+    //tm.getTexture("mountain1");
+    //tm.getTexture("tetrawall");
 
+    Warning{} << "load default mats";
     MAGNUMMATERIALMGR.loadDefaultMaterials();
 
+    Warning{} << "creating world obj";
     worldRenderer.createWorldObject(&worldSceneBuilder);
     worldRenderer.getWorldObject()->setParent(&_manipulator);
 
     startPlaying();
 
-    tm.clear();
-    exit(0);
+    //tm.clear();
+    //exit(0);
     return 0;
 }
 
@@ -1096,21 +987,17 @@ void MapViewer::startPlaying()
 
     TimeKeeper::setTick();
 
-    worldDownLoader = new WorldDownLoader(this);
+    playingLoopIteration();
 
-    playingLoop();
-
-    delete worldDownLoader;
-
-    leaveGame();
-    World::done();
+    //leaveGame();
+    //World::done();
 }
 
-void MapViewer::playingLoop()
+void MapViewer::playingLoopIteration()
 {
         // main loop
     //while (!CommandsStandard::isQuit())
-    while (!isQuit)
+    //while (!isQuit)
     {
 
         BZDBCache::update();
@@ -1137,20 +1024,8 @@ void MapViewer::playingLoop()
 
         // update the texture matrices
         TEXMATRIXMGR.update();
-        mainLoopIteration();
+        //mainLoopIteration();
 
-        // check if we are waiting for initial texture downloading
-                // check if we are waiting for initial texture downloading
-        if (Downloads::requestFinalized())
-        {
-            // downloading is terminated. go!
-            Downloads::finalizeDownloads();
-            if (downloadingInitialTexture)
-            {
-                joinInternetGame2();
-                downloadingInitialTexture = false;
-            }
-        }
     }
 }
 
@@ -1199,9 +1074,6 @@ void MapViewer::leaveGame() {
     const bool syncTime = (BZDB.eval(StateDatabase::BZDB_SYNCTIME) >= 0.0f);
     const bool fixedTime = BZDB.isSet("fixedTime");
 
-    // flush downloaded textures (before the BzMaterials are nuked)
-    Downloads::removeTextures();
-
     // delete world
     World::setWorld(NULL);
     delete world;
@@ -1227,10 +1099,10 @@ void MapViewer::resetServerVar(const std::string& name, void*)
     }
 }
 
-int main(int argc, char** argv)
+/*int main(int argc, char** argv)
 {
     MapViewer app({argc, argv});
     return app.main();
-}
+}*/
 
-//MAGNUM_APPLICATION_MAIN(MapViewer)
+MAGNUM_APPLICATION_MAIN(MapViewer)

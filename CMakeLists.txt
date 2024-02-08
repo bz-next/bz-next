@@ -21,6 +21,7 @@ project(BZ-Next
 add_subdirectory(corrade EXCLUDE_FROM_ALL)
 
 set(MAGNUM_WITH_ANYIMAGEIMPORTER ON CACHE BOOL "" FORCE)
+set(MAGNUM_WITH_ANYIMAGECONVERTER ON CACHE BOOL "" FORCE)
 set(MAGNUM_WITH_ANYSCENEIMPORTER ON CACHE BOOL "" FORCE)
 set(MAGNUM_WITH_OBJIMPORTER ON CACHE BOOL "" FORCE)
 set(MAGNUM_WITH_PNGIMPORTER ON CACHE BOOL "" FORCE)
@@ -29,6 +30,15 @@ set(MAGNUM_WITH_IMGUI ON CACHE BOOL "" FORCE)
 #set(MAGNUM_TARGET_GLES ON CACHE BOOL "" FORCE)
 
 set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
+
+#if (CORRADE_TARGET_EMSCRIPTEN)
+#set ( USE_FLAGS "-s USE_SDL=2")
+#set ( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${USE_FLAGS}")
+#set ( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${USE_FLAGS}")
+#set ( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${USE_FLAGS}")
+#add_compile_definitions(EMSCRIPTEN)
+#message("========================= HERE")
+#endif()
 
 add_subdirectory(magnum EXCLUDE_FROM_ALL)
 add_subdirectory(magnum-integration EXCLUDE_FROM_ALL)
@@ -95,10 +105,11 @@ else()
 endif()
 
 
-# Needed for everything
+if (ENABLE_CLIENT)
 find_package(CURL REQUIRED COMPONENTS HTTP HTTPS SSL IPv6 AsynchDNS libz)
 find_package(c-ares REQUIRED)
 find_package(ZLIB REQUIRED)
+endif()
 
 # Optional for BZAdmin
 find_package(Curses)
@@ -110,13 +121,13 @@ endif()
 
 if(ENABLE_CLIENT OR ENABLE_MAPVIEWER)
     # Needed for client
-    find_package(SDL2)
+    #find_package(SDL2)
     set(THREADS_PREFER_PTHREAD_FLAG ON)
     find_package(Threads)
     # TODO: Check if this is an okay way to test for pthreads
     set(HAVE_PTHREADS ${CMAKE_USE_PTHREADS_INIT})
-    find_package(OpenGL)
-    find_package(GLEW)
+    #find_package(OpenGL)
+    #find_package(GLEW)
 
     # Probably a better way to handle this, but it works for now...
     if (MINGW)

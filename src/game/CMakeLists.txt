@@ -17,7 +17,7 @@ add_library(bzgame STATIC
     Ray.cxx
     ServerItem.cxx
     ServerListCache.cxx
-    ServerList.cxx
+    #ServerList.cxx
     StartupInfo.cxx
     TextureMatrix.cxx
     MagnumBZMaterial.cpp

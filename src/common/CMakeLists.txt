@@ -14,7 +14,7 @@ add_library(bzcommon STATIC
     CommandManager.cxx
     ConfigFileManager.cxx
     Country.cxx
-    cURLManager.cxx
+    #cURLManager.cxx
     ErrorHandler.cxx
     FileManager.cxx
     Flag.cxx

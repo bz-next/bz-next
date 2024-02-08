@@ -62,7 +62,7 @@ BZMaterialViewer::BZMaterialViewer() :
         .setWrapping(GL::SamplerWrapping::ClampToEdge)
         .setMagnificationFilter(GL::SamplerFilter::Linear)
         .setMinificationFilter(GL::SamplerFilter::Linear)
-        .setStorage(1, GL::TextureFormat::RGBA8, bufsize);
+        .setStorage(1, GL::TextureFormat::RGBA, bufsize);
 
     itemCurrent = 0;
 

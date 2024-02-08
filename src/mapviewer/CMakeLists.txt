@@ -37,8 +37,8 @@ add_executable(mapviewer WIN32 mapviewer.cpp ${MAPVIEWER_RESOURCES} ${MAPVIEWER_
     defaultBZDB.h
     #DisplayMenu.cxx
     #DisplayMenu.h
-    Downloads.cxx
-    Downloads.h
+    #Downloads.cxx
+    #Downloads.h
     #EffectsMenu.cxx
     #EffectsMenu.h
     #effectsRenderer.cxx
@@ -207,11 +207,9 @@ target_link_libraries(mapviewer PRIVATE
     Magnum::SceneGraph
     Magnum::DebugTools
     MagnumIntegration::ImGui
+    Magnum::AnyImageImporter Magnum::AnyImageConverter MagnumPlugins::PngImporter Magnum::AnySceneImporter
     ${ZLIB_LIBRARIES}
     Threads::Threads
-    OpenGL::GL
-    OpenGL::GLU
-    GLEW::GLEW
     bzcommon
     bz3D
     bznet
@@ -220,10 +218,21 @@ target_link_libraries(mapviewer PRIVATE
     bzobstacle
     bzscene
     bzmediafile
-    bzdate
-    bzgeometry)
+    bzdate)
 target_compile_options(mapviewer PRIVATE -w)
-add_dependencies(mapviewer Magnum::AnyImageImporter MagnumPlugins::PngImporter Magnum::AnySceneImporter Magnum::ObjImporter GLEW::GLEW)
+add_dependencies(mapviewer Magnum::AnyImageImporter Magnum::AnyImageConverter MagnumPlugins::PngImporter Magnum::AnySceneImporter)
 
 install(TARGETS mapviewer DESTINATION ${MAGNUM_BINARY_INSTALL_DIR})
 
+if(CORRADE_TARGET_EMSCRIPTEN)
+    install(TARGETS mapviewer DESTINATION ${CMAKE_INSTALL_PREFIX})
+    install(FILES
+    mapviewer.html
+        ${MAGNUM_EMSCRIPTENAPPLICATION_JS}
+        ${MAGNUM_WEBAPPLICATION_CSS}
+        DESTINATION ${CMAKE_INSTALL_PREFIX})
+    install(FILES
+        #${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/mapviewer.js.mem
+        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/mapviewer.wasm
+        DESTINATION ${CMAKE_INSTALL_PREFIX})
+endif()

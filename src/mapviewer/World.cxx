@@ -524,39 +524,12 @@ void            World::freeFlags()
 
 void            World::makeMeshDrawMgrs()
 {
-    // make the display list managers for source meshes
-    std::vector<MeshObstacle*> sourceMeshes;
-    OBSTACLEMGR.getSourceMeshes(sourceMeshes);
-    unsigned int count = sourceMeshes.size();
-    drawInfoArray = new MeshDrawInfo*[count];
-    drawInfoCount = 0;
-    for (unsigned int i = 0; i < count; i++)
-    {
-        MeshDrawInfo* di = sourceMeshes[i]->getDrawInfo();
-        if ((di != NULL) && !di->isCopy())
-        {
-            MeshDrawMgr* dm = new MeshDrawMgr(di);
-            di->setDrawMgr(dm);
-            drawInfoArray[drawInfoCount] = di;
-            drawInfoCount++;
-        }
-    }
     return;
 }
 
 
 void            World::freeMeshDrawMgrs()
 {
-    for (int i = 0; i < drawInfoCount; i++)
-    {
-        MeshDrawInfo* di = drawInfoArray[i];
-        MeshDrawMgr* dm = di->getDrawMgr();
-        delete dm;
-        di->setDrawMgr(NULL);
-    }
-    drawInfoCount = 0;
-    delete[] drawInfoArray;
-    drawInfoArray = NULL;
     return;
 }
 
