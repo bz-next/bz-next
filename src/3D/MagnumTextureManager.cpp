@@ -268,7 +268,7 @@ TextureData MagnumTextureManager::loadTexture(FileTextureInit &init, bool report
     texInfo.name = filename;
 
     // Check if we have this in our packed resources
-    Utility::Resource rs{"bzflag-data"};
+    Utility::Resource rs{"bzflag-texture-data"};
     if (rs.hasFile(filename)) {
         Warning{} << "We have" << filename.c_str() << "in our packed resources.";
     }

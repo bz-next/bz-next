@@ -179,7 +179,7 @@ using namespace Magnum::Math::Literals;
 class MapViewer: public Platform::Sdl2Application {
     public:
         explicit MapViewer(const Arguments& arguments);
-        int main();
+        void init();
 
 
     private:
@@ -239,8 +239,7 @@ class MapViewer: public Platform::Sdl2Application {
         Vector3 positionOnSphere(const Vector2i& position) const;
 
         friend class WorldDownLoader;
-        void startPlaying();
-        void playingLoopIteration();
+        void loopIteration();
 
         void onConsoleText(const char* txt);
 
@@ -263,7 +262,6 @@ class MapViewer: public Platform::Sdl2Application {
         void updateFlags(float dt);
 
         bool isCached(char *hexDigest);
-        void loadCachedWorld();
 
         const void *handleMsgSetVars(const void *msg);
 
@@ -340,10 +338,9 @@ MapViewer::MapViewer(const Arguments& arguments):
         .setWindowFlags(Configuration::WindowFlag::Resizable),
 #if defined(MAGNUM_TARGET_GLES) || defined(MAGNUM_TARGET_GLES2)
         // No multisampling for GLES, assume less capable machine
-        //GLConfiguration{}.setVersion(GL::Version::GLES200)
-        GLConfiguration{}
+        GLConfiguration{}.setVersion(GL::Version::GLES200)
 #else
-        //GLConfiguration{}.setSampleCount(4)
+        GLConfiguration{}.setSampleCount(4)
 #endif
         },
     ServerAccessList("ServerAccess.txt", NULL)
@@ -395,8 +392,6 @@ MapViewer::MapViewer(const Arguments& arguments):
 
     _meshes = Containers::Array<Containers::Optional<GL::Mesh>>{1};
 
-    //worldRenderer.getWorldObject()->setParent(&_manipulator);
-
     _imgui = ImGuiIntegration::Context(Vector2{windowSize()}/dpiScaling(), windowSize(), framebufferSize());
 
     console.registerCommandCallback([&](const char* txt){
@@ -411,8 +406,7 @@ MapViewer::MapViewer(const Arguments& arguments):
     GL::Renderer::setBlendFunction(GL::Renderer::BlendFunction::SourceAlpha,
         GL::Renderer::BlendFunction::OneMinusSourceAlpha);
 
-    //setSwapInterval(0);
-    main();
+    init();
 }
 
 void MapViewer::showMainMenuBar() {
@@ -565,8 +559,7 @@ void MapViewer::onConsoleText(const char* msg) {
 }
 
 void MapViewer::drawEvent() {
-    //_profiler.beginFrame();
-    playingLoopIteration();
+    loopIteration();
     GL::defaultFramebuffer.clear(GL::FramebufferClear::Color | GL::FramebufferClear::Depth);
 
     _imgui.newFrame();
@@ -610,11 +603,7 @@ void MapViewer::drawEvent() {
 
     _imgui.drawFrame();
 
-    
-
     swapBuffers();
-    //_profiler.endFrame();
-    //_profiler.printStatistics(10);
 }
 
 void MapViewer::markOld(std::string &fileName) {
@@ -641,118 +630,6 @@ void MapViewer::markOld(std::string &fileName) {
     times.modtime = 0;
     utime(fileName.c_str(), &times);
 #endif
-}
-
-void MapViewer::loadCachedWorld() {
-    // can't get a cache from nothing
-    if (worldCachePath == std::string(""))
-    {
-        joiningGame = false;
-        return;
-    }
-
-    // lookup the cached world
-    std::istream *cachedWorld = FILEMGR.createDataInStream(worldCachePath, true);
-    if (!cachedWorld)
-    {
-        //HUDDialogStack::get()->setFailedMessage("World cache files disappeared.  Join canceled");
-        //std::cout << "World cache files disappeared.  Join canceled" << std::endl;
-        console.addLog("World cache files disappeared.  Join canceled");
-        //drawFrame(0.0f);
-        remove(worldCachePath.c_str());
-        joiningGame = false;
-        return;
-    }
-
-    // status update
-    //HUDDialogStack::get()->setFailedMessage("Loading world into memory...");
-    //drawFrame(0.0f);
-    //std::cout << "Loading world into memory..." << std::endl;
-    console.addLog("Loading world into memory...");
-
-    // get the world size
-    cachedWorld->seekg(0, std::ios::end);
-    std::streampos size = cachedWorld->tellg();
-    unsigned long charSize = (unsigned long)std::streamoff(size);
-
-    // load the cached world
-    cachedWorld->seekg(0);
-    char *localWorldDatabase = new char[charSize];
-    if (!localWorldDatabase)
-    {
-        //HUDDialogStack::get()->setFailedMessage("Error loading cached world.  Join canceled");
-        //drawFrame(0.0f);
-        //std::cout << "Error loading cached world." << std::endl;
-        console.addLog("Error loading cached world.");
-        remove(worldCachePath.c_str());
-        joiningGame = false;
-        return;
-    }
-    cachedWorld->read(localWorldDatabase, charSize);
-    delete cachedWorld;
-
-    // verify
-    //HUDDialogStack::get()->setFailedMessage("Verifying world integrity...");
-    //drawFrame(0.0f);
-    //std::cout << "Verifying world" << std::endl;
-    console.addLog("Verifying world integrity...");
-    MD5 md5;
-    md5.update((unsigned char *)localWorldDatabase, charSize);
-    md5.finalize();
-    std::string digest = md5.hexdigest();
-    if (digest != md5Digest)
-    {
-        if (worldBuilder)
-            delete worldBuilder;
-        worldBuilder = NULL;
-        delete[] localWorldDatabase;
-        //HUDDialogStack::get()->setFailedMessage("Error on md5. Removing offending file.");
-        //std::cout << "md5 error" << std::endl;
-        console.addLog("Error on md5. Removing offending file.");
-        remove(worldCachePath.c_str());
-        joiningGame = false;
-        return;
-    }
-
-    // make world
-    //HUDDialogStack::get()->setFailedMessage("Preparing world...");
-    //drawFrame(0.0f);
-    //std::cout << "Preparing world..." << std::endl;
-    console.addLog("Preparing world...");
-    if (world)
-    {
-        delete world;
-        world = NULL;
-    }
-    if (!worldBuilder->unpack(localWorldDatabase))
-    {
-        // world didn't make for some reason
-        if (worldBuilder)
-            delete worldBuilder;
-        worldBuilder = NULL;
-        delete[] localWorldDatabase;
-        //HUDDialogStack::get()->setFailedMessage("Error unpacking world database. Join canceled.");
-        //std::cout << "Error unpacking world db." << std::endl;
-        console.addLog("Error unpacking world database. Join canceled.");
-        remove(worldCachePath.c_str());
-        joiningGame = false;
-        return;
-    }
-    delete[] localWorldDatabase;
-
-    // return world
-    world = worldBuilder->getWorld();
-    if (worldBuilder)
-        delete worldBuilder;
-    worldBuilder = NULL;
-
-    //HUDDialogStack::get()->setFailedMessage("Downloading files...");
-    console.addLog("Downloading files...");
-
-    const bool doDownloads =  BZDB.isTrue("doDownloads");
-    const bool updateDownloads =  BZDB.isTrue("updateDownloads");
-    Downloads::startDownloads(doDownloads, updateDownloads, false);
-    downloadingInitialTexture  = true;
 }
 
 bool MapViewer::isCached(char *hexDigest) {
@@ -862,8 +739,7 @@ Vector3 MapViewer::positionOnSphere(const Vector2i& position) const {
     return (result * Vector3::yScale(-1.0f)).normalized();
 }
 
-int MapViewer::main() {
-    Warning{} << "Init rng";
+void MapViewer::init() {
     bzfsrand((unsigned int)time(0));
 
     // set default DB entries
@@ -897,14 +773,6 @@ int MapViewer::main() {
 
     Team::updateShotColors();
 
-    // TM test
-    //Warning{} << "Loading some textures";
-    //MagnumTextureManager &tm = MagnumTextureManager::instance();
-    //tm.getTexture("boxwall");
-    //tm.getTexture("moon");
-    //tm.getTexture("mountain1");
-    //tm.getTexture("tetrawall");
-
     Warning{} << "load default mats";
     MAGNUMMATERIALMGR.loadDefaultMaterials();
 
@@ -912,11 +780,15 @@ int MapViewer::main() {
     worldRenderer.createWorldObject(&worldSceneBuilder);
     worldRenderer.getWorldObject()->setParent(&_manipulator);
 
-    startPlaying();
+    lastObserverUpdateTime = TimeKeeper::getTick().getSeconds();
 
-    //tm.clear();
-    //exit(0);
-    return 0;
+    setErrorCallback(startupErrorCallback);
+
+    World::init();
+
+    setErrorCallback(startupErrorCallback);
+
+    TimeKeeper::setTick();
 }
 
 void MapViewer::joinInternetGame2()
@@ -973,60 +845,34 @@ void MapViewer::startupErrorCallback(const char* msg)
     Warning{} << msg;
 }
 
-void MapViewer::startPlaying()
+void MapViewer::loopIteration()
 {
-    lastObserverUpdateTime = TimeKeeper::getTick().getSeconds();
 
-    setErrorCallback(startupErrorCallback);
+    BZDBCache::update();
 
-    World::init();
+    // set this step game time
+    GameTime::setStepTime();
 
-    // prepare dialogs / main menu
-
-    setErrorCallback(startupErrorCallback);
-
+    // get delta time
+    TimeKeeper prevTime = TimeKeeper::getTick();
     TimeKeeper::setTick();
+    const float dt = float(TimeKeeper::getTick() - prevTime);
 
-    playingLoopIteration();
+    // TODO: Update sky every few seconds
+    if (world)
+        world->updateWind(dt);
 
-    //leaveGame();
-    //World::done();
-}
+    // TODO: Make this work!
+    if (world)
+        world->updateAnimations(dt);
 
-void MapViewer::playingLoopIteration()
-{
-        // main loop
-    //while (!CommandsStandard::isQuit())
-    //while (!isQuit)
-    {
+    // draw frame
+    // update the dynamic colors
+    DYNCOLORMGR.update();
 
-        BZDBCache::update();
+    // update the texture matrices
+    TEXMATRIXMGR.update();
 
-        // set this step game time
-        GameTime::setStepTime();
-
-        // get delta time
-        TimeKeeper prevTime = TimeKeeper::getTick();
-        TimeKeeper::setTick();
-        const float dt = float(TimeKeeper::getTick() - prevTime);
-
-        // TODO: Update sky every few seconds
-        if (world)
-            world->updateWind(dt);
-
-        // TODO: Make this work!
-        if (world)
-            world->updateAnimations(dt);
-
-        // draw frame
-        // update the dynamic colors
-        DYNCOLORMGR.update();
-
-        // update the texture matrices
-        TEXMATRIXMGR.update();
-        //mainLoopIteration();
-
-    }
 }
 
 void MapViewer::updateFlags(float dt) {
@@ -1037,11 +883,6 @@ bool MapViewer::processWorldChunk(const void *buf, uint16_t len, int bytesLeft) 
     int doneSize  = worldPtr + len;
     if (cacheOut)
         cacheOut->write((const char *)buf, len);
-    /*HUDDialogStack::get()->setFailedMessage
-    (TextUtils::format
-     ("Downloading World (%2d%% complete/%d kb remaining)...",
-      (100 * doneSize / totalSize), bytesLeft / 1024).c_str());*/
-    //std::cout << "Downloading World..." << std::endl;
     console.addLog("Downloading World (%2d%% complete/%d kb remaining)...",
       (100 * doneSize / totalSize), bytesLeft / 1024);
     return bytesLeft == 0;
@@ -1098,11 +939,5 @@ void MapViewer::resetServerVar(const std::string& name, void*)
         BZDB.set(name, defval);
     }
 }
-
-/*int main(int argc, char** argv)
-{
-    MapViewer app({argc, argv});
-    return app.main();
-}*/
 
 MAGNUM_APPLICATION_MAIN(MapViewer)

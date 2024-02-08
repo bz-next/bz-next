@@ -1,4 +1,4 @@
-add_library(bzcommon STATIC
+set(BZCOMMON_SOURCES
     AccessList.cxx
     AutoCompleter.cxx
     Bundle.cxx
@@ -14,7 +14,6 @@ add_library(bzcommon STATIC
     CommandManager.cxx
     ConfigFileManager.cxx
     Country.cxx
-    #cURLManager.cxx
     ErrorHandler.cxx
     FileManager.cxx
     Flag.cxx
@@ -36,6 +35,12 @@ add_library(bzcommon STATIC
     VotingBooth.cxx
     WordFilter.cxx
 )
+
+if (NOT CORRADE_TARGET_EMSCRIPTEN)
+    list(APPEND BZCOMMON_SOURCES cURLManager.cxx)
+endif()
+
+add_library(bzcommon STATIC ${BZCOMMON_SOURCES})
 
 target_link_libraries(bzcommon
     ${CURL_LIBRARIES}

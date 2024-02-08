@@ -8,11 +8,10 @@ if (MINGW)
     set(CMAKE_EXE_LINKER_FLAGS "-mconsole")
 endif()
 
-corrade_add_resource(BZFLAG_DATA_RESOURCES "${PROJECT_SOURCE_DIR}/data/resources.conf")
+corrade_add_resource(BZFLAG_TEXTURE_RESOURCES "${PROJECT_SOURCE_DIR}/data/texresources.conf")
 
 add_compile_definitions(BUILDING_CLIENT)
-message("RESOURCES: ${BZFLAG_DATA_RESOURCES}")
-add_executable(bzflag-next WIN32 bzflag-next.cpp ${BZNEXT_RESOURCES} ${BZFLAG_DATA_RESOURCES}
+add_executable(bzflag-next WIN32 bzflag-next.cpp ${BZNEXT_RESOURCES} ${BZFLAG_TEXTURE_RESOURCES}
     ActionBinding.cxx
     ActionBinding.h
     AutoPilot.cxx
