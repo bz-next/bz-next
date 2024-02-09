@@ -9,6 +9,8 @@ BZ-Next is an experimental fork of BZFlag that redoes the rendering engine from 
 
 See the [about the project](https://bz-next.github.io/about) page for more information!
 
+Try the experimental WebGL map viewer at [https://bz-next.github.io/mapviewer/mapviewer.html](https://bz-next.github.io/mapviewer/mapviewer.html)
+
 ## What does it currently look like?
 
 ![Rats Nest by Winny](https://bz-next.github.io/assets/img/screen0.jpg)
