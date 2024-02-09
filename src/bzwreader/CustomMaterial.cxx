@@ -57,6 +57,8 @@ void CustomMaterial::writeToManager() const
 {
     material.setName(name);
 
+    std::cout << "MATNAME: " << name << std::endl;
+
     if ((name.size() > 0) && (MAGNUMMATERIALMGR.findMaterial(name) != NULL))
     {
         std::cout << "warning: duplicate material name"
@@ -64,7 +66,7 @@ void CustomMaterial::writeToManager() const
         std::cout << "	 the first material will be used" << std::endl;
     }
 
-    const MagnumBZMaterial* matref = MAGNUMMATERIALMGR.addMaterial(&material);
+    const MagnumBZMaterial* matref = MAGNUMMATERIALMGR.addLegacyIndexedMaterial(&material);
 
     int index = MAGNUMMATERIALMGR.getIndex(matref);
     if (index < 0)

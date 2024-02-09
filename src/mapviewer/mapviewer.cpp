@@ -775,9 +775,6 @@ void MapViewer::init() {
 
     Team::updateShotColors();
 
-    Warning{} << "load default mats";
-    MAGNUMMATERIALMGR.loadDefaultMaterials();
-
     Warning{} << "creating world obj";
     worldRenderer.createWorldObject(&worldSceneBuilder);
     worldRenderer.getWorldObject()->setParent(&_manipulator);
@@ -800,13 +797,16 @@ void MapViewer::joinInternetGame2()
     justJoined = true;
 
     BZWReader* reader = new BZWReader(std::string("map.bzw"));
-        auto worldInfo = reader->defineWorldFromFile();
+    auto worldInfo = reader->defineWorldFromFile();
     delete reader;
 
     //World::setWorld(world);
 
     // prep teams
     //teams = world->getTeams();
+
+    Warning{} << "load default mats";
+    MAGNUMMATERIALMGR.loadDefaultMaterials();
 
 
     worldRenderer.destroyWorldObject();
