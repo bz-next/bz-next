@@ -1,42 +1,4 @@
-/*
-    This file is part of Magnum.
-
-    Original authors — credit is appreciated but not required:
-
-        2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019,
-        2020, 2021, 2022, 2023 — Vladimír Vondruš <mosra@centrum.cz>
-
-    This is free and unencumbered software released into the public domain.
-
-    Anyone is free to copy, modify, publish, use, compile, sell, or distribute
-    this software, either in source code form or as a compiled binary, for any
-    purpose, commercial or non-commercial, and by any means.
-
-    In jurisdictions that recognize copyright laws, the author or authors of
-    this software dedicate any and all copyright interest in the software to
-    the public domain. We make this dedication for the benefit of the public
-    at large and to the detriment of our heirs and successors. We intend this
-    dedication to be an overt act of relinquishment in perpetuity of all
-    present and future rights to this software under copyright law.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-    THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-    IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-    CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
-
-
-#include "Corrade/Containers/ArrayView.h"
-#include "Magnum/DebugTools/FrameProfiler.h"
-#include "Magnum/DebugTools/Profiler.h"
-#include "Magnum/GL/GL.h"
-#include "Magnum/MeshTools/Copy.h"
-#include "Magnum/MeshTools/GenerateNormals.h"
 #include "Magnum/SceneGraph/SceneGraph.h"
-#include "Magnum/Trade/Data.h"
-#include "Magnum/Trade/MaterialData.h"
 #include <Corrade/Containers/Array.h>
 #include <Corrade/Containers/Optional.h>
 #include <Corrade/Containers/Pair.h>
@@ -79,6 +41,7 @@
 
 #include "MagnumBZMaterial.h"
 #include "MagnumDefs.h"
+#include "MagnumTextureManager.h"
 #include "PyramidBuilding.h"
 #include "WallObstacle.h"
 #include "MeshObstacle.h"
@@ -86,8 +49,6 @@
 
 #include "BZChatConsole.h"
 #include "BZScoreboard.h"
-
-#include "MagnumTextureManager.h"
 
 #include "BZTextureBrowser.h"
 #include "BZMaterialBrowser.h"
@@ -99,46 +60,23 @@
 #include <ctime>
 #include <cassert>
 #include <imgui.h>
-#include <sstream>
+#include "imfilebrowser.h"
 #include <cstring>
-#include <functional>
-
-#include "utime.h"
 
 #include "common.h"
 
-#include "clientConfig.h"
-#include "Address.h"
-#include "StartupInfo.h"
 #include "StateDatabase.h"
-#include "playing.h"
 #include "BZDBCache.h"
 #include "BZDBLocal.h"
-#include "CommandsStandard.h"
-#include "ServerListCache.h"
-#include "AresHandler.h"
 #include "TimeKeeper.h"
-#include "commands.h"
-#include "CommandManager.h"
 #include "ErrorHandler.h"
 #include "World.h"
 #include "bzfio.h"
-#include "version.h"
 #include "common.h"
 #include "GameTime.h"
-#include "AccessList.h"
-#include "Flag.h"
-#include "Roster.h"
 #include "Roaming.h"
 #include "WordFilter.h"
-#include "PlatformFactory.h"
-#include "DirectoryNames.h"
-#include "BzfMedia.h"
 #include "WorldBuilder.h"
-#include "Downloads.h"
-#include "FileManager.h"
-#include "md5.h"
-#include "AnsiCodes.h"
 #include "PhysicsDriver.h"
 #include "ObstacleMgr.h"
 #include "TextureMatrix.h"
@@ -150,12 +88,9 @@
 // defaults for bzdb
 #include "defaultBZDB.h"
 
-bool            echoToConsole = false;
-bool            echoAnsi = false;
+// Some leftover global state that bzflag code needs
 int         debugLevel = 0;
-std::string     alternateConfig;
 struct tm       userTime;
-const char*     argv0;
 
 class BasicLoggingCallback : public LoggingCallback {
     public:
@@ -168,12 +103,6 @@ void BasicLoggingCallback::log(int lvl, const char* msg)
 }
 
 BasicLoggingCallback blc;
-
-class WorldDownLoader;
-
-void dumpResources()
-{
-}
 
 using namespace Magnum;
 using namespace Magnum::Math::Literals;
@@ -195,11 +124,10 @@ class MapViewer: public Platform::Sdl2Application {
         void mouseMoveEvent(MouseMoveEvent& e) override;
         void mouseScrollEvent(MouseScrollEvent& e) override;
         void textInputEvent(TextInputEvent& event) override;
+        void exitEvent(ExitEvent& event) override;
 
         void keyPressEvent(KeyEvent& event) override;
         void keyReleaseEvent(KeyEvent& event) override;
-
-        void exitEvent(ExitEvent& event) override;
 
         void tryConnect(const std::string& callsign, const std::string& password, const std::string& server, const std::string& port);
 
@@ -237,88 +165,28 @@ class MapViewer: public Platform::Sdl2Application {
         bool showMatExclude = false;
 
         bool showGrid = false;
+
+        void maybeShowFileBrowser();
         
         Vector3 positionOnSphere(const Vector2i& position) const;
-
-        friend class WorldDownLoader;
-        void loopIteration();
 
         void onConsoleText(const char* txt);
 
         static void startupErrorCallback(const char* msg);
 
-        void joinInternetGame();
-        void joinInternetGame2();
-
-        void leaveGame();
-
-        void setTankFlags();
-        void updateFlag(FlagType *flag);
-
-        void doMotion();
-
-        void enteringServer(const void *buf);
-
-        void checkEnvironment();
-
-        void updateFlags(float dt);
-
-        bool isCached(char *hexDigest);
-
-        const void *handleMsgSetVars(const void *msg);
-
-        void markOld(std::string &fileName);
-
-        bool processWorldChunk(const void *buf, uint16_t len, int bytesLeft);
+        void loadMap(std::string path);
 
         static void resetServerVar(const std::string& name, void*);
 
-        // Here there be dragons... BZFlag has a lot of global state.
-        // I've tried to toss as much as possible under the application object,
-        // but there are still some important global objects, like ::World()
-        // Managing the state of even these objects is a mess. A lot of this
-        // needs to be encapsulated. Expect bugs...
-        double lastObserverUpdateTime = -1;
-        StartupInfo startupInfo;
-        bool joinRequested = false;
-        bool justJoined = false;
-        bool serverDied = false;
-        bool serverError = false;
-        bool joiningGame = false;
-        bool entered = false;
-        Team *teams = NULL;
+        void loopIteration();
+
         WorldBuilder *worldBuilder = NULL;
-        std::string worldUrl;
-        bool isCacheTemp = false;
-        std::string md5Digest;
-        uint32_t worldPtr = 0;
-        bool downloadingInitialTexture = false;
-        std::string worldCachePath;
-        bool firstLife = false;
-        bool fireButton = false;
-        //ShotStats *shotStats = NULL;
-        bool wasRabbit = false;
-        char *worldDatabase = NULL;
-        std::ostream *cacheOut = NULL;
-
-        std::vector<PlayingCallbackItem> playingCallbacks;
-
-        AccessList ServerAccessList;
-
-        World *world = NULL;
-
-        Shaders::PhongGL _coloredShader;
-        Shaders::PhongGL _texturedShader{Shaders::PhongGL::Configuration().setFlags(Shaders::PhongGL::Flag::DiffuseTexture)};
-        Containers::Array<Containers::Optional<GL::Mesh>> _meshes;
-        Containers::Array<Containers::Optional<GL::Texture2D>> _textures;
 
         Scene3D _scene;
         Object3D _manipulator, _cameraObject;
         SceneGraph::Camera3D* _camera;
         SceneGraph::DrawableGroup3D _drawables;
         Vector3 _previousPosition;
-
-        std::vector<Object3D *> tankObjs;
 
         WorldRenderer worldRenderer;
         WorldSceneBuilder worldSceneBuilder;
@@ -330,13 +198,14 @@ class MapViewer: public Platform::Sdl2Application {
         BZMaterialBrowser matBrowser;
         BZMaterialViewer matViewer;
         ObstacleBrowser obsBrowser;
-
-        bool isQuit = false;
+#ifndef CORRADE_TARGET_EMSCRIPTEN
+        ImGui::FileBrowser fileBrowser;
+#endif
 };
 
 MapViewer::MapViewer(const Arguments& arguments):
     Platform::Sdl2Application{arguments, Configuration{}
-        .setTitle("BZFlag Experimental Client")
+        .setTitle("BZFlag Map Viewer")
         .setWindowFlags(Configuration::WindowFlag::Resizable),
 #if defined(MAGNUM_TARGET_GLES) || defined(MAGNUM_TARGET_GLES2)
         // No multisampling for GLES, assume less capable machine
@@ -344,8 +213,7 @@ MapViewer::MapViewer(const Arguments& arguments):
 #else
         GLConfiguration{}.setSampleCount(4)
 #endif
-        },
-    ServerAccessList("ServerAccess.txt", NULL)
+        }
 {
     using namespace Math::Literals;
 
@@ -354,9 +222,7 @@ MapViewer::MapViewer(const Arguments& arguments):
 
     Utility::Arguments args;
     args
-        .addOption("importer", "AnySceneImporter").setHelp("importer", "importer plugin to use")
-        .addSkippedPrefix("magnum", "engine-specific options")
-        .setGlobalHelp("Displays a 3D scene file provided on command line.")
+        .setGlobalHelp("BZFlag Map Viewer")
         .parse(arguments.argc, arguments.argv);
     
     _cameraObject
@@ -376,29 +242,16 @@ MapViewer::MapViewer(const Arguments& arguments):
     GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
     GL::Renderer::enable(GL::Renderer::Feature::Blending);
 
-    _coloredShader
-        .setAmbientColor(0x111111_rgbf)
-        .setSpecularColor(0xffffff_rgbf)
-        .setShininess(80.0f);
-    _texturedShader
-        .setAmbientColor(0x111111_rgbf)
-        .setSpecularColor(0x111111_rgbf)
-        .setShininess(80.0f);
-
-    PluginManager::Manager<Trade::AbstractImporter> manager;
-    Containers::Pointer<Trade::AbstractImporter> importer = manager.loadAndInstantiate(args.value("importer"));
-
-    _textures = Containers::Array<Containers::Optional<GL::Texture2D>>{};
-
-    Containers::Array<Containers::Optional<Trade::PhongMaterialData>> materials{};
-
-    _meshes = Containers::Array<Containers::Optional<GL::Mesh>>{1};
-
     _imgui = ImGuiIntegration::Context(Vector2{windowSize()}/dpiScaling(), windowSize(), framebufferSize());
 
     console.registerCommandCallback([&](const char* txt){
         onConsoleText(txt);
     });
+
+#ifndef CORRADE_TARGET_EMSCRIPTEN
+    fileBrowser.SetTitle("Select Map File");
+    fileBrowser.SetTypeFilters({".bzw"});
+#endif
 
     /* Set up proper blending to be used by ImGui. There's a great chance
        you'll need this exact behavior for the rest of your scene. If not, set
@@ -411,8 +264,18 @@ MapViewer::MapViewer(const Arguments& arguments):
     init();
 }
 
+void MapViewer::exitEvent(ExitEvent& event) {
+    event.setAccepted();
+    MagnumTextureManager::instance().clear();
+}
+
 void MapViewer::showMainMenuBar() {
     if (ImGui::BeginMainMenuBar()) {
+        if (ImGui::MenuItem("Load")) {
+#ifndef CORRADE_TARGET_EMSCRIPTEN
+            fileBrowser.Open();
+#endif
+        }
         if (ImGui::BeginMenu("View")) {
             showMenuView();
             ImGui::EndMenu();
@@ -557,11 +420,19 @@ void MapViewer::maybeShowMatExclude()
     }
 }
 
+void MapViewer::maybeShowFileBrowser() {
+    // Filebrowser tracks whether to draw internally
+    fileBrowser.Display();
+    if (fileBrowser.HasSelected()) {
+        loadMap(fileBrowser.GetSelected().string());
+        fileBrowser.ClearSelected();
+    }
+}
+
 void MapViewer::onConsoleText(const char* msg) {
 }
 
 void MapViewer::drawEvent() {
-    loopIteration();
     GL::defaultFramebuffer.clear(GL::FramebufferClear::Color | GL::FramebufferClear::Depth);
 
     _imgui.newFrame();
@@ -581,6 +452,7 @@ void MapViewer::drawEvent() {
     maybeShowObsBrowser();
     maybeShowGLInfo();
     maybeShowMatExclude();
+    maybeShowFileBrowser();
 
     _imgui.updateApplicationCursor(*this);
 
@@ -608,60 +480,9 @@ void MapViewer::drawEvent() {
     swapBuffers();
 }
 
-void MapViewer::markOld(std::string &fileName) {
-    #ifdef _WIN32
-    FILETIME ft;
-    HANDLE h = CreateFile(fileName.c_str(),
-                          FILE_WRITE_ATTRIBUTES | FILE_WRITE_EA, 0, NULL,
-                          OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (h != INVALID_HANDLE_VALUE)
-    {
-        SYSTEMTIME st;
-        memset(&st, 0, sizeof(st));
-        st.wYear = 1900;
-        st.wMonth = 1;
-        st.wDay = 1;
-        SystemTimeToFileTime(&st, &ft);
-        SetFileTime(h, &ft, &ft, &ft);
-        GetLastError();
-        CloseHandle(h);
-    }
-#else
-    struct utimbuf times;
-    times.actime = 0;
-    times.modtime = 0;
-    utime(fileName.c_str(), &times);
-#endif
-}
-
-bool MapViewer::isCached(char *hexDigest) {
-    std::istream *cachedWorld;
-    bool cached    = false;
-    worldCachePath = getCacheDirName();
-    worldCachePath += hexDigest;
-    worldCachePath += ".bwc";
-    if ((cachedWorld = FILEMGR.createDataInStream(worldCachePath, true)))
-    {
-        cached = true;
-        delete cachedWorld;
-    }
-    return cached;
-}
-
 void MapViewer::tickEvent() {
+    loopIteration();
     redraw();
-}
-
-void MapViewer::enteringServer(const void *buf) {
-
-    entered = true;
-}
-
-void MapViewer::setTankFlags()
-{
-}
-
-void MapViewer::updateFlag(FlagType *flag) {
 }
 
 void MapViewer::viewportEvent(ViewportEvent& e) {
@@ -729,11 +550,6 @@ void MapViewer::textInputEvent(TextInputEvent& e) {
     if(_imgui.handleTextInputEvent(e)) return;
 }
 
-void MapViewer::exitEvent(ExitEvent& e) {
-    e.setAccepted();
-    isQuit = true;
-}
-
 Vector3 MapViewer::positionOnSphere(const Vector2i& position) const {
     const Vector2 positionNormalized = Vector2{position}/Vector2{_camera->viewport()} - Vector2{0.5f};
     const Float length = positionNormalized.length();
@@ -763,8 +579,6 @@ void MapViewer::init() {
     BZDBCache::init();
     BZDBLOCAL.init();
 
-    ::Flags::init();
-
     time_t timeNow;
     time(&timeNow);
     userTime = *localtime(&timeNow);
@@ -779,37 +593,33 @@ void MapViewer::init() {
     worldRenderer.createWorldObject(&worldSceneBuilder);
     worldRenderer.getWorldObject()->setParent(&_manipulator);
 
-    lastObserverUpdateTime = TimeKeeper::getTick().getSeconds();
-
     setErrorCallback(startupErrorCallback);
-
-    World::init();
 
     setErrorCallback(startupErrorCallback);
 
     TimeKeeper::setTick();
-
-    joinInternetGame2();
 }
 
-void MapViewer::joinInternetGame2()
+void MapViewer::loadMap(std::string path)
 {
-    justJoined = true;
+    DYNCOLORMGR.clear();
+    TEXMATRIXMGR.clear();
+    MAGNUMMATERIALMGR.clear(false);
+    PHYDRVMGR.clear();
+    TRANSFORMMGR.clear();
+    OBSTACLEMGR.clear();
 
-    BZWReader* reader = new BZWReader(std::string("map.bzw"));
+    worldRenderer.destroyWorldObject();
+    worldSceneBuilder.reset();
+
+    BZDB.iterate(MapViewer::resetServerVar, NULL);
+
+    BZWReader* reader = new BZWReader(path);
     auto worldInfo = reader->defineWorldFromFile();
     delete reader;
 
-    //World::setWorld(world);
-
-    // prep teams
-    //teams = world->getTeams();
-
     Warning{} << "load default mats";
     MAGNUMMATERIALMGR.loadDefaultMaterials();
-
-
-    worldRenderer.destroyWorldObject();
 
     const ObstacleList& boxes = OBSTACLEMGR.getBoxes();
     for (int i = 0; i < boxes.size(); ++i) {
@@ -836,16 +646,9 @@ void MapViewer::joinInternetGame2()
     for (int i = 0; i < meshes.size(); i++)
         worldSceneBuilder.addMesh (*((MeshObstacle*) meshes[i]));
     
-    //world->makeLinkMaterial();
-    
     worldRenderer.createWorldObject(&worldSceneBuilder);
     worldRenderer.getWorldObject()->setParent(&_manipulator);
 
-    joiningGame = false;
-}
-
-const void *MapViewer::handleMsgSetVars(const void *msg) {
-    
 }
 
 void MapViewer::startupErrorCallback(const char* msg)
@@ -864,15 +667,6 @@ void MapViewer::loopIteration()
     // get delta time
     TimeKeeper prevTime = TimeKeeper::getTick();
     TimeKeeper::setTick();
-    const float dt = float(TimeKeeper::getTick() - prevTime);
-
-    // TODO: Update sky every few seconds
-    if (world)
-        world->updateWind(dt);
-
-    // TODO: Make this work!
-    if (world)
-        world->updateAnimations(dt);
 
     // draw frame
     // update the dynamic colors
@@ -881,61 +675,6 @@ void MapViewer::loopIteration()
     // update the texture matrices
     TEXMATRIXMGR.update();
 
-}
-
-void MapViewer::updateFlags(float dt) {
-}
-
-bool MapViewer::processWorldChunk(const void *buf, uint16_t len, int bytesLeft) {
-    int totalSize = worldPtr + len + bytesLeft;
-    int doneSize  = worldPtr + len;
-    if (cacheOut)
-        cacheOut->write((const char *)buf, len);
-    console.addLog("Downloading World (%2d%% complete/%d kb remaining)...",
-      (100 * doneSize / totalSize), bytesLeft / 1024);
-    return bytesLeft == 0;
-}
-
-void MapViewer::checkEnvironment() {
-}
-
-void MapViewer::doMotion() {
-        // Implement based on playing.cxx
-}
-
-void MapViewer::joinInternetGame()
-{
-    joiningGame = true;
-    GameTime::reset();
-}
-
-void MapViewer::leaveGame() {
-    entered = false;
-    joiningGame = false;
-
-    // Clear the world scene
-    worldRenderer.destroyWorldObject();
-
-    // Reset the scene builder
-    worldSceneBuilder.reset();
-
-    // reset the daylight time
-    const bool syncTime = (BZDB.eval(StateDatabase::BZDB_SYNCTIME) >= 0.0f);
-    const bool fixedTime = BZDB.isSet("fixedTime");
-
-    // delete world
-    World::setWorld(NULL);
-    delete world;
-    world = NULL;
-    teams = NULL;
-
-    serverError = false;
-    serverDied = false;
-
-    // reset the BZDB variables
-    BZDB.iterate(MapViewer::resetServerVar, NULL);
-
-    ::Flags::clearCustomFlags();
 }
 
 void MapViewer::resetServerVar(const std::string& name, void*)

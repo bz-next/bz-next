@@ -625,7 +625,7 @@ bool MeshDrawInfo::isInvisible() const
         {
             DrawSet& set = lod.sets[j];
             const MagnumBZMaterial* mat = set.material;
-            if (mat->getDiffuse()[3] != 0.0f)
+            if (mat && mat->getDiffuse()[3] != 0.0f)
                 return false;
         }
     }
