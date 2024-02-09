@@ -64,7 +64,7 @@ void CustomMaterial::writeToManager() const
         std::cout << "	 the first material will be used" << std::endl;
     }
 
-    const MagnumBZMaterial* matref = MAGNUMMATERIALMGR.addMaterial(&material);
+    const MagnumBZMaterial* matref = MAGNUMMATERIALMGR.addLegacyIndexedMaterial(&material);
 
     int index = MAGNUMMATERIALMGR.getIndex(matref);
     if (index < 0)
