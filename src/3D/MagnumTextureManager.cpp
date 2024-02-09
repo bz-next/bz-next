@@ -262,7 +262,7 @@ TextureData MagnumTextureManager::loadTexture(FileTextureInit &init, bool report
     if (addpng)
         filename += ".png";
 
-    std::cout << "load Texture " << filename << std::endl;
+    //std::cout << "load Texture " << filename << std::endl;
 
     FileTextureInit texInfo;
     texInfo.name = filename;
@@ -275,7 +275,7 @@ TextureData MagnumTextureManager::loadTexture(FileTextureInit &init, bool report
 
     std::string fullfilepath = FileManager::instance().getFullFilePath(filename);
 
-    std::cout << "the full path is " << fullfilepath << std::endl;
+    //std::cout << "the full path is " << fullfilepath << std::endl;
 
     // Try to load from packed resources if we can
     if (rs.hasFile(filename)) {
