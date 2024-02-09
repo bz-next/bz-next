@@ -4,6 +4,8 @@ add_subdirectory(date)
 add_subdirectory(game)
 add_subdirectory(net)
 
+add_subdirectory(bzwreader)
+
 # obstacle is used for both the client and the server
 if(ENABLE_SERVER OR CLIENT_INCLUDED OR ENABLE_MAPVIEWER)
     add_subdirectory(obstacle)
