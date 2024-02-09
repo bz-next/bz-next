@@ -52,7 +52,11 @@
 #include "StateDatabase.h"
 
 
-BZWReader::BZWReader(std::string filename) : cURLManager(), location(filename),
+BZWReader::BZWReader(std::string filename) :
+#ifndef TARGET_EMSCRIPTEN
+    cURLManager(),
+#endif
+    location(filename),
     input(NULL)
 {
     static const std::string httpProtocol("http://");
@@ -60,7 +64,7 @@ BZWReader::BZWReader(std::string filename) : cURLManager(), location(filename),
     static const std::string fileProtocol("file:/");
 
     errorHandler = new BZWError(location);
-
+#ifndef TARGET_EMSCRIPTEN
     if ((filename.substr(0, httpProtocol.size()) == httpProtocol)
             || (filename.substr(0, ftpProtocol.size()) == ftpProtocol)
             || (filename.substr(0, fileProtocol.size()) == fileProtocol))
@@ -70,6 +74,7 @@ BZWReader::BZWReader(std::string filename) : cURLManager(), location(filename),
         input = new std::istringstream(httpData);
     }
     else
+#endif
         input = new std::ifstream(filename.c_str(), std::ios::in);
 
     // .BZW is the official worldfile extension, warn for others
@@ -85,6 +90,26 @@ BZWReader::BZWReader(std::string filename) : cURLManager(), location(filename),
         errorHandler->fatalError(std::string("could not find bzflag world file"), 0);
 }
 
+BZWReader::BZWReader(std::string filename, const std::string& filedata) :
+    location(filename),
+    input(NULL)
+{
+    errorHandler = new BZWError(location);
+
+    // .BZW is the official worldfile extension, warn for others
+    if ((filename.length() < 4) ||
+            (strcasecmp(filename.substr(filename.length() - 4, 4).c_str(),
+                        ".bzw") != 0))
+    {
+        errorHandler->warning(std::string(
+                                  "world file extension is not .bzw, trying to load anyway"), 0);
+    }
+
+    input = new std::istringstream(filedata);
+
+    if (input->peek() == EOF)
+        errorHandler->fatalError(std::string("could not find bzflag world file"), 0);
+}
 
 BZWReader::~BZWReader()
 {

@@ -25,15 +25,22 @@
 
 /* bzflag common headers */
 #include "BZWError.h"
+
+#ifndef TARGET_EMSCRIPTEN
 #include "cURLManager.h"
+#endif
 
 class WorldFileObject;
 class WorldInfo;
 
-class BZWReader : cURLManager
+class BZWReader
+#ifndef TARGET_EMSCRIPTEN
+: cURLManager
+#endif
 {
 public:
     BZWReader(std::string filename);
+    BZWReader(std::string filename, const std::string& filedata);
     ~BZWReader();
 
     // external interface

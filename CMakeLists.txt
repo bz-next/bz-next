@@ -98,8 +98,13 @@ endif()
 find_package(c-ares REQUIRED)
 find_package(ZLIB REQUIRED)
 
+if (EMSCRIPTEN)
+    add_compile_definitions(TARGET_EMSCRIPTEN)
+    add_link_options(-sEXPORTED_FUNCTIONS=['_main','_malloc','_free'] -sEXPORTED_RUNTIME_METHODS=[ccall] -sALLOW_MEMORY_GROWTH=1)
+endif()
+
 # No cURL on emscripten
-if (NOT CORRADE_TARGET_EMSCRIPTEN)
+if (NOT EMSCRIPTEN)
 find_package(CURL REQUIRED COMPONENTS HTTP HTTPS SSL IPv6 AsynchDNS libz)
 endif()
 

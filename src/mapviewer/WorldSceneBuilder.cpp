@@ -1392,9 +1392,9 @@ GL::Mesh WorldSceneBuilder::compileMatMesh(std::string matname) const {
     Containers::Pair<Containers::Array<char>, MeshIndexType> idxraw = MeshTools::compressIndices(indices);
 
     GL::Mesh ret;;
-    GL::Buffer indicesbuf;
+    GL::Buffer indicesbuf{GL::Buffer::TargetHint::ElementArray};
     indicesbuf.setData(idxraw.first());
-    GL::Buffer vbuf;
+    GL::Buffer vbuf{GL::Buffer::TargetHint::Array};
     vbuf.setData(meshdata);
 
     ret.addVertexBuffer(std::move(vbuf), 0, Shaders::PhongGL::Position{}, Shaders::PhongGL::Normal{}, Shaders::PhongGL::TextureCoordinates{});

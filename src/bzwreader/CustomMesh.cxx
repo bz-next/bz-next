@@ -245,7 +245,6 @@ void CustomMesh::writeToGroupDef(GroupDefinition *groupdef) const
         // use clientSetup
         ((MeshDrawInfo*)drawInfo)->clientSetup(mesh);
         if (drawInfo->isValid()) {
-            std::cout << "DI VALID" << std::endl;
             mesh->setDrawInfo(drawInfo);
         }
         else

@@ -57,8 +57,15 @@
 #include <ctime>
 #include <cassert>
 #include <imgui.h>
-#include "imfilebrowser.h"
+
 #include <cstring>
+
+
+#ifdef TARGET_EMSCRIPTEN
+#include "emscripten_browser_file.h"
+#else
+#include "imfilebrowser.h"
+#endif
 
 #include "common.h"
 
@@ -157,13 +164,19 @@ class MapViewer: public Platform::Sdl2Application {
 
         bool showGrid = false;
 
+#ifndef TARGET_EMSCRIPTEN
         void maybeShowFileBrowser();
+#endif
         
         Vector3 positionOnSphere(const Vector2i& position) const;
 
         static void startupErrorCallback(const char* msg);
 
-        void loadMap(std::string path);
+#ifdef TARGET_EMSCRIPTEN
+        static void handleUploadedMap(const std::string& filename, const std::string& mime_type, std::string_view buffer, void*);
+#endif
+
+        void loadMap(std::string path, const std::string& data);
 
         static void resetServerVar(const std::string& name, void*);
 
@@ -185,10 +198,15 @@ class MapViewer: public Platform::Sdl2Application {
         BZMaterialBrowser matBrowser;
         BZMaterialViewer matViewer;
         ObstacleBrowser obsBrowser;
-#ifndef CORRADE_TARGET_EMSCRIPTEN
+#ifndef TARGET_EMSCRIPTEN
         ImGui::FileBrowser fileBrowser;
 #endif
+
+        // Ugh... need this for a C-style callback from emscripten
+        static MapViewer *instance;
 };
+
+MapViewer *MapViewer::instance = NULL;
 
 MapViewer::MapViewer(const Arguments& arguments):
     Platform::Sdl2Application{arguments, Configuration{}
@@ -203,6 +221,10 @@ MapViewer::MapViewer(const Arguments& arguments):
         }
 {
     using namespace Math::Literals;
+
+    assert(instance == NULL);
+
+    instance = this;
 
     loggingCallback = &blc;
     debugLevel = 4;
@@ -231,7 +253,7 @@ MapViewer::MapViewer(const Arguments& arguments):
 
     _imgui = ImGuiIntegration::Context(Vector2{windowSize()}/dpiScaling(), windowSize(), framebufferSize());
 
-#ifndef CORRADE_TARGET_EMSCRIPTEN
+#ifndef TARGET_EMSCRIPTEN
     fileBrowser.SetTitle("Select Map File");
     fileBrowser.SetTypeFilters({".bzw"});
 #endif
@@ -252,10 +274,18 @@ void MapViewer::exitEvent(ExitEvent& event) {
     MagnumTextureManager::instance().clear();
 }
 
+#ifdef TARGET_EMSCRIPTEN
+void MapViewer::handleUploadedMap(const std::string& filename, const std::string& mime_type, std::string_view buffer, void*) {
+    instance->loadMap(filename, std::string(buffer));
+}
+#endif
+
 void MapViewer::showMainMenuBar() {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::MenuItem("Load")) {
-#ifndef CORRADE_TARGET_EMSCRIPTEN
+#ifdef TARGET_EMSCRIPTEN
+            emscripten_browser_file::upload(".bzw", handleUploadedMap, NULL);
+#else
             fileBrowser.Open();
 #endif
         }
@@ -390,14 +420,16 @@ void MapViewer::maybeShowMatExclude()
     }
 }
 
+#ifndef TARGET_EMSCRIPTEN
 void MapViewer::maybeShowFileBrowser() {
     // Filebrowser tracks whether to draw internally
     fileBrowser.Display();
     if (fileBrowser.HasSelected()) {
-        loadMap(fileBrowser.GetSelected().string());
+        loadMap(fileBrowser.GetSelected().string(), "");
         fileBrowser.ClearSelected();
     }
 }
+#endif
 
 void MapViewer::drawEvent() {
     GL::defaultFramebuffer.clear(GL::FramebufferClear::Color | GL::FramebufferClear::Depth);
@@ -417,7 +449,9 @@ void MapViewer::drawEvent() {
     maybeShowObsBrowser();
     maybeShowGLInfo();
     maybeShowMatExclude();
+#ifndef TARGET_EMSCRIPTEN
     maybeShowFileBrowser();
+#endif
 
     _imgui.updateApplicationCursor(*this);
 
@@ -565,7 +599,7 @@ void MapViewer::init() {
     TimeKeeper::setTick();
 }
 
-void MapViewer::loadMap(std::string path)
+void MapViewer::loadMap(std::string path, const std::string& data)
 {
     DYNCOLORMGR.clear();
     TEXMATRIXMGR.clear();
@@ -580,9 +614,15 @@ void MapViewer::loadMap(std::string path)
 
     BZDB.iterate(MapViewer::resetServerVar, NULL);
 
-    BZWReader* reader = new BZWReader(path);
-    auto worldInfo = reader->defineWorldFromFile();
-    delete reader;
+    if (data == "") {
+        BZWReader* reader = new BZWReader(path);
+        auto worldInfo = reader->defineWorldFromFile();
+        delete reader;
+    } else {
+        BZWReader* reader = new BZWReader(path, data);
+        auto worldInfo = reader->defineWorldFromFile();
+        delete reader;
+    }
 
     Warning{} << "load default mats";
     MAGNUMMATERIALMGR.loadDefaultMaterials();
