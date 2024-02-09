@@ -443,10 +443,11 @@ bool WorldInfo::getFlagSpawnPoint(const FlagInfo* fi, float* pt) const
 
 bool WorldInfo::getPlayerSpawnPoint(const PlayerInfo* pi, float* pt) const
 {
-    const std::string& teamQual =
+    // PORT: Disabled in map loader port from BZFS
+    /*const std::string& teamQual =
         CustomZone::getPlayerTeamQualifier((int)pi->getTeam());
     if (entryZones.getRandomPoint(teamQual, pt))
-        return true;
+        return true;*/
     return false;
 }
 

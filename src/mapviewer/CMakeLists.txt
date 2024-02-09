@@ -217,7 +217,8 @@ target_link_libraries(mapviewer PRIVATE
     bzobstacle
     bzscene
     bzmediafile
-    bzdate)
+    bzdate
+    bzwreader)
 
 if (CORRADE_TARGET_EMSCRIPTEN)
     target_link_libraries(mapviewer PRIVATE Magnum::AnyImageImporter Magnum::AnyImageConverter MagnumPlugins::PngImporter Magnum::AnySceneImporter)

@@ -163,7 +163,8 @@ float WorldWeapons::nextTime ()
 
 void WorldWeapons::fire()
 {
-    TimeKeeper nowTime = TimeKeeper::getCurrent();
+    // PORT: Disabled in map loader port from bzfs
+    /*TimeKeeper nowTime = TimeKeeper::getCurrent();
 
     for (std::vector<Weapon*>::iterator it = weapons.begin();
             it != weapons.end(); ++it)
@@ -187,7 +188,7 @@ void WorldWeapons::fire()
                     w->nextDelay = 0;
             }
         }
-    }
+    }*/
 }
 
 
@@ -285,7 +286,8 @@ WorldWeaponGlobalEventHandler::WorldWeaponGlobalEventHandler(FlagType *_type,
         float _tilt,
         TeamColor teamColor )
 {
-    type = _type;
+    // PORT: Disabled in port from BZFS
+    /*type = _type;
     if (_origin)
         memcpy(origin,_origin,sizeof(float)*3);
     else
@@ -293,7 +295,7 @@ WorldWeaponGlobalEventHandler::WorldWeaponGlobalEventHandler(FlagType *_type,
 
     direction = _direction;
     tilt = _tilt;
-    team = convertTeam(teamColor);
+    team = convertTeam(teamColor);*/
 }
 
 WorldWeaponGlobalEventHandler::~WorldWeaponGlobalEventHandler()

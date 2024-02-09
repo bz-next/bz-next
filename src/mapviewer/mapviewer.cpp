@@ -145,6 +145,8 @@
 #include "DynamicColor.h"
 #include "Teleporter.h"
 
+#include "BZWReader.h"
+
 // defaults for bzdb
 #include "defaultBZDB.h"
 
@@ -789,16 +791,22 @@ void MapViewer::init() {
     setErrorCallback(startupErrorCallback);
 
     TimeKeeper::setTick();
+
+    joinInternetGame2();
 }
 
 void MapViewer::joinInternetGame2()
 {
     justJoined = true;
 
-    World::setWorld(world);
+    BZWReader* reader = new BZWReader(std::string("map.bzw"));
+        auto worldInfo = reader->defineWorldFromFile();
+    delete reader;
+
+    //World::setWorld(world);
 
     // prep teams
-    teams = world->getTeams();
+    //teams = world->getTeams();
 
 
     worldRenderer.destroyWorldObject();
@@ -828,7 +836,7 @@ void MapViewer::joinInternetGame2()
     for (int i = 0; i < meshes.size(); i++)
         worldSceneBuilder.addMesh (*((MeshObstacle*) meshes[i]));
     
-    world->makeLinkMaterial();
+    //world->makeLinkMaterial();
     
     worldRenderer.createWorldObject(&worldSceneBuilder);
     worldRenderer.getWorldObject()->setParent(&_manipulator);

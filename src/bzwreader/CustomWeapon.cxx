@@ -131,10 +131,11 @@ void CustomWeapon::writeToWorld(WorldInfo* world) const
     }
     else
     {
-        WorldWeaponGlobalEventHandler* eventHandler =
+        // PORT: Disabled in factored-out map loader
+        /*WorldWeaponGlobalEventHandler* eventHandler =
             new WorldWeaponGlobalEventHandler(type, pos, rotation, tilt,
                                               (TeamColor)eventTeam);
-        worldEventManager.addEvent(triggerType, eventHandler);
+        worldEventManager.addEvent(triggerType, eventHandler);*/
     }
 }
 

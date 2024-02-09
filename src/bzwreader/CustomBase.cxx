@@ -62,10 +62,11 @@ void CustomBase::writeToGroupDef(GroupDefinition *groupdef) const
     BaseBuilding* base = new BaseBuilding(pos, rotation, absSize, color, ricochet);
     groupdef->addObstacle(base);
 
-    if (triggerWorldWep)
+    // PORT: Disabled in factored-out map loader
+    /*if (triggerWorldWep)
         worldEventManager.addEvent(bz_eCaptureEvent,
                                    new WorldWeaponGlobalEventHandler(Flag::getDescFromAbbreviation(worldWepType.c_str()), pos, rotation, 0,
-                                           (TeamColor)color));
+                                           (TeamColor)color));*/
 }
 
 // Local variables: ***
