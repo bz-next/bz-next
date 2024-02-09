@@ -13,65 +13,40 @@ set(BZWREADER_SOURCES
     #bzfsPlugins.cxx
     #bzfsPlugins.h
     BZWError.cxx
-    BZWError.h
     BZWReader.cxx
-    BZWReader.h
     #CmdLineOptions.cxx
     #CmdLineOptions.h
     #commands.cxx
     #commands.h
     CustomArc.cxx
-    CustomArc.h
     CustomBase.cxx
-    CustomBase.h
     CustomBox.cxx
-    CustomBox.h
     CustomCone.cxx
-    CustomCone.h
     CustomDynamicColor.cxx
-    CustomDynamicColor.h
     CustomGate.cxx
-    CustomGate.h
     CustomGroup.cxx
-    CustomGroup.h
     CustomLink.cxx
-    CustomLink.h
     CustomMaterial.cxx
-    CustomMaterial.h
     CustomMesh.cxx
     CustomMeshFace.cxx
-    CustomMeshFace.h
-    CustomMesh.h
     CustomMeshTransform.cxx
-    CustomMeshTransform.h
     CustomPhysicsDriver.cxx
-    CustomPhysicsDriver.h
     CustomPyramid.cxx
-    CustomPyramid.h
     CustomSphere.cxx
-    CustomSphere.h
     CustomTetra.cxx
-    CustomTetra.h
     CustomTextureMatrix.cxx
-    CustomTextureMatrix.h
     CustomWaterLevel.cxx
-    CustomWaterLevel.h
     CustomWeapon.cxx
-    CustomWeapon.h
     CustomWorld.cxx
-    CustomWorld.h
     CustomZone.cxx
-    CustomZone.h
     #DropGeometry.cxx
     #DropGeometry.h
     EntryZones.cxx
-    EntryZones.h
     #Filter.cxx
     #Filter.h
     #FlagHistory.cxx
     #FlagHistory.h
     FlagInfo.cxx
-    FlagInfo.h
     #GameKeeper.cxx
     #GameKeeper.h
     #ListServerConnection.cxx
@@ -80,7 +55,6 @@ set(BZWREADER_SOURCES
     #MasterBanList.h
     #PackVars.h
     ParseMaterial.cxx
-    ParseMaterial.h
     #Permissions.cxx
     #Permissions.h
     #RandomSpawnPolicy.cxx
@@ -101,25 +75,20 @@ set(BZWREADER_SOURCES
     #SpawnPosition.cxx
     #SpawnPosition.h
     TeamBases.cxx
-    TeamBases.h
     #VotingArbiter.cxx
     #VotingArbiter.h
     #WorldEventManager.cxx
     WorldFileLocation.cxx
-    WorldFileLocation.h
     WorldFileObject.cxx
-    WorldFileObject.h
     WorldFileObstacle.cxx
-    WorldFileObstacle.h
     #WorldGenerators.cxx
     #WorldGenerators.h
     WorldInfo.cxx
-    WorldInfo.h
     WorldWeapons.cxx
-    WorldWeapons.h
 )
 
 add_library(bzwreader STATIC ${BZWREADER_SOURCES})
+target_include_directories(bzwreader PUBLIC include/)
 
 target_link_libraries(bzwreader
 ${CURL_LIBRARIES}
