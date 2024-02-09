@@ -107,18 +107,27 @@
 /* Define to 1 if you have the <stdint.h> header file. */
 #cmakedefine HAVE_STDINT_H
 
+
+// The std::min and std::max etc stuff cause so much trouble in the codebase
+// We will just assume we have them. After all, we are targeting C++17 now
+
+#define HAVE_STD__MAX
+#define HAVE_STD__MIN
+#define HAVE_STD__ISNAN
+#define HAVE_STD__COUNT
+
 /* Define to 1 if you have a conforming std::count, otherwise old version of
    count template is assumed */
-#cmakedefine HAVE_STD__COUNT
+//#cmakedefine HAVE_STD__COUNT
 
 /* Define to 1 if `std::isnan' is available */
-#cmakedefine HAVE_STD__ISNAN
+//#cmakedefine HAVE_STD__ISNAN
 
 /* Define to 1 if you have a conforming std::max */
-#cmakedefine HAVE_STD__MAX
+//#cmakedefine HAVE_STD__MAX
 
 /* Define to 1 if you have a conforming std::min */
-#cmakedefine HAVE_STD__MIN
+//#cmakedefine HAVE_STD__MIN
 
 /* Define to 1 if you have the <sys/types.h> header file. */
 #cmakedefine HAVE_SYS_TYPES_H
