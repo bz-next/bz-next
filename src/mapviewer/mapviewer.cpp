@@ -47,9 +47,6 @@
 #include "MeshObstacle.h"
 #include "WorldRenderer.h"
 
-#include "BZChatConsole.h"
-#include "BZScoreboard.h"
-
 #include "BZTextureBrowser.h"
 #include "BZMaterialBrowser.h"
 #include "BZMaterialViewer.h"
@@ -137,14 +134,8 @@ class MapViewer: public Platform::Sdl2Application {
         void showMenuTools();
         void showMenuDebug();
 
-        void maybeShowConsole();
-        bool showConsole = false;
-
         void maybeShowProfiler();
         bool showProfiler = false;
-
-        void maybeShowScoreboard();
-        bool showScoreboard = false;
 
         void maybeShowTMBrowser();
         bool showTMBrowser = false;
@@ -170,8 +161,6 @@ class MapViewer: public Platform::Sdl2Application {
         
         Vector3 positionOnSphere(const Vector2i& position) const;
 
-        void onConsoleText(const char* txt);
-
         static void startupErrorCallback(const char* msg);
 
         void loadMap(std::string path);
@@ -192,8 +181,6 @@ class MapViewer: public Platform::Sdl2Application {
         WorldSceneBuilder worldSceneBuilder;
         ImGuiIntegration::Context _imgui{NoCreate};
 
-        BZChatConsole console;
-        BZScoreboard scoreboard;
         BZTextureBrowser tmBrowser;
         BZMaterialBrowser matBrowser;
         BZMaterialViewer matViewer;
@@ -244,10 +231,6 @@ MapViewer::MapViewer(const Arguments& arguments):
 
     _imgui = ImGuiIntegration::Context(Vector2{windowSize()}/dpiScaling(), windowSize(), framebufferSize());
 
-    console.registerCommandCallback([&](const char* txt){
-        onConsoleText(txt);
-    });
-
 #ifndef CORRADE_TARGET_EMSCRIPTEN
     fileBrowser.SetTitle("Select Map File");
     fileBrowser.SetTypeFilters({".bzw"});
@@ -293,8 +276,6 @@ void MapViewer::showMainMenuBar() {
 }
 
 void MapViewer::showMenuView() {
-    if (ImGui::MenuItem("Scoreboard", NULL, &showScoreboard)) {}
-    if (ImGui::MenuItem("Console", NULL, &showConsole)) {}
 #ifndef MAGNUM_TARGET_GLES2
     if (ImGui::MenuItem("Grid", NULL, &showGrid)) {}
 #endif
@@ -326,23 +307,12 @@ void MapViewer::showMenuDebug() {
 
 }
 
-void MapViewer::maybeShowConsole() {
-    if (showConsole)
-        console.draw("Console", &showConsole);
-}
-
 void MapViewer::maybeShowProfiler() {
     if (showProfiler) {
         ImGui::Begin("Profiler", &showProfiler);
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
             1000.0/Double(ImGui::GetIO().Framerate), Double(ImGui::GetIO().Framerate));
         ImGui::End();
-    }
-}
-
-void MapViewer::maybeShowScoreboard() {
-    if (showScoreboard) {
-        scoreboard.draw("Scoreboard", &showScoreboard);
     }
 }
 
@@ -429,9 +399,6 @@ void MapViewer::maybeShowFileBrowser() {
     }
 }
 
-void MapViewer::onConsoleText(const char* msg) {
-}
-
 void MapViewer::drawEvent() {
     GL::defaultFramebuffer.clear(GL::FramebufferClear::Color | GL::FramebufferClear::Depth);
 
@@ -443,9 +410,7 @@ void MapViewer::drawEvent() {
         stopTextInput();
 
     showMainMenuBar();
-    maybeShowConsole();
     maybeShowProfiler();
-    maybeShowScoreboard();
     maybeShowTMBrowser();
     maybeShowMATBrowser();
     maybeShowMATViewer();
@@ -608,6 +573,7 @@ void MapViewer::loadMap(std::string path)
     PHYDRVMGR.clear();
     TRANSFORMMGR.clear();
     OBSTACLEMGR.clear();
+    MagnumTextureManager::instance().clear();
 
     worldRenderer.destroyWorldObject();
     worldSceneBuilder.reset();

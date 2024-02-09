@@ -62,7 +62,11 @@ BZMaterialViewer::BZMaterialViewer() :
         .setWrapping(GL::SamplerWrapping::ClampToEdge)
         .setMagnificationFilter(GL::SamplerFilter::Linear)
         .setMinificationFilter(GL::SamplerFilter::Linear)
+#ifdef CORRADE_TARGET_EMSCRIPTEN
         .setStorage(1, GL::TextureFormat::RGBA, bufsize);
+#else
+        .setStorage(1, GL::TextureFormat::RGBA8, bufsize);
+#endif
 
     itemCurrent = 0;
 
