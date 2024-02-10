@@ -1,7 +1,3 @@
-#include <Corrade/Containers/Array.h>
-#include <Corrade/Containers/Optional.h>
-#include <Corrade/Containers/Pair.h>
-#include <Corrade/PluginManager/Manager.h>
 #include <Corrade/Utility/Arguments.h>
 #include <Corrade/Utility/DebugStl.h>
 
@@ -12,9 +8,10 @@
 #include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/SceneGraph/Camera.h>
 #include <Magnum/SceneGraph/Scene.h>
-#include <Magnum/DebugTools/Profiler.h>
 #include <Magnum/ImGuiIntegration/Context.hpp>
 #include <Magnum/Types.h>
+
+#include <imgui.h>
 
 #include "GLInfo.h"
 
@@ -31,10 +28,7 @@
 
 #include <ctime>
 #include <cassert>
-#include <imgui.h>
-
 #include <cstring>
-
 
 #ifdef TARGET_EMSCRIPTEN
 #include "emscripten_browser_file.h"
