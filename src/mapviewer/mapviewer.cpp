@@ -48,18 +48,12 @@
 
 #include "common.h"
 
-#include "StateDatabase.h"
 #include "BZDBCache.h"
 #include "BZDBLocal.h"
 #include "TimeKeeper.h"
 #include "ErrorHandler.h"
-#include "World.h"
-#include "bzfio.h"
-#include "common.h"
 #include "GameTime.h"
-#include "Roaming.h"
-#include "WordFilter.h"
-#include "WorldBuilder.h"
+#include "Team.h"
 #include "PhysicsDriver.h"
 #include "ObstacleMgr.h"
 #include "TextureMatrix.h"
@@ -161,8 +155,6 @@ class MapViewer: public Platform::Sdl2Application {
         static void resetServerVar(const std::string& name, void*);
 
         void loopIteration();
-
-        WorldBuilder *worldBuilder = NULL;
 
         Scene3D _scene;
         Object3D _manipulator, _cameraObject;

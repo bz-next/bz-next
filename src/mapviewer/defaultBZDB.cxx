@@ -18,7 +18,6 @@
 
 #include "defaultBZDB.h"
 #include "Protocol.h"
-#include "callbacks.h"
 
 DefaultDBItem defaultDBItems[] =
 {
@@ -61,7 +60,7 @@ DefaultDBItem defaultDBItems[] =
     { "displayRadarFlags",    "1",            false,  StateDatabase::ReadWrite,   NULL },
     { "displayMainFlags",     "1",            false,  StateDatabase::ReadWrite,   NULL },
     { "displayScore",     "1",            true,   StateDatabase::ReadWrite,   NULL },
-    { "displayFlagHelp",      "1",            true,   StateDatabase::ReadWrite,   setFlagHelp },
+    { "displayFlagHelp",      "1",            true,   StateDatabase::ReadWrite,   NULL },
     { "displayConsole",       "1",            false,  StateDatabase::ReadWrite,   NULL },
     { "displayReloadTimer",   "1",            true,   StateDatabase::ReadWrite,   NULL },
     { "displayRadar",     "1",            false,  StateDatabase::ReadWrite,   NULL },
@@ -112,7 +111,7 @@ DefaultDBItem defaultDBItems[] =
     { "shadowAlpha",      "0.5",          true,   StateDatabase::ReadWrite,   NULL },
     { "aniso",            "1",            true,   StateDatabase::ReadWrite,   NULL },
     { "pauseConsole",     "0",            true,   StateDatabase::ReadWrite,   NULL },
-    { "shotBrightness",       "0.2",          true,   StateDatabase::ReadWrite,   setColor },
+    { "shotBrightness",       "0.2",          true,   StateDatabase::ReadWrite,   NULL },
     { "multisample",      "1",            true,   StateDatabase::ReadWrite,   NULL },
 
     { "blend",      "1",            true,   StateDatabase::ReadWrite,   NULL },
@@ -160,24 +159,24 @@ DefaultDBItem defaultDBItems[] =
     { "baseWallTexture",      "basewall",     true,   StateDatabase::ReadWrite,   NULL },
 
     // team tank colors
-    { "roguecolor",       "1 1 0",        true,   StateDatabase::ReadWrite,   setColor },
-    { "redcolor",         "1 0 0",        true,   StateDatabase::ReadWrite,   setColor },
-    { "greencolor",       "0 1 0",        true,   StateDatabase::ReadWrite,   setColor },
-    { "bluecolor",        "0.1 0.2 1",        true,   StateDatabase::ReadWrite,   setColor },
-    { "purplecolor",      "1 0 1",        true,   StateDatabase::ReadWrite,   setColor },
-    { "observercolor",        "1 1 1",        true,   StateDatabase::ReadWrite,   setColor },
-    { "rabbitcolor",      "0.8 0.8 0.8",      true,   StateDatabase::ReadWrite,   setColor },
-    { "huntercolor",      "1 0.5 0",      true,   StateDatabase::ReadWrite,   setColor },
+    { "roguecolor",       "1 1 0",        true,   StateDatabase::ReadWrite,   NULL },
+    { "redcolor",         "1 0 0",        true,   StateDatabase::ReadWrite,   NULL },
+    { "greencolor",       "0 1 0",        true,   StateDatabase::ReadWrite,   NULL },
+    { "bluecolor",        "0.1 0.2 1",        true,   StateDatabase::ReadWrite,   NULL },
+    { "purplecolor",      "1 0 1",        true,   StateDatabase::ReadWrite,   NULL },
+    { "observercolor",        "1 1 1",        true,   StateDatabase::ReadWrite,   NULL },
+    { "rabbitcolor",      "0.8 0.8 0.8",      true,   StateDatabase::ReadWrite,   NULL },
+    { "huntercolor",      "1 0.5 0",      true,   StateDatabase::ReadWrite,   NULL },
 
     // team radar colors
-    { "rogueradar",       "1 1 0",        true,   StateDatabase::ReadWrite,   setColor },
-    { "redradar",         "1 0.15 0.15",      true,   StateDatabase::ReadWrite,   setColor },
-    { "greenradar",       "0.2 0.9 0.2",      true,   StateDatabase::ReadWrite,   setColor },
-    { "blueradar",        "0.08 0.25 1",      true,   StateDatabase::ReadWrite,   setColor },
-    { "purpleradar",      "1 0.4 1",      true,   StateDatabase::ReadWrite,   setColor },
-    { "observerradar",        "1 1 1",        true,   StateDatabase::ReadWrite,   setColor },
-    { "rabbitradar",      "1 1 1",        true,   StateDatabase::ReadWrite,   setColor },
-    { "hunterradar",      "1 0.5 0",      true,   StateDatabase::ReadWrite,   setColor },
+    { "rogueradar",       "1 1 0",        true,   StateDatabase::ReadWrite,   NULL },
+    { "redradar",         "1 0.15 0.15",      true,   StateDatabase::ReadWrite,   NULL },
+    { "greenradar",       "0.2 0.9 0.2",      true,   StateDatabase::ReadWrite,   NULL },
+    { "blueradar",        "0.08 0.25 1",      true,   StateDatabase::ReadWrite,   NULL },
+    { "purpleradar",      "1 0.4 1",      true,   StateDatabase::ReadWrite,   NULL },
+    { "observerradar",        "1 1 1",        true,   StateDatabase::ReadWrite,   NULL },
+    { "rabbitradar",      "1 1 1",        true,   StateDatabase::ReadWrite,   NULL },
+    { "hunterradar",      "1 0.5 0",      true,   StateDatabase::ReadWrite,   NULL },
 
     // team prefixes
     { "redTeamPrefix",        "red_",         true,   StateDatabase::ReadWrite,   NULL },

@@ -10,184 +10,12 @@ if (MINGW)
 endif()
 
 add_executable(mapviewer WIN32 mapviewer.cpp ${MAPVIEWER_RESOURCES} ${MAPVIEWER_BZFLAG_TEXTURE_RESOURCES}
-    ActionBinding.cxx
-    ActionBinding.h
-    AutoPilot.cxx
-    AutoPilot.h
-    #BackgroundRenderer.cxx
-    #BackgroundRenderer.h
-    BaseLocalPlayer.cxx
-    BaseLocalPlayer.h
-    #CacheMenu.cxx
-    #CacheMenu.h
-    callbacks.cxx
-    callbacks.h
-    clientCommands.cxx
-    clientConfig.cxx
-    clientConfig.h
-    commands.h
-    #CommandsImplementation.cxx
-    #ComposeDefaultKey.cxx
-    #ComposeDefaultKey.h
-    #ControlPanel.cxx
-    #ControlPanel.h
-    #daylight.cxx
-    #daylight.h
     defaultBZDB.cxx
     defaultBZDB.h
-    #DisplayMenu.cxx
-    #DisplayMenu.h
-    #Downloads.cxx
-    #Downloads.h
-    #EffectsMenu.cxx
-    #EffectsMenu.h
-    #effectsRenderer.cxx
-    #effectsRenderer.h
-    EntryZone.cxx
-    EntryZone.h
-    FlashClock.cxx
-    FlashClock.h
-    #ForceFeedback.cxx
-    #ForceFeedback.h
-    #FormatMenu.cxx
-    #FormatMenu.h
-    GuidedMissleStrategy.cxx
-    GuidedMissleStrategy.h
-    #GUIOptionsMenu.cxx
-    #GUIOptionsMenu.h
-    #HelpMenu.cxx
-    #HelpMenu.h
-    #HUDDialog.cxx
-    #HUDDialog.h
-    #HUDDialogStack.cxx
-    #HUDDialogStack.h
-    #HUDRenderer.cxx
-    #HUDRenderer.h
-    #HUDuiControl.cxx
-    #HUDuiControl.h
-    #HUDui.cxx
-    #HUDuiDefaultKey.cxx
-    #HUDuiDefaultKey.h
-    #HUDui.h
-    #HUDuiLabel.cxx
-    #HUDuiLabel.h
-    #HUDuiList.cxx
-    #HUDuiList.h
-    #HUDuiTextureLabel.cxx
-    #HUDuiTextureLabel.h
-    #HUDuiTypeIn.cxx
-    #HUDuiTypeIn.h
-    #InputMenu.cxx
-    #InputMenu.h
-    #JoinMenu.cxx
-    #JoinMenu.h
-    #KeyboardMapMenu.cxx
-    #KeyboardMapMenu.h
-    LocalCommand.cxx
-    LocalCommand.h
-    LocalPlayer.cxx
-    LocalPlayer.h
-    #MainMenu.cxx
-    #MainMenu.h
-    #MainWindow.cxx
-    #MainWindow.h
-    #MenuDefaultKey.cxx
-    #MenuDefaultKey.h
-    #motd.cxx
-    #motd.h
-    #NewVersionMenu.cxx
-    #NewVersionMenu.h
-    #OptionsMenu.cxx
-    #OptionsMenu.h
-    Plan.cxx
-    Plan.h
-    Player.cxx
-    Player.h
-    #playing.cxx
-    playing.h
-    #QuickKeysMenu.cxx
-    #QuickKeysMenu.h
-    #QuitMenu.cxx
-    #QuitMenu.h
-    #RadarRenderer.cxx
-    #RadarRenderer.h
-    Region.cxx
-    Region.h
-    RegionPriorityQueue.cxx
-    RegionPriorityQueue.h
-    RemotePlayer.cxx
-    RemotePlayer.h
-    Roaming.cxx
-    Roaming.h
-    RobotPlayer.cxx
-    RobotPlayer.h
-    RoofTops.cxx
-    RoofTops.h
-    Roster.cxx
-    Roster.h
-    #SaveWorldMenu.cxx
-    #SaveWorldMenu.h
-    #SceneBuilder.cxx
-    #SceneBuilder.h
-    #SceneRenderer.cxx
-    #ScoreboardRenderer.cxx
-    #ScoreboardRenderer.h
-    #SegmentedShotStrategy.cxx
-    #SegmentedShotStrategy.h
-    #ServerCommandKey.cxx
-    #ServerCommandKey.h
-    ServerLink.cxx
-    ServerLink.h
-    #ServerListFilter.cxx
-    #ServerListFilter.h
-    #ServerListFilterHelpMenu.cxx
-    #ServerListFilterHelpMenu.h
-    #ServerListFilterMenu.cxx
-    #ServerListFilterMenu.h
-    #ServerMenu.cxx
-    #ServerMenu.h
-    #ServerStartMenu.cxx
-    #ServerStartMenu.h
-    #ShockWaveStrategy.cxx
-    #ShockWaveStrategy.h
-    #ShotPath.cxx
-    #ShotPath.h
-    #ShotPathSegment.cxx
-    #ShotPathSegment.h
-    #ShotStatistics.cxx
-    #ShotStatistics.h
-    #ShotStats.cxx
-    #ShotStatsDefaultKey.cxx
-    #ShotStatsDefaultKey.h
-    #ShotStats.h
-    #ShotStrategy.cxx
-    #ShotStrategy.h
-    #SilenceDefaultKey.cxx
-    #SilenceDefaultKey.h
-    sound.cxx
-    sound.h
-    #stars.cxx
-    #stars.h
-    TargetingUtils.cxx
-    TargetingUtils.h
-    #TrackMarks.cxx
-    #TrackMarks.h
-    Weapon.cxx
-    Weapon.h
-    #WeatherRenderer.cxx
-    #WeatherRenderer.h
-    WorldBuilder.cxx
-    WorldBuilder.h
-    World.cxx
-    World.h
-    WorldPlayer.cxx
-    WorldPlayer.h
-    BZChatConsole.cpp
     ImGuiANSITextRenderer.cpp
     WorldRenderer.cpp
     WorldPrimitiveGenerator.cpp
     Drawables.cpp
-    BZScoreboard.cpp
     BZTextureBrowser.cpp
     BZMaterialBrowser.cpp
     BZMaterialViewer.cpp
@@ -213,12 +41,12 @@ target_link_libraries(mapviewer PRIVATE
     bz3D
     bznet
     bzplatform
-    bzgame
     bzobstacle
     bzscene
     bzmediafile
     bzdate
-    bzwreader)
+    bzwreader
+    bzgame)
 
 if (CORRADE_TARGET_EMSCRIPTEN)
     target_link_libraries(mapviewer PRIVATE Magnum::AnyImageImporter Magnum::AnyImageConverter MagnumPlugins::PngImporter Magnum::AnySceneImporter)
