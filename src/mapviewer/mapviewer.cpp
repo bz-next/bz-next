@@ -18,12 +18,8 @@
 
 #include "GLInfo.h"
 
-#include "MagnumBZMaterial.h"
 #include "MagnumDefs.h"
 #include "MagnumTextureManager.h"
-#include "PyramidBuilding.h"
-#include "WallObstacle.h"
-#include "MeshObstacle.h"
 #include "WorldRenderer.h"
 
 #include "BZTextureBrowser.h"
@@ -53,7 +49,6 @@
 #include "TimeKeeper.h"
 #include "ErrorHandler.h"
 #include "GameTime.h"
-#include "Team.h"
 #include "PhysicsDriver.h"
 #include "ObstacleMgr.h"
 #include "TextureMatrix.h"
@@ -532,20 +527,7 @@ void MapViewer::init() {
     bzfsrand((unsigned int)time(0));
 
     // set default DB entries
-    for (unsigned int gi = 0; gi < numGlobalDBItems; ++gi)
-    {
-        assert(globalDBItems[gi].name != NULL);
-        if (globalDBItems[gi].value != NULL)
-        {
-            BZDB.set(globalDBItems[gi].name, globalDBItems[gi].value);
-            BZDB.setDefault(globalDBItems[gi].name, globalDBItems[gi].value);
-        }
-        BZDB.setPersistent(globalDBItems[gi].name, globalDBItems[gi].persistent);
-        BZDB.setPermission(globalDBItems[gi].name, globalDBItems[gi].permission);
-    }
-
-    BZDBCache::init();
-    BZDBLOCAL.init();
+    loadBZDBDefaults();
 
     BZDBCache::init();
     BZDBLOCAL.init();
@@ -558,13 +540,8 @@ void MapViewer::init() {
 
     loadBZDBDefaults();
 
-    Team::updateShotColors();
-
-    Warning{} << "creating world obj";
     worldRenderer.createWorldObject(&worldSceneBuilder);
     worldRenderer.getWorldObject()->setParent(&_manipulator);
-
-    setErrorCallback(startupErrorCallback);
 
     setErrorCallback(startupErrorCallback);
 
@@ -596,7 +573,6 @@ void MapViewer::loadMap(std::string path, const std::string& data)
         delete reader;
     }
 
-    Warning{} << "load default mats";
     MAGNUMMATERIALMGR.loadDefaultMaterials();
 
     const ObstacleList& boxes = OBSTACLEMGR.getBoxes();
