@@ -23,6 +23,7 @@ if(CLIENT_INCLUDED OR ENABLE_MAPVIEWER)
     
     add_subdirectory(platform)
     add_subdirectory(scene)
+    add_subdirectory(gfx)
 endif()
 
 if(CLIENT_INCLUDED)

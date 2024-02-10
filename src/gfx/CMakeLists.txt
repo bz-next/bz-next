@@ -1,12 +1,15 @@
-add_library(gfx STATIC
-    MagnumTextureManager.cpp
+set(GFX_SOURCES
+    Drawables.cpp
+    IndexedMeshData.cpp
+    WorldPrimitiveGenerator.cpp
+    WorldRenderer.cpp
+    WorldSceneBuilder.cpp
 )
 
-add_dependencies(gfx Magnum::AnyImageImporter MagnumPlugins::PngImporter)
+add_library(bzgfx STATIC ${GFX_SOURCES})
+target_include_directories(bzgfx PUBLIC include/)
 
-target_link_libraries(gfx PRIVATE
-    Corrade::Main
-    Magnum::Application
+target_link_libraries(bzgfx
     Magnum::GL
     Magnum::Magnum
     Magnum::Shaders
@@ -14,5 +17,6 @@ target_link_libraries(gfx PRIVATE
     Magnum::Primitives
     Magnum::MeshTools
     Magnum::SceneGraph
-    Magnum::DebugTools
-    MagnumIntegration::ImGui)
+    ${ZLIB_LIBRARIES}
+    Threads::Threads
+)

@@ -1,23 +1,6 @@
 set(BZWREADER_SOURCES
-    #AccessControlList.cxx
-    #AccessControlList.h
-    #Authentication.cxx
-    #Authentication.h
-    #BanCommands.cxx
-    #base64.cxx
-    #base64.h
-    #bzfsAPI.cxx
-    #bzfs.cxx
-    #bzfs.h
-    #bzfsHTTPAPI.cxx
-    #bzfsPlugins.cxx
-    #bzfsPlugins.h
     BZWError.cxx
     BZWReader.cxx
-    #CmdLineOptions.cxx
-    #CmdLineOptions.h
-    #commands.cxx
-    #commands.h
     CustomArc.cxx
     CustomBase.cxx
     CustomBox.cxx
@@ -39,50 +22,13 @@ set(BZWREADER_SOURCES
     CustomWeapon.cxx
     CustomWorld.cxx
     CustomZone.cxx
-    #DropGeometry.cxx
-    #DropGeometry.h
     EntryZones.cxx
-    #Filter.cxx
-    #Filter.h
-    #FlagHistory.cxx
-    #FlagHistory.h
     FlagInfo.cxx
-    #GameKeeper.cxx
-    #GameKeeper.h
-    #ListServerConnection.cxx
-    #ListServerConnection.h
-    #MasterBanList.cxx
-    #MasterBanList.h
-    #PackVars.h
     ParseMaterial.cxx
-    #Permissions.cxx
-    #Permissions.h
-    #RandomSpawnPolicy.cxx
-    #RandomSpawnPolicy.h
-    #RecordReplay.cxx
-    #RecordReplay.h
-    #RejoinList.cxx
-    #RejoinList.h
-    #Score.cxx
-    #Score.h
-    #ServerCommand.cxx
-    #ServerCommand.h
-    #ServerSidePlayer.cxx
-    #ShotManager.cxx
-    #ShotManager.h
-    #SpawnPolicy.cxx
-    #SpawnPolicy.h
-    #SpawnPosition.cxx
-    #SpawnPosition.h
     TeamBases.cxx
-    #VotingArbiter.cxx
-    #VotingArbiter.h
-    #WorldEventManager.cxx
     WorldFileLocation.cxx
     WorldFileObject.cxx
     WorldFileObstacle.cxx
-    #WorldGenerators.cxx
-    #WorldGenerators.h
     WorldInfo.cxx
     WorldWeapons.cxx
 )
