@@ -23,10 +23,10 @@ void displayObstacle(const Obstacle &o) {
     ImGui::Text("position: %f %f %f", p[0], p[1], p[2]);
     p = o.getSize();
     ImGui::Text("size: %f %f %f", p[0], p[1], p[2]);
-    ImGui::Text("rotation: %d", o.getRotation());
-    ImGui::Text("width: %d", o.getWidth());
-    ImGui::Text("breadth: %d", o.getBreadth());
-    ImGui::Text("height: %d", o.getHeight());
+    ImGui::Text("rotation: %f", o.getRotation());
+    ImGui::Text("width: %f", o.getWidth());
+    ImGui::Text("breadth: %f", o.getBreadth());
+    ImGui::Text("height: %f", o.getHeight());
 }
 
 void ObstacleBrowser::draw(const char *title, bool *p_open) {
@@ -51,7 +51,7 @@ void ObstacleBrowser::draw(const char *title, bool *p_open) {
     if (ImGui::TreeNode("Boxes")) {
         const auto& list = OBSTACLEMGR.getBoxes();
         for (int i = 0; i < list.size(); ++i) {
-            if (ImGui::TreeNode((void*)(intptr_t)i, "Boxe %d", i)) {
+            if (ImGui::TreeNode((void*)(intptr_t)i, "Box %d", i)) {
                 displayObstacle(*list[i]);
                 ImGui::TreePop();
             }
