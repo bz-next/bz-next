@@ -1,4 +1,4 @@
-#include "WorldRenderer.h"
+#include "WorldSceneObjectGenerator.h"
 #include "Drawables.h"
 #include "Magnum/MeshTools/GenerateLines.h"
 #include "Magnum/Trade/MaterialData.h"
@@ -10,7 +10,7 @@
 #include "ObstacleMgr.h"
 
 #include "Corrade/Containers/ArrayView.h"
-#include "WorldSceneBuilder.h"
+#include "WorldMeshGenerator.h"
 #include <Magnum/Trade/MeshData.h>
 #include <Magnum/MeshTools/Compile.h>
 #ifndef MAGNUM_TARGET_GLES2
@@ -27,27 +27,27 @@
 using namespace Magnum;
 using namespace Magnum::Math::Literals;
 
-SceneGraph::DrawableGroup3D *WorldRenderer::getDrawableGroup()
+SceneGraph::DrawableGroup3D *WorldSceneObjectGenerator::getDrawableGroup()
 {
     return worldDrawables;
 }
 
-SceneGraph::DrawableGroup3D *WorldRenderer::getTransDrawableGroup()
+SceneGraph::DrawableGroup3D *WorldSceneObjectGenerator::getTransDrawableGroup()
 {
     return worldTransDrawables;
 }
 
-SceneGraph::DrawableGroup3D *WorldRenderer::getDebugDrawableGroup()
+SceneGraph::DrawableGroup3D *WorldSceneObjectGenerator::getDebugDrawableGroup()
 {
     return worldDebugDrawables;
 }
 
-Object3D *WorldRenderer::getWorldObject()
+Object3D *WorldSceneObjectGenerator::getWorldObject()
 {
     return worldParent;
 }
 
-WorldRenderer::WorldRenderer() {
+WorldSceneObjectGenerator::WorldSceneObjectGenerator() {
     worldDrawables = NULL;
     worldTransDrawables = NULL;
     worldDebugDrawables = NULL;
@@ -55,19 +55,19 @@ WorldRenderer::WorldRenderer() {
     debugLine = NULL;
 }
 
-WorldRenderer::~WorldRenderer() {
+WorldSceneObjectGenerator::~WorldSceneObjectGenerator() {
     destroyWorldObject();
 }
 
-void WorldRenderer::setExcludeSet(std::set<std::string> matnames) {
+void WorldSceneObjectGenerator::setExcludeSet(std::set<std::string> matnames) {
     materialsToExclude = matnames;
 }
 
-void WorldRenderer::clearExcludeSet() {
+void WorldSceneObjectGenerator::clearExcludeSet() {
     materialsToExclude.clear();
 }
 
-void WorldRenderer::createWorldObject(const WorldSceneBuilder *sb) {
+void WorldSceneObjectGenerator::createWorldObject(const WorldMeshGenerator *sb) {
     worldDrawables = new SceneGraph::DrawableGroup3D{};
     worldTransDrawables = new SceneGraph::DrawableGroup3D{};
     worldDebugDrawables = new SceneGraph::DrawableGroup3D{};
@@ -144,7 +144,7 @@ void WorldRenderer::createWorldObject(const WorldSceneBuilder *sb) {
     }
 }
 
-void WorldRenderer::destroyWorldObject() {
+void WorldSceneObjectGenerator::destroyWorldObject() {
     if (worldDrawables) delete worldDrawables;
     if (worldTransDrawables) delete worldTransDrawables;
     if (worldDebugDrawables) delete worldDebugDrawables;

@@ -20,14 +20,14 @@
 
 #include "MagnumDefs.h"
 #include "MagnumTextureManager.h"
-#include "WorldRenderer.h"
+#include "WorldSceneObjectGenerator.h"
 
 #include "BZTextureBrowser.h"
 #include "BZMaterialBrowser.h"
 #include "BZMaterialViewer.h"
 #include "ObstacleBrowser.h"
 
-#include "WorldSceneBuilder.h"
+#include "WorldMeshGenerator.h"
 
 #include <ctime>
 #include <cassert>
@@ -147,8 +147,6 @@ class MapViewer: public Platform::Sdl2Application {
 
         void loadMap(std::string path, const std::string& data);
 
-        static void resetServerVar(const std::string& name, void*);
-
         void loopIteration();
 
         Scene3D _scene;
@@ -157,8 +155,8 @@ class MapViewer: public Platform::Sdl2Application {
         SceneGraph::DrawableGroup3D _drawables;
         Vector3 _previousPosition;
 
-        WorldRenderer worldRenderer;
-        WorldSceneBuilder worldSceneBuilder;
+        WorldSceneObjectGenerator worldSceneObjGen;
+        WorldMeshGenerator worldSceneBuilder;
         ImGuiIntegration::Context _imgui{NoCreate};
 
         BZTextureBrowser tmBrowser;
@@ -292,9 +290,9 @@ void MapViewer::showMenuDebug() {
     if (ImGui::MenuItem("GL Info", NULL, &showGLInfo)) {}
     ImGui::Separator();
     if (ImGui::MenuItem("Recompile World Mesh")) {
-        worldRenderer.destroyWorldObject();
-        worldRenderer.createWorldObject(&worldSceneBuilder);
-        worldRenderer.getWorldObject()->setParent(&_manipulator);
+        worldSceneObjGen.destroyWorldObject();
+        worldSceneObjGen.createWorldObject(&worldSceneBuilder);
+        worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
     }
     if (ImGui::MenuItem("Force Load Material Textures")) {
         MAGNUMMATERIALMGR.forceLoadTextures();
@@ -369,19 +367,19 @@ void MapViewer::maybeShowMatExclude()
             for (int i = 0; i < names.size(); ++i) {
                 if (excludeSetScratchArea[i]) matset.insert(names[i]);
             }
-            worldRenderer.setExcludeSet(matset);
-            worldRenderer.destroyWorldObject();
-            worldRenderer.createWorldObject(&worldSceneBuilder);
-            worldRenderer.getWorldObject()->setParent(&_manipulator);
+            worldSceneObjGen.setExcludeSet(matset);
+            worldSceneObjGen.destroyWorldObject();
+            worldSceneObjGen.createWorldObject(&worldSceneBuilder);
+            worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
         }
         if (ImGui::Button("Clear excludes")) {
             for (auto& x: excludeSetScratchArea) {
                 x = 0;
             }
-            worldRenderer.clearExcludeSet();
-            worldRenderer.destroyWorldObject();
-            worldRenderer.createWorldObject(&worldSceneBuilder);
-            worldRenderer.getWorldObject()->setParent(&_manipulator);
+            worldSceneObjGen.clearExcludeSet();
+            worldSceneObjGen.destroyWorldObject();
+            worldSceneObjGen.createWorldObject(&worldSceneBuilder);
+            worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
         }
         ImGui::End();
     }
@@ -428,12 +426,12 @@ void MapViewer::drawEvent() {
     GL::Renderer::disable(GL::Renderer::Feature::Blending);
 
     if (showGrid)
-        if (auto* dg = worldRenderer.getDebugDrawableGroup())
+        if (auto* dg = worldSceneObjGen.getDebugDrawableGroup())
             _camera->draw(*dg);
-    if (auto* dg = worldRenderer.getDrawableGroup())
+    if (auto* dg = worldSceneObjGen.getDrawableGroup())
         _camera->draw(*dg);
     GL::Renderer::enable(GL::Renderer::Feature::Blending);
-    if (auto* dg = worldRenderer.getTransDrawableGroup())
+    if (auto* dg = worldSceneObjGen.getTransDrawableGroup())
         _camera->draw(*dg);
 
     GL::Renderer::enable(GL::Renderer::Feature::Blending);
@@ -525,10 +523,21 @@ Vector3 MapViewer::positionOnSphere(const Vector2i& position) const {
 
 void MapViewer::init() {
     bzfsrand((unsigned int)time(0));
-
     // set default DB entries
-    loadBZDBDefaults();
+    for (unsigned int gi = 0; gi < numGlobalDBItems; ++gi)
+    {
+        assert(globalDBItems[gi].name != NULL);
+        if (globalDBItems[gi].value != NULL)
+        {
+            BZDB.set(globalDBItems[gi].name, globalDBItems[gi].value);
+            BZDB.setDefault(globalDBItems[gi].name, globalDBItems[gi].value);
+        }
+        BZDB.setPersistent(globalDBItems[gi].name, globalDBItems[gi].persistent);
+        BZDB.setPermission(globalDBItems[gi].name, globalDBItems[gi].permission);
+    }
 
+    BZDBCache::init();
+    BZDBLOCAL.init();
     BZDBCache::init();
     BZDBLOCAL.init();
 
@@ -540,8 +549,8 @@ void MapViewer::init() {
 
     loadBZDBDefaults();
 
-    worldRenderer.createWorldObject(&worldSceneBuilder);
-    worldRenderer.getWorldObject()->setParent(&_manipulator);
+    worldSceneObjGen.createWorldObject(&worldSceneBuilder);
+    worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
 
     setErrorCallback(startupErrorCallback);
 
@@ -558,10 +567,8 @@ void MapViewer::loadMap(std::string path, const std::string& data)
     OBSTACLEMGR.clear();
     MagnumTextureManager::instance().clear();
 
-    worldRenderer.destroyWorldObject();
+    worldSceneObjGen.destroyWorldObject();
     worldSceneBuilder.reset();
-
-    BZDB.iterate(MapViewer::resetServerVar, NULL);
 
     if (data == "") {
         BZWReader* reader = new BZWReader(path);
@@ -600,8 +607,8 @@ void MapViewer::loadMap(std::string path, const std::string& data)
     for (int i = 0; i < meshes.size(); i++)
         worldSceneBuilder.addMesh (*((MeshObstacle*) meshes[i]));
     
-    worldRenderer.createWorldObject(&worldSceneBuilder);
-    worldRenderer.getWorldObject()->setParent(&_manipulator);
+    worldSceneObjGen.createWorldObject(&worldSceneBuilder);
+    worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
 
 }
 
@@ -629,16 +636,6 @@ void MapViewer::loopIteration()
     // update the texture matrices
     TEXMATRIXMGR.update();
 
-}
-
-void MapViewer::resetServerVar(const std::string& name, void*)
-{
-    // reset server-side variables
-    if (BZDB.getPermission(name) == StateDatabase::Locked)
-    {
-        const std::string defval = BZDB.getDefault(name);
-        BZDB.set(name, defval);
-    }
 }
 
 MAGNUM_APPLICATION_MAIN(MapViewer)

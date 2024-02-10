@@ -37,7 +37,7 @@ class WorldObject {
     std::vector<MatMesh> matMeshes;
 };
 
-class WorldSceneBuilder {
+class WorldMeshGenerator {
     public:
     void addBox(BoxBuilding& o);
     void addPyr(PyramidBuilding& o);

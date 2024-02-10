@@ -2,8 +2,8 @@ set(GFX_SOURCES
     Drawables.cpp
     IndexedMeshData.cpp
     WorldPrimitiveGenerator.cpp
-    WorldRenderer.cpp
-    WorldSceneBuilder.cpp
+    WorldSceneObjectGenerator.cpp
+    WorldMeshGenerator.cpp
     GLInfo.cpp
 )
 

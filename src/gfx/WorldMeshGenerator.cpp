@@ -24,7 +24,7 @@
 #include "MagnumBZMaterial.h"
 
 #include "StateDatabase.h"
-#include "WorldSceneBuilder.h"
+#include "WorldMeshGenerator.h"
 #include "BoxBuilding.h"
 #include "BaseBuilding.h"
 #include "Team.h"
@@ -47,7 +47,7 @@ const std::vector<MatMesh>& WorldObject::getMatMeshes() const {
     return matMeshes;
 }
 
-void WorldSceneBuilder::addBox(BoxBuilding& o) {
+void WorldMeshGenerator::addBox(BoxBuilding& o) {
     // The old code mapped textures straight to the box without a material
     // Instead, we assume we have materials called boxWallMaterial and
     // boxTopMaterial loaded earlier when initializing the program
@@ -167,7 +167,7 @@ void WorldSceneBuilder::addBox(BoxBuilding& o) {
     worldObjects.emplace_back(std::move(boxObj));
 }
 
-void WorldSceneBuilder::addPyr(PyramidBuilding& o) {
+void WorldMeshGenerator::addPyr(PyramidBuilding& o) {
     WorldObject pyrObj;
     
     float texFactor = BZDB.eval("pyrWallTexRepeat");
@@ -292,7 +292,7 @@ void WorldSceneBuilder::addPyr(PyramidBuilding& o) {
     worldObjects.emplace_back(std::move(pyrObj));
 }
 
-void WorldSceneBuilder::addBase(BaseBuilding& o) {
+void WorldMeshGenerator::addBase(BaseBuilding& o) {
     // The old code mapped textures straight to the box without a material
     // Instead, we assume we have materials called boxWallMaterial and
     // boxTopMaterial loaded earlier when initializing the program
@@ -424,7 +424,7 @@ void WorldSceneBuilder::addBase(BaseBuilding& o) {
     worldObjects.emplace_back(std::move(baseObj));
 }
 
-void WorldSceneBuilder::addWall(WallObstacle& o) {
+void WorldMeshGenerator::addWall(WallObstacle& o) {
     WorldObject wallObj;
     if (o.getHeight() <= 0.0f)
         return;
@@ -479,7 +479,7 @@ void WorldSceneBuilder::addWall(WallObstacle& o) {
     worldObjects.emplace_back(std::move(wallObj));
 }
 
-void WorldSceneBuilder::addTeleporter(const Teleporter& o) {
+void WorldMeshGenerator::addTeleporter(const Teleporter& o) {
     static const float texCoords[][4][2] =
     {
         {{ 0.0f, 0.0f }, { 0.5f, 0.0f }, { 0.5f, 9.5f }, { 0.0f, 9.5f }},
@@ -726,7 +726,7 @@ void WorldSceneBuilder::addTeleporter(const Teleporter& o) {
     worldObjects.emplace_back(std::move(teleObj));
 }
 
-void WorldSceneBuilder::addGround(float worldSize) {
+void WorldMeshGenerator::addGround(float worldSize) {
     float base[3], sEdge[3], tEdge[3];
     base[0] = -worldSize;
     base[1] = -worldSize;
@@ -804,7 +804,7 @@ static bool translucentMaterial(const MagnumBZMaterial* mat)
 // obstacle and simply result in mesh/material data in a WorldObject
 // No fussing around with all sorts of intermediate objects and weird
 // internal state.
-void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
+void WorldMeshGenerator::addMesh(const MeshObstacle& o) {
     WorldObject meshObj;
 
     // HELPER FUNCTIONS
@@ -1342,7 +1342,7 @@ void WorldSceneBuilder::addMesh(const MeshObstacle& o) {
 
 }
 
-std::vector<std::string> WorldSceneBuilder::getMaterialList() const {
+std::vector<std::string> WorldMeshGenerator::getMaterialList() const {
     std::set<std::string> mats;
     std::vector<std::string> matnames;
     for (const auto& e: worldObjects) {
@@ -1356,11 +1356,11 @@ std::vector<std::string> WorldSceneBuilder::getMaterialList() const {
     return matnames;
 }
 
-void WorldSceneBuilder::reset() {
+void WorldMeshGenerator::reset() {
     worldObjects.clear();
 }
 
-GL::Mesh WorldSceneBuilder::compileMatMesh(std::string matname) const {
+GL::Mesh WorldMeshGenerator::compileMatMesh(std::string matname) const {
 
     Containers::Array<Vector3> positions;
     Containers::Array<Vector3> normals;

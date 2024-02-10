@@ -15,18 +15,18 @@
 #include <Magnum/Shaders/LineGL.h>
 #endif
 
-#include "WorldSceneBuilder.h"
+#include "WorldMeshGenerator.h"
 
 #include <map>
 #include <list>
 #include <set>
 
-class WorldRenderer {
+class WorldSceneObjectGenerator {
     public:
-        WorldRenderer();
-        ~WorldRenderer();
+        WorldSceneObjectGenerator();
+        ~WorldSceneObjectGenerator();
         // Assumes that world is already loaded and OBSTACLEMGR is ready to go
-        void createWorldObject(const WorldSceneBuilder *sb);
+        void createWorldObject(const WorldMeshGenerator *sb);
 
         Magnum::SceneGraph::DrawableGroup3D *getDrawableGroup();
         Magnum::SceneGraph::DrawableGroup3D *getTransDrawableGroup();
