@@ -1,11 +1,11 @@
 # BZ-Next: Modernizing BZFlag's Renderer
 
-This repo is for active, messy development on a new graphics engine + UI widgets for BZFlag using Magnum and ImGUI
+This repo is for active, messy development on a new graphics engine + UI widgets for BZFlag using [Magnum](https://github.com/mosra/magnum) and [ImGUI](https://github.com/ocornut/imgui)
 
 Check out the project homepage: [https://bz-next.github.io/](https://bz-next.github.io/)
 ## What is it?
 
-BZ-Next is an experimental fork of BZFlag that redoes the rendering engine from the ground-up, using modern OpenGL, and the Magnum graphics library.
+BZ-Next is an experimental fork of BZFlag that redoes the rendering engine from the ground-up, using modern OpenGL, and the [Magnum graphics](https://github.com/mosra/magnum) library.
 
 See the [about the project](https://bz-next.github.io/about) page for more information!
 
