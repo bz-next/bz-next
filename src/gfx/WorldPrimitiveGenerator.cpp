@@ -4,7 +4,7 @@
 #include "WorldPrimitiveGenerator.h"
 
 #include <Magnum/MeshTools/Duplicate.h>
-#include <Magnum/MeshTools/GenerateFlatNormals.h>
+#include <Magnum/MeshTools/GenerateNormals.h>
 #include <Magnum/MeshTools/Interleave.h>
 #include <Magnum/MeshTools/Copy.h>
 

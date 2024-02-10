@@ -4,12 +4,14 @@ set(GFX_SOURCES
     WorldPrimitiveGenerator.cpp
     WorldRenderer.cpp
     WorldSceneBuilder.cpp
+    GLInfo.cpp
 )
 
 add_library(bzgfx STATIC ${GFX_SOURCES})
 target_include_directories(bzgfx PUBLIC include/)
 
 target_link_libraries(bzgfx
+    Magnum::Application
     Magnum::GL
     Magnum::Magnum
     Magnum::Shaders

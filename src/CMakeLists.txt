@@ -24,6 +24,7 @@ if(CLIENT_INCLUDED OR ENABLE_MAPVIEWER)
     add_subdirectory(platform)
     add_subdirectory(scene)
     add_subdirectory(gfx)
+    add_subdirectory(widgets)
 endif()
 
 if(CLIENT_INCLUDED)

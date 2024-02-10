@@ -11,13 +11,7 @@ endif()
 
 add_executable(mapviewer WIN32 mapviewer.cpp ${MAPVIEWER_RESOURCES} ${MAPVIEWER_BZFLAG_TEXTURE_RESOURCES}
     defaultBZDB.cxx
-    defaultBZDB.h
-    ImGuiANSITextRenderer.cpp
-    BZTextureBrowser.cpp
-    BZMaterialBrowser.cpp
-    BZMaterialViewer.cpp
-    GLInfo.cpp
-    ObstacleBrowser.cpp)
+    defaultBZDB.h)
 target_link_libraries(mapviewer PRIVATE
     Corrade::Main
     Magnum::Application
@@ -42,7 +36,8 @@ target_link_libraries(mapviewer PRIVATE
     bzdate
     bzwreader
     bzgame
-    bzgfx)
+    bzgfx
+    bzwidgets)
 
 if (CORRADE_TARGET_EMSCRIPTEN)
     target_link_libraries(mapviewer PRIVATE Magnum::AnyImageImporter Magnum::AnyImageConverter MagnumPlugins::PngImporter Magnum::AnySceneImporter)
