@@ -46,7 +46,6 @@
 
 #include "BZDBCache.h"
 #include "BZDBLocal.h"
-#include "TimeKeeper.h"
 #include "ErrorHandler.h"
 #include "GameTime.h"
 #include "PhysicsDriver.h"
@@ -62,7 +61,6 @@
 
 // Some leftover global state that bzflag code needs
 int         debugLevel = 0;
-struct tm       userTime;
 
 class BasicLoggingCallback : public LoggingCallback {
     public:
@@ -127,9 +125,6 @@ class MapViewer: public Platform::Sdl2Application {
 
         void maybeShowGLInfo();
         bool showGLInfo = false;
-
-        void maybeShowMatExclude();
-        bool showMatExclude = false;
 
         bool showGrid = false;
 
@@ -297,8 +292,6 @@ void MapViewer::showMenuDebug() {
     if (ImGui::MenuItem("Force Load Material Textures")) {
         MAGNUMMATERIALMGR.forceLoadTextures();
     }
-    if (ImGui::MenuItem("Exclude Materials from World", NULL, &showMatExclude)) {
-    }
 
 }
 
@@ -350,41 +343,6 @@ void MapViewer::maybeShowGLInfo()
     }
 }
 
-static bool excludeSetScratchArea[10000];
-void MapViewer::maybeShowMatExclude()
-{
-    if (showMatExclude) {
-        ImGui::Begin("Exclude Materials from World Mesh", &showMatExclude);
-        std::vector<std::string> names = MAGNUMMATERIALMGR.getMaterialNames();
-        int i = 0;
-        for (auto name: names) {
-            // Yes this is horrifyingly ugly
-            ImGui::Checkbox(name.c_str(), (bool *)&excludeSetScratchArea[i]);
-            i++;
-        }
-        if (ImGui::Button("Recompile with excludes")) {
-            std::set<std::string> matset;
-            for (int i = 0; i < names.size(); ++i) {
-                if (excludeSetScratchArea[i]) matset.insert(names[i]);
-            }
-            worldSceneObjGen.setExcludeSet(matset);
-            worldSceneObjGen.destroyWorldObject();
-            worldSceneObjGen.createWorldObject(&worldSceneBuilder);
-            worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
-        }
-        if (ImGui::Button("Clear excludes")) {
-            for (auto& x: excludeSetScratchArea) {
-                x = 0;
-            }
-            worldSceneObjGen.clearExcludeSet();
-            worldSceneObjGen.destroyWorldObject();
-            worldSceneObjGen.createWorldObject(&worldSceneBuilder);
-            worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
-        }
-        ImGui::End();
-    }
-}
-
 #ifndef TARGET_EMSCRIPTEN
 void MapViewer::maybeShowFileBrowser() {
     // Filebrowser tracks whether to draw internally
@@ -413,7 +371,6 @@ void MapViewer::drawEvent() {
     maybeShowMATViewer();
     maybeShowObsBrowser();
     maybeShowGLInfo();
-    maybeShowMatExclude();
 #ifndef TARGET_EMSCRIPTEN
     maybeShowFileBrowser();
 #endif
@@ -538,14 +495,6 @@ void MapViewer::init() {
 
     BZDBCache::init();
     BZDBLOCAL.init();
-    BZDBCache::init();
-    BZDBLOCAL.init();
-
-    time_t timeNow;
-    time(&timeNow);
-    userTime = *localtime(&timeNow);
-
-    unsigned int i;
 
     loadBZDBDefaults();
 
@@ -553,8 +502,6 @@ void MapViewer::init() {
     worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
 
     setErrorCallback(startupErrorCallback);
-
-    TimeKeeper::setTick();
 }
 
 void MapViewer::loadMap(std::string path, const std::string& data)
@@ -619,17 +566,9 @@ void MapViewer::startupErrorCallback(const char* msg)
 
 void MapViewer::loopIteration()
 {
-
-    BZDBCache::update();
-
     // set this step game time
     GameTime::setStepTime();
 
-    // get delta time
-    TimeKeeper prevTime = TimeKeeper::getTick();
-    TimeKeeper::setTick();
-
-    // draw frame
     // update the dynamic colors
     DYNCOLORMGR.update();
 
