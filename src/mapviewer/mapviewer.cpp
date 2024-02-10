@@ -221,7 +221,7 @@ MapViewer::MapViewer(const Arguments& arguments):
     
     (*(_camera = new SceneGraph::Camera3D{_cameraObject}))
         .setAspectRatioPolicy(SceneGraph::AspectRatioPolicy::Extend)
-        .setProjectionMatrix(Matrix4::perspectiveProjection(35.0_degf, 1.0f, 0.1f, 1000.0f))
+        .setProjectionMatrix(Matrix4::perspectiveProjection(35.0_degf, 1.0f, 1.0f, 1000.0f))
         .setViewport(GL::defaultFramebuffer.viewport().size());
     
     _manipulator.setParent(&_scene);

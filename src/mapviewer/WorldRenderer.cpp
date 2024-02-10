@@ -82,10 +82,6 @@ void WorldRenderer::createWorldObject(const WorldSceneBuilder *sb) {
                     WorldPrimitiveGenerator::debugLine(
                         {-1.0f, 0.0f, 0.0f},
                         {1.0f, 0.0f, 0.0f})))};
-        auto x = 
-                    WorldPrimitiveGenerator::debugLine(
-                        {-1.0f, 0.0f, 0.0f},
-                        {1.0f, 0.0f, 0.0f});
         Object3D *debugLines = new Object3D{};
         debugLines->setParent(worldParent);
         debugLines->scale(Vector3{100.0, 100.0, 100.0});
