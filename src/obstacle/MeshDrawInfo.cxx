@@ -621,13 +621,10 @@ bool MeshDrawInfo::isInvisible() const
     for (int i = 0; i < lodCount; i++)
     {
         DrawLod& lod = lods[i];
-        std::cout << "lod.count: " << lod.count << std::endl;
         for (int j = 0; j < lod.count; j++)
         {
             DrawSet& set = lod.sets[j];
-            std::cout << "set" << std::endl;
             const MagnumBZMaterial* mat = set.material;
-            if (mat) std::cout << mat->getName().c_str() << std::endl;
             if (mat && mat->getDiffuse()[3] != 0.0f)
                 return false;
         }

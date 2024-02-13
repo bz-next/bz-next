@@ -1005,18 +1005,12 @@ void WorldMeshGenerator::addMesh(const MeshObstacle& o) {
         // But the code was pretty fragile and pretty unencapsulated... The code
         // below is built up from sources such as MeshSceneNode.cxx, MeshSceneNodeGenerator.cxx
         // MeshDrawInfo.cxx, MeshRenderNode.cxx, among others.
-        Warning{} << "Early DI: " << drawInfo->getName().c_str() << drawInfo->getCornerCount() << drawInfo->getLodCount();
-        if (drawInfo->isInvisible()) {
-            return;
-        }
-        Warning{} << "Visible";
 
         const MeshTransform::Tool* xformTool = drawInfo->getTransformTool();
 
         // Get LOD (just get the highest level one for now, can expand this later)
         if (drawInfo->getLodCount() < 1) return;
 
-        Warning{} << "Passed LOD";
 
         auto lods = drawInfo->getDrawLods();
         const DrawLod& lod = lods[0];   // Just get highest LOD for now
@@ -1058,8 +1052,6 @@ void WorldMeshGenerator::addMesh(const MeshObstacle& o) {
                     }
                 }
 
-                Warning{} << "DI Name: " << drawInfo->getName().c_str();
-
                 // Materials referenced by DrawSet need to be fixed up, they
                 // may be invalid without fixup, and will result in missing/default textures
                 const MagnumBZMaterial *maybeFixedupMaterial = dset.material;
@@ -1070,6 +1062,11 @@ void WorldMeshGenerator::addMesh(const MeshObstacle& o) {
                         maybeFixedupMaterial = it->second;
                     }
                 }
+
+                // If invisible, bail out
+                // This is a replacement for drawInfo->isInvisible() which doesn't work
+                if (!maybeFixedupMaterial || maybeFixedupMaterial->getDiffuse()[3] == 0.0f)
+                    return;
 
                 // This will be used to index into our verts, texcoords, and normals
                 // We will reorder these indices based on the DrawMode to produce
