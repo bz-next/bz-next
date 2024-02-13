@@ -73,7 +73,7 @@ MagnumTextureManager::MagnumTextureManager()
         
         addTexture(
             magnumProcLoader[i].name.c_str(),
-            {result.texture, result.width, result.height});
+            {result.texture, result.width, result.height, result.hasAlpha});
     }
 
     importer = manager.loadAndInstantiate("AnyImageImporter");
@@ -124,7 +124,7 @@ TextureData MagnumTextureManager::getTexture( const char* name, bool reportFail 
         TextureData data = loadTexture(texInfo, reportFail);
         return addTexture(name, data);
     }
-    return {NULL, 0, 0};
+    return {NULL, 0, 0, false};
 }
 
 
@@ -275,18 +275,16 @@ TextureData MagnumTextureManager::loadTexture(FileTextureInit &init, bool report
 
     std::string fullfilepath = FileManager::instance().getFullFilePath(filename);
 
-    //std::cout << "the full path is " << fullfilepath << std::endl;
-
     // Try to load from packed resources if we can
     if (rs.hasFile(filename)) {
         if (!importer || !importer->openData(rs.getRaw(filename))) {
             logDebugMessage(2,"Image not found or unloadable: %s\n", filename.c_str());
-            return {NULL, 0, 0};
+            return {NULL, 0, 0, false};
         }
     } else {
         if (!importer || !importer->openFile(fullfilepath)) {
             logDebugMessage(2,"Image not found or unloadable: %s\n", filename.c_str());
-            return {NULL, 0, 0};
+            return {NULL, 0, 0, false};
         }
     }
     
@@ -294,8 +292,11 @@ TextureData MagnumTextureManager::loadTexture(FileTextureInit &init, bool report
     if (!image)
     {
         logDebugMessage(2,"Image not found or unloadable: %s\n", filename.c_str());
-        return {NULL, 0, 0};
+        return {NULL, 0, 0, false};
     }
+    bool hasAlpha = true;
+    if (image->format() == PixelFormat::RGB8Unorm)
+        hasAlpha = false;
     if (image->format() != PixelFormat::RGBA8Unorm && image->format() != PixelFormat::RGB8Unorm) {
         auto data = image->data();
         switch (image->format()) {
@@ -320,7 +321,7 @@ TextureData MagnumTextureManager::loadTexture(FileTextureInit &init, bool report
                     rgbaData[j++] = data[i];
                     rgbaData[j++] = data[i];
                     rgbaData[j++] = data[i];
-                    rgbaData[j++] = data[i];
+                    rgbaData[j++] = 0xFF;
                 }
                 image = Trade::ImageData2D{PixelFormat::RGBA8Unorm, image->size(), std::move(rgbaData)};
                 break;
@@ -328,6 +329,19 @@ TextureData MagnumTextureManager::loadTexture(FileTextureInit &init, bool report
             default:
                 Warning{} << "Unsupported pixel format " << image->format();
                 break;
+        }
+    }
+
+    // Check if any alpha values are actually < 1.0
+    // This helps us disable blending for non-transparent textures
+    if (hasAlpha) {
+        hasAlpha = false;
+        auto data = image->data();
+        for (int i = 0; i < data.size(); i+= 4) {
+            if ((unsigned char)data[i+3] != 0xFF) {
+                hasAlpha = true;
+                break;
+            }
         }
     }
 
@@ -346,11 +360,11 @@ TextureData MagnumTextureManager::loadTexture(FileTextureInit &init, bool report
         .setStorage(4, GL::textureFormat(image->format()), image->size())
         .setSubImage(0, {}, *image)
         .generateMipmap();
-    Warning{} << image->format();
     return {
         texture,
         (unsigned int)image->size()[0],
-        (unsigned int)image->size()[1]};
+        (unsigned int)image->size()[1],
+        hasAlpha};
 }
 
 
@@ -376,7 +390,7 @@ TextureData magnumNoiseProc(MagnumProcTextureInit &init)
         .setMinificationFilter(GL::SamplerFilter::Linear)
         .setStorage(1, GL::textureFormat(image.format()), image.size())
         .setSubImage(0, {}, image);
-    return {texture, noiseSize, noiseSize};
+    return {texture, noiseSize, noiseSize, false};
 }
 
 

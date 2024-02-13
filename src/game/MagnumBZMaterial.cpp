@@ -43,16 +43,19 @@ void MagnumBZMaterialManager::loadDefaultMaterials() {
     auto *boxwallmat = new MagnumBZMaterial();
     boxwallmat->setName("boxWallMaterial");
     boxwallmat->addTexture("boxwall");
+    boxwallmat->setUseTextureAlpha(false);
     MAGNUMMATERIALMGR.addMaterial(boxwallmat);
 
     auto *roofmat = new MagnumBZMaterial();
     roofmat->setName("boxTopMaterial");
     roofmat->addTexture("roof");
+    roofmat->setUseTextureAlpha(false);
     MAGNUMMATERIALMGR.addMaterial(roofmat);
 
     auto *pyrmat = new MagnumBZMaterial();
     pyrmat->setName("pyrWallMaterial");
     pyrmat->addTexture("pyrwall");
+    pyrmat->setUseTextureAlpha(false);
     MAGNUMMATERIALMGR.addMaterial(pyrmat);
 
     TeamColor teams[4] = {
@@ -65,22 +68,15 @@ void MagnumBZMaterialManager::loadDefaultMaterials() {
         auto *basewall = new MagnumBZMaterial();
         basewall->setName(Team::getImagePrefix(t) + "baseWallMaterial");
         basewall->addTexture(Team::getImagePrefix(t) + "basewall");
+        basewall->setUseTextureAlpha(false);
         MAGNUMMATERIALMGR.addMaterial(basewall);
 
         auto *basetop = new MagnumBZMaterial();
         basetop->setName(Team::getImagePrefix(t) + "baseTopMaterial");
         basetop->addTexture(Team::getImagePrefix(t) + "basetop");
+        basetop->setUseTextureAlpha(false);
         MAGNUMMATERIALMGR.addMaterial(basetop); 
     }
-    auto *basewall = new MagnumBZMaterial();
-    basewall->setName("baseWallMaterial");
-    basewall->addTexture("red_basewall");
-    MAGNUMMATERIALMGR.addMaterial(basewall);
-
-    auto *basetop = new MagnumBZMaterial();
-    basetop->setName("baseTopMaterial");
-    basetop->addTexture("red_basetop");
-    MAGNUMMATERIALMGR.addMaterial(basetop);
 
     auto *wallmat = new MagnumBZMaterial();
     wallmat->setName("wallMaterial");
@@ -101,6 +97,7 @@ void MagnumBZMaterialManager::loadDefaultMaterials() {
     auto *ground = new MagnumBZMaterial();
     ground->setName("GroundMaterial");
     ground->addTexture("std_ground");
+    ground->setUseTextureAlpha(false);
     MAGNUMMATERIALMGR.addMaterial(ground);
 }
 
@@ -967,9 +964,14 @@ void MagnumBZMaterial::addTexture(const std::string& texname)
     texinfo->localname = texname;
     texinfo->matrix = -1;
     texinfo->combineMode = decal;
-    texinfo->useAlpha = true;
+    texinfo->useAlpha = false;
     texinfo->useColor = true;
     texinfo->useSphereMap = false;
+
+    auto t = MagnumTextureManager::instance().getTexture(texname.c_str());
+    if (t.texture) {
+        texinfo->useAlpha = t.hasAlpha;
+    }
 
     return;
 }

@@ -114,7 +114,7 @@ void WorldSceneObjectGenerator::createWorldObject(const WorldMeshGenerator *sb) 
     for (const auto& matname: matnames) {
         auto *mat = MAGNUMMATERIALMGR.findMaterial(matname);
         if (mat) {
-            if (mat->getDiffuse()[3] < 0.999f) continue;
+            if (mat->getDiffuse()[3] < 0.999f || mat->getUseTextureAlpha(0)) continue;
         }
         if (materialsToExclude.find(matname) != materialsToExclude.end()) {
             continue;
@@ -130,7 +130,7 @@ void WorldSceneObjectGenerator::createWorldObject(const WorldMeshGenerator *sb) 
     for (const auto& matname: matnames) {
         auto *mat = MAGNUMMATERIALMGR.findMaterial(matname);
         if (mat) {
-            if (mat->getDiffuse()[3] >= 0.999f) continue;
+            if (mat->getDiffuse()[3] >= 0.999f && !mat->getUseTextureAlpha(0)) continue;
         }
         if (materialsToExclude.find(matname) != materialsToExclude.end()) {
             continue;

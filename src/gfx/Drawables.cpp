@@ -75,7 +75,7 @@ void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::C
             _shader.bindDiffuseTexture(*t.texture)
                 .bindAmbientTexture(*t.texture)
                 .setDiffuseColor(Color4{toMagnumColor(mat->getDiffuse()), 0.0f})
-                .setAmbientColor(Color4{0.2*toMagnumColor(mat->getAmbient()) + toMagnumColor(mat->getEmission()) + dyncol, mat->getDiffuse()[3]})
+                .setAmbientColor(mat->getNoLighting() ? Color4{1.0f*toMagnumColor(mat->getDiffuse()) + toMagnumColor(mat->getEmission()) + dyncol, mat->getDiffuse()[3]} : Color4{0.2*toMagnumColor(mat->getAmbient()) + toMagnumColor(mat->getEmission()) + dyncol, mat->getDiffuse()[3]})
                 .setSpecularColor(Color4{toMagnumColor(mat->getSpecular()), 0.0f})
                 .setShininess(mat->getShininess())
                 .setAlphaMask(alphathresh)
@@ -90,7 +90,7 @@ void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::C
         } else {
             _shaderUntex
                 .setDiffuseColor(Color4{toMagnumColor(mat->getDiffuse()), 0.0f})
-                .setAmbientColor(Color4{0.2*toMagnumColor(mat->getAmbient()) + toMagnumColor(mat->getEmission()) + dyncol, mat->getDiffuse()[3]})
+                .setAmbientColor(mat->getNoLighting() ? Color4{1.0f*toMagnumColor(mat->getDiffuse()) + toMagnumColor(mat->getEmission()) + dyncol, mat->getDiffuse()[3]} : Color4{0.2*toMagnumColor(mat->getAmbient()) + toMagnumColor(mat->getEmission()) + dyncol, mat->getDiffuse()[3]})
                 .setSpecularColor(Color4{toMagnumColor(mat->getSpecular()), 0.0f})
                 .setShininess(mat->getShininess())
                 .setNormalMatrix(transformationMatrix.normalMatrix())

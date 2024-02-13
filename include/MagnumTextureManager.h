@@ -36,6 +36,7 @@ struct TextureData
 {
     Magnum::GL::Texture2D *texture;
     unsigned int width, height;
+    bool hasAlpha;
 };
 
 typedef  struct

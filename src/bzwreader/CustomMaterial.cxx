@@ -57,8 +57,6 @@ void CustomMaterial::writeToManager() const
 {
     material.setName(name);
 
-    std::cout << "MATNAME: " << name << std::endl;
-
     if ((name.size() > 0) && (MAGNUMMATERIALMGR.findMaterial(name) != NULL))
     {
         std::cout << "warning: duplicate material name"
