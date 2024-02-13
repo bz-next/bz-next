@@ -184,19 +184,7 @@ add_executable(bzflag-next WIN32 bzflag-next.cpp ${BZNEXT_RESOURCES} ${BZFLAG_TE
     World.h
     WorldPlayer.cxx
     WorldPlayer.h
-    BZChatConsole.cpp
-    ImGuiANSITextRenderer.cpp
-    WorldRenderer.cpp
-    WorldPrimitiveGenerator.cpp
-    Drawables.cpp
-    BZScoreboard.cpp
-    BZTextureBrowser.cpp
-    BZMaterialBrowser.cpp
-    BZMaterialViewer.cpp
-    WorldSceneBuilder.cpp
-    GLInfo.cpp
-    ObstacleBrowser.cpp
-    IndexedMeshData.cpp)
+    BZScoreboard.cpp)
 target_link_libraries(bzflag-next PRIVATE
     Corrade::Main
     Magnum::Application
@@ -223,7 +211,9 @@ target_link_libraries(bzflag-next PRIVATE
     bzscene
     bzmediafile
     bzdate
-    bzgeometry)
+    bzgeometry
+    bzwidgets
+    bzgfx)
 target_compile_options(bzflag-next PRIVATE -w)
 add_dependencies(bzflag-next Magnum::AnyImageImporter MagnumPlugins::PngImporter Magnum::AnySceneImporter Magnum::ObjImporter GLEW::GLEW)
 

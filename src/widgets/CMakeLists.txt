@@ -4,6 +4,7 @@ set(WIDGETS_SOURCES
     BZTextureBrowser.cpp
     ImGuiANSITextRenderer.cpp
     ObstacleBrowser.cpp
+    BZChatConsole.cpp
 )
 
 add_library(bzwidgets STATIC ${WIDGETS_SOURCES})

@@ -94,7 +94,7 @@ const void* WorldBuilder::unpack(const void* buf)
     buf = TEXMATRIXMGR.unpack(buf);
 
     // unpack materials
-    MAGNUMMATERIALMGR.clear();
+    MAGNUMMATERIALMGR.clear(false);
     buf = MAGNUMMATERIALMGR.unpack(buf);
 
     // unpack physics drivers

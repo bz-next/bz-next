@@ -88,7 +88,7 @@ World::~World()
     links.clear();
     DYNCOLORMGR.clear();
     TEXMATRIXMGR.clear();
-    MAGNUMMATERIALMGR.clear();
+    MAGNUMMATERIALMGR.clear(false);
     PHYDRVMGR.clear();
     TRANSFORMMGR.clear();
     OBSTACLEMGR.clear();

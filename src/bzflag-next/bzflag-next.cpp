@@ -82,7 +82,7 @@
 #include "PyramidBuilding.h"
 #include "WallObstacle.h"
 #include "MeshObstacle.h"
-#include "WorldRenderer.h"
+#include "WorldSceneObjectGenerator.h"
 
 #include "BZChatConsole.h"
 #include "BZScoreboard.h"
@@ -94,7 +94,7 @@
 #include "BZMaterialViewer.h"
 #include "ObstacleBrowser.h"
 
-#include "WorldSceneBuilder.h"
+#include "WorldMeshGenerator.h"
 
 #include <ctime>
 #include <cassert>
@@ -369,8 +369,8 @@ class BZFlagNew: public Platform::Sdl2Application {
 
         std::vector<Object3D *> tankObjs;
 
-        WorldRenderer worldRenderer;
-        WorldSceneBuilder worldSceneBuilder;
+        WorldSceneObjectGenerator worldSceneObjGen;
+        WorldMeshGenerator worldMeshGen;
         //std::vector<ColoredDrawable *> tankDrawables;
         ImGuiIntegration::Context _imgui{NoCreate};
 
@@ -417,7 +417,7 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
     
     (*(_camera = new SceneGraph::Camera3D{_cameraObject}))
         .setAspectRatioPolicy(SceneGraph::AspectRatioPolicy::Extend)
-        .setProjectionMatrix(Matrix4::perspectiveProjection(35.0_degf, 1.0f, 0.1f, 1000.0f))
+        .setProjectionMatrix(Matrix4::perspectiveProjection(35.0_degf, 1.0f, 1.0f, 1000.0f))
         .setViewport(GL::defaultFramebuffer.viewport().size());
     
     _manipulator.setParent(&_scene);
@@ -445,7 +445,7 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
 
     _meshes = Containers::Array<Containers::Optional<GL::Mesh>>{1};
 
-    //worldRenderer.getWorldObject()->setParent(&_manipulator);
+    //worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
 
     _imgui = ImGuiIntegration::Context(Vector2{windowSize()}/dpiScaling(), windowSize(), framebufferSize());
 
@@ -507,9 +507,9 @@ void BZFlagNew::showMenuDebug() {
     if (ImGui::MenuItem("GL Info", NULL, &showGLInfo)) {}
     ImGui::Separator();
     if (ImGui::MenuItem("Recompile World Mesh")) {
-        worldRenderer.destroyWorldObject();
-        worldRenderer.createWorldObject(&worldSceneBuilder);
-        worldRenderer.getWorldObject()->setParent(&_manipulator);
+        worldSceneObjGen.destroyWorldObject();
+        worldSceneObjGen.createWorldObject(&worldMeshGen);
+        worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
     }
     if (ImGui::MenuItem("Force Load Material Textures")) {
         MAGNUMMATERIALMGR.forceLoadTextures();
@@ -615,19 +615,19 @@ void BZFlagNew::maybeShowMatExclude()
             for (int i = 0; i < names.size(); ++i) {
                 if (excludeSetScratchArea[i]) matset.insert(names[i]);
             }
-            worldRenderer.setExcludeSet(matset);
-            worldRenderer.destroyWorldObject();
-            worldRenderer.createWorldObject(&worldSceneBuilder);
-            worldRenderer.getWorldObject()->setParent(&_manipulator);
+            worldSceneObjGen.setExcludeSet(matset);
+            worldSceneObjGen.destroyWorldObject();
+            worldSceneObjGen.createWorldObject(&worldMeshGen);
+            worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
         }
         if (ImGui::Button("Clear excludes")) {
             for (auto& x: excludeSetScratchArea) {
                 x = 0;
             }
-            worldRenderer.clearExcludeSet();
-            worldRenderer.destroyWorldObject();
-            worldRenderer.createWorldObject(&worldSceneBuilder);
-            worldRenderer.getWorldObject()->setParent(&_manipulator);
+            worldSceneObjGen.clearExcludeSet();
+            worldSceneObjGen.destroyWorldObject();
+            worldSceneObjGen.createWorldObject(&worldMeshGen);
+            worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
         }
         ImGui::End();
     }
@@ -693,12 +693,12 @@ void BZFlagNew::drawEvent() {
     GL::Renderer::disable(GL::Renderer::Feature::Blending);
 
     if (showGrid)
-        if (auto* dg = worldRenderer.getDebugDrawableGroup())
+        if (auto* dg = worldSceneObjGen.getDebugDrawableGroup())
             _camera->draw(*dg);
-    if (auto* dg = worldRenderer.getDrawableGroup())
+    if (auto* dg = worldSceneObjGen.getDrawableGroup())
         _camera->draw(*dg);
     GL::Renderer::enable(GL::Renderer::Feature::Blending);
-    if (auto* dg = worldRenderer.getTransDrawableGroup())
+    if (auto* dg = worldSceneObjGen.getTransDrawableGroup())
         _camera->draw(*dg);
 
         /* Set appropriate states. If you only draw ImGui, it is sufficient to
@@ -1507,10 +1507,10 @@ int BZFlagNew::main() {
     //tm.getTexture("mountain1");
     //tm.getTexture("tetrawall");
 
-    MAGNUMMATERIALMGR.loadDefaultMaterials();
+    //MAGNUMMATERIALMGR.loadDefaultMaterials();
 
-    worldRenderer.createWorldObject(&worldSceneBuilder);
-    worldRenderer.getWorldObject()->setParent(&_manipulator);
+    worldSceneObjGen.createWorldObject(&worldMeshGen);
+    worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
 
     startPlaying();
 
@@ -1548,47 +1548,50 @@ void BZFlagNew::joinInternetGame2()
     //setSceneDatabase();
     //mainWindow->getWindow()->yieldCurrent();
 
-    worldRenderer.destroyWorldObject();
+    worldSceneObjGen.destroyWorldObject();
+
+    //MAGNUMMATERIALMGR.clear(false);
+    MAGNUMMATERIALMGR.loadDefaultMaterials();
 
     //world->makeMeshDrawMgrs();
 
     const ObstacleList& boxes = OBSTACLEMGR.getBoxes();
     for (int i = 0; i < boxes.size(); ++i) {
-        worldSceneBuilder.addBox(*((BoxBuilding*) boxes[i]));
+        worldMeshGen.addBox(*((BoxBuilding*) boxes[i]));
     }
     const ObstacleList& pyrs = OBSTACLEMGR.getPyrs();
     for (int i = 0; i < pyrs.size(); ++i) {
-        worldSceneBuilder.addPyr(*((PyramidBuilding*) pyrs[i]));
+        worldMeshGen.addPyr(*((PyramidBuilding*) pyrs[i]));
     }
     const ObstacleList& bases = OBSTACLEMGR.getBases();
     for (int i = 0; i < bases.size(); ++i) {
-        worldSceneBuilder.addBase(*((BaseBuilding*) bases[i]));
+        worldMeshGen.addBase(*((BaseBuilding*) bases[i]));
     }
     const ObstacleList& walls = OBSTACLEMGR.getWalls();
     for (int i = 0; i < walls.size(); ++i) {
-        worldSceneBuilder.addWall(*((WallObstacle*) walls[i]));
+        worldMeshGen.addWall(*((WallObstacle*) walls[i]));
     }
     const ObstacleList& teles = OBSTACLEMGR.getTeles();
     for (int i = 0; i < teles.size(); ++i) {
-        worldSceneBuilder.addTeleporter(*((Teleporter*) teles[i]));
+        worldMeshGen.addTeleporter(*((Teleporter*) teles[i]));
     }
-    worldSceneBuilder.addGround(BZDBCache::worldSize);
+    worldMeshGen.addGround(BZDBCache::worldSize);
     const ObstacleList& meshes = OBSTACLEMGR.getMeshes();
     for (int i = 0; i < meshes.size(); i++)
-        worldSceneBuilder.addMesh (*((MeshObstacle*) meshes[i]));
+        worldMeshGen.addMesh (*((MeshObstacle*) meshes[i]));
     /*std::vector<MeshObstacle*> sourceMeshes;
     OBSTACLEMGR.getSourceMeshes(sourceMeshes);
     for (int i = 0; i < sourceMeshes.size(); i++)
-        worldSceneBuilder.addMesh (*((MeshObstacle*) sourceMeshes[i]));*/
+        worldMeshGen.addMesh (*((MeshObstacle*) sourceMeshes[i]));*/
     
     world->makeLinkMaterial();
     
     //MAGNUMMATERIALMGR.loadDefaultMaterials();
 
     
-    //worldRenderer.createWorldObject();
-    worldRenderer.createWorldObject(&worldSceneBuilder);
-    worldRenderer.getWorldObject()->setParent(&_manipulator);
+    //worldSceneObjGen.createWorldObject();
+    worldSceneObjGen.createWorldObject(&worldMeshGen);
+    worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
 
     // make radar
     //  radar = new RadarRenderer(*sceneRenderer, *world);
@@ -4000,10 +4003,10 @@ void BZFlagNew::leaveGame() {
     joiningGame = false;
 
     // Clear the world scene
-    worldRenderer.destroyWorldObject();
+    worldSceneObjGen.destroyWorldObject();
 
     // Reset the scene builder
-    worldSceneBuilder.reset();
+    worldMeshGen.reset();
 
     // my tank goes away
     const bool sayGoodbye = (myTank != NULL);

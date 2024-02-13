@@ -54,7 +54,7 @@
 #include "defaultBZDB.h"
 
 // Some leftover global state that bzflag code needs
-int         debugLevel = 0;
+int         debugLevel = 4;
 
 class BasicLoggingCallback : public LoggingCallback {
     public:

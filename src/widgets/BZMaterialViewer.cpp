@@ -139,6 +139,8 @@ Color3 toMagnumColor(const float *cp) {
 #define MAGNUMROWCOL(r, c) (r+c*3)
 #define INTROWCOL(r, c) (r+c*4)
 
+// TODO: Make this use the BZ Material Drawable. Requires the widget to have its own scenegraph
+// But this would make this more useful, since the preview would always be in sync with the actual renderer code
 void BZMaterialViewer::renderPreview() {
     static float tt = 0.0;
     GL::Renderbuffer depth;
