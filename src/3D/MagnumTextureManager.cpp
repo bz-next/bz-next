@@ -62,6 +62,8 @@ MagnumTextureManager::MagnumTextureManager()
     lastImageID = -1;
     lastBoundID = -1;
 
+    autoLoad = true;
+
     int i, numTextures;
     numTextures = bzcountof(magnumProcLoader);
 
@@ -112,7 +114,7 @@ TextureData MagnumTextureManager::getTexture( const char* name, bool reportFail 
     TextureNameMap::iterator it = textureNames.find(name);
     if (it != textureNames.end())
         return it->second.data;
-    else   // we don't have it so try and load it
+    else if (autoLoad)   // we don't have it so try and load it
     {
 
         OSFile osFilename(name); // convert to native format
@@ -177,6 +179,11 @@ void MagnumTextureManager::clear()
             delete tex.data.texture;
     }
     textureNames.clear();
+    autoLoad = true;
+}
+
+void MagnumTextureManager::disableAutomaticLoading() {
+    autoLoad = false;
 }
 
 
@@ -269,9 +276,6 @@ TextureData MagnumTextureManager::loadTexture(FileTextureInit &init, bool report
 
     // Check if we have this in our packed resources
     Utility::Resource rs{"bzflag-texture-data"};
-    if (rs.hasFile(filename)) {
-        Warning{} << "We have" << filename.c_str() << "in our packed resources.";
-    }
 
     std::string fullfilepath = FileManager::instance().getFullFilePath(filename);
 
@@ -338,7 +342,7 @@ TextureData MagnumTextureManager::loadTexture(FileTextureInit &init, bool report
         hasAlpha = false;
         auto data = image->data();
         for (int i = 0; i < data.size(); i+= 4) {
-            if ((unsigned char)data[i+3] != 0xFF) {
+            if (data[i+3] != (char)0xFF) {
                 hasAlpha = true;
                 break;
             }
@@ -347,7 +351,7 @@ TextureData MagnumTextureManager::loadTexture(FileTextureInit &init, bool report
 
     GL::Texture2D *texture = new GL::Texture2D{};
     texture->setWrapping(GL::SamplerWrapping::Repeat)
-#if defined(MAGNUM_TARGET_GLES) || defined(MAGNUM_TARGET_GLES2)
+#if defined(MAGNUM_TARGET_GLES2)
         // If targeting GLES2 assume less capable system
         .setMagnificationFilter(GL::SamplerFilter::Nearest)
         .setMinificationFilter(GL::SamplerFilter::Nearest, GL::SamplerMipmap::Nearest)

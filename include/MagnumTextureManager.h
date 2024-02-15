@@ -69,6 +69,8 @@ public:
 
     void clear();
 
+    void disableAutomaticLoading();
+
     std::vector<std::string> getTextureNames();
 
     void updateTextureFilters();
@@ -92,6 +94,8 @@ private:
     int       lastBoundID;
     TextureIDMap   textureIDs;
     TextureNameMap textureNames;
+
+    bool autoLoad;
 
     Magnum::PluginManager::Manager<Magnum::Trade::AbstractImporter> manager;
     Corrade::Containers::Pointer<Magnum::Trade::AbstractImporter> importer;

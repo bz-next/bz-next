@@ -10,6 +10,11 @@
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
  */
 
+// This is a quick and dirty shim to adapt BZFlag code that relies on
+// cURL to emscripten, where we use the fetch API instead.
+// Fetch transfers are asynchronous anyways, so we just launch the
+// request when addHandle() is called.
+
 // class interface header
 
 #include "cURLManager.h"
@@ -22,8 +27,8 @@
 #include "Protocol.h"
 #include "TextUtils.h"
 
-void onFailurePlsWork(emscripten_fetch_t *fetch) {
-    std::cout << "Failure!" << fetch->url << " " << fetch->status << std::endl;
+void cURLManager::downloadFailed(emscripten_fetch_t *fetch) {
+    ((cURLManager*)fetch->userData)->infoComplete(1);
     emscripten_fetch_close(fetch);
 }
 
@@ -33,7 +38,7 @@ cURLManager::cURLManager()
     strcpy(attr.requestMethod, "GET");
     attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY | EMSCRIPTEN_FETCH_PERSIST_FILE;
     attr.onsuccess = downloadSucceeded;
-    attr.onerror = onFailurePlsWork;
+    attr.onerror = downloadFailed;
     attr.userData = (void*)this;
 
     theData   = NULL;
@@ -51,9 +56,7 @@ void cURLManager::setup()
 
 void cURLManager::downloadSucceeded(emscripten_fetch_t *fetch)
 {
-    std::cout << "downloadSucceeded" << std::endl;
     ((cURLManager*)fetch->userData)->collectData((char*)fetch->data, fetch->numBytes);
-    std::cout << "freeing fetch thing" << std::endl;
     emscripten_fetch_close(fetch);
 }
 
@@ -119,20 +122,16 @@ void cURLManager::finalization(char *, unsigned int, bool)
 
 void cURLManager::collectData(char* ptr, int len)
 {
-    std::cout << "cURLManager::collectData" << std::endl;
     unsigned char *newData = (unsigned char *)realloc(theData, theLen + len);
     if (!newData)
         logDebugMessage(1,"memory exhausted\n");
     else
     {
-        std::cout << "memcpy " << theLen << std::endl;
         memcpy(newData + theLen, ptr, len);
-        std::cout << "done" << std::endl;
         theLen += len;
         theData = newData;
     }
     // Just call infoComplete directly...
-    std::cout << "calling infoComplete" << std::endl;
     infoComplete(0);
 }
 
@@ -149,12 +148,12 @@ int cURLManager::fdset(fd_set &read, fd_set &write)
 
 bool cURLManager::perform()
 {
+    // Useless with emscripten since there's no state to pump
     return false;
 }
 
 void cURLManager::infoComplete(int result)
 {
-    std::cout << "Calling finalization" << std::endl;
     finalization((char *)theData, theLen, result == 0);
     free(theData);
     theData = NULL;

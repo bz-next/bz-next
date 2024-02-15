@@ -7,11 +7,7 @@
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/GL/Renderer.h>
 
-#ifndef TARGET_EMSCRIPTEN
 #include <Magnum/Platform/Sdl2Application.h>
-#else
-#include <Magnum/Platform/EmscriptenApplication.h>
-#endif
 #include <Magnum/SceneGraph/Camera.h>
 #include <Magnum/SceneGraph/Scene.h>
 #include <Magnum/ImGuiIntegration/Context.hpp>
@@ -21,6 +17,7 @@
 
 #include "GLInfo.h"
 
+#include "MagnumBZMaterial.h"
 #include "MagnumDefs.h"
 #include "MagnumTextureManager.h"
 #include "WorldSceneObjectGenerator.h"
@@ -80,14 +77,16 @@ BasicLoggingCallback blc;
 using namespace Magnum;
 using namespace Magnum::Math::Literals;
 
-class MapViewer: public Platform::Application {
+class MapViewer: public Platform::Sdl2Application {
     public:
         explicit MapViewer(const Arguments& arguments);
         void init();
 
 
     private:
-        //void tickEvent() override;
+        void resetBZDB();
+
+        void tickEvent() override;
 
         void drawEvent() override;
 
@@ -97,7 +96,7 @@ class MapViewer: public Platform::Application {
         void mouseMoveEvent(MouseMoveEvent& e) override;
         void mouseScrollEvent(MouseScrollEvent& e) override;
         void textInputEvent(TextInputEvent& event) override;
-        //void exitEvent(ExitEvent& event) override;
+        void exitEvent(ExitEvent& event) override;
 
         void keyPressEvent(KeyEvent& event) override;
         void keyReleaseEvent(KeyEvent& event) override;
@@ -180,15 +179,15 @@ std::string MapViewer::mapFilename;
 #endif
 
 MapViewer::MapViewer(const Arguments& arguments):
-    Platform::Application{arguments, Configuration{}
+    Platform::Sdl2Application{arguments, Configuration{}
         .setTitle("BZFlag Map Viewer")
-        .setWindowFlags(Configuration::WindowFlag::Resizable | Configuration::WindowFlag::AlwaysRequestAnimationFrame),
-#if defined(MAGNUM_TARGET_GLES) || defined(MAGNUM_TARGET_GLES2)
+        .setWindowFlags(Configuration::WindowFlag::Resizable),
+        GLConfiguration{}
+#if defined(MAGNUM_TARGET_GLES)
         // No multisampling for GLES, assume less capable machine
-        GLConfiguration{}.setVersion(GL::Version::GLES300)
-#else
-        GLConfiguration{}.setSampleCount(4)
+        .setVersion(GL::Version::GLES300)
 #endif
+        .setSampleCount(4)
         }
 {
     using namespace Math::Literals;
@@ -196,8 +195,6 @@ MapViewer::MapViewer(const Arguments& arguments):
     assert(instance == NULL);
 
     instance = this;
-
-    MAGNUM_ASSERT_GL_VERSION_SUPPORTED(GL::Version::GLES300);
 
     loggingCallback = &blc;
     debugLevel = 0;
@@ -241,11 +238,11 @@ MapViewer::MapViewer(const Arguments& arguments):
 
     init();
 }
-/*
+
 void MapViewer::exitEvent(ExitEvent& event) {
     event.setAccepted();
     MagnumTextureManager::instance().clear();
-}*/
+}
 
 #ifdef TARGET_EMSCRIPTEN
 void MapViewer::handleUploadedMap(const std::string& filename, const std::string& mime_type, std::string_view buffer, void*) {
@@ -414,15 +411,13 @@ void MapViewer::drawEvent() {
     _imgui.drawFrame();
 
     swapBuffers();
-    loopIteration();
-    redraw();
 }
 
-/*
+
 void MapViewer::tickEvent() {
     loopIteration();
     redraw();
-}*/
+}
 
 void MapViewer::viewportEvent(ViewportEvent& e) {
     GL::defaultFramebuffer.setViewport({{}, e.framebufferSize()});
@@ -496,8 +491,7 @@ Vector3 MapViewer::positionOnSphere(const Vector2i& position) const {
     return (result * Vector3::yScale(-1.0f)).normalized();
 }
 
-void MapViewer::init() {
-    bzfsrand((unsigned int)time(0));
+void MapViewer::resetBZDB() {
     // set default DB entries
     for (unsigned int gi = 0; gi < numGlobalDBItems; ++gi)
     {
@@ -515,34 +509,30 @@ void MapViewer::init() {
     BZDBLOCAL.init();
 
     loadBZDBDefaults();
+}
 
-    worldSceneObjGen.createWorldObject(&worldSceneBuilder);
-    worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
+void MapViewer::init() {
+    bzfsrand((unsigned int)time(0));
+    
+    resetBZDB();
 
     setErrorCallback(startupErrorCallback);
-
-    /*Utility::Resource rs{"bundledmaps"};
-    if (rs.hasFile("church.bzw")) {
-        Warning{} << "Loading churchyard from bundled resources";
-        mapFilename = "church.bzw";
-        mapData = rs.getRaw(mapFilename);
-        shouldLoadMap = true;
-    }*/
-
-    //CachedTexture *test = new CachedTexture("https://images.bzflag.org/bz_legacy/louman/churchyard/Brick05.png");
-
 }
 
 void MapViewer::loadMap(std::string path, const std::string& data)
 {
+    worldSceneObjGen.destroyWorldObject();
+    worldSceneBuilder.reset();
+
     DYNCOLORMGR.clear();
     TEXMATRIXMGR.clear();
     MAGNUMMATERIALMGR.clear(false);
     PHYDRVMGR.clear();
     TRANSFORMMGR.clear();
     OBSTACLEMGR.clear();
-    Downloads::removeTextures();
     MagnumTextureManager::instance().clear();
+
+    resetBZDB();
 
     if (data == "") {
         BZWReader* reader = new BZWReader(path);
@@ -585,36 +575,41 @@ void MapViewer::loopIteration()
 
     if (Downloads::requestFinalized()) {
         Downloads::finalizeDownloads();
-        worldSceneObjGen.destroyWorldObject();
-    worldSceneBuilder.reset();
 
-    const ObstacleList& boxes = OBSTACLEMGR.getBoxes();
-    for (int i = 0; i < boxes.size(); ++i) {
-        worldSceneBuilder.addBox(*((BoxBuilding*) boxes[i]));
-    }
-    const ObstacleList& pyrs = OBSTACLEMGR.getPyrs();
-    for (int i = 0; i < pyrs.size(); ++i) {
-        worldSceneBuilder.addPyr(*((PyramidBuilding*) pyrs[i]));
-    }
-    const ObstacleList& bases = OBSTACLEMGR.getBases();
-    for (int i = 0; i < bases.size(); ++i) {
-        worldSceneBuilder.addBase(*((BaseBuilding*) bases[i]));
-    }
-    const ObstacleList& walls = OBSTACLEMGR.getWalls();
-    for (int i = 0; i < walls.size(); ++i) {
-        worldSceneBuilder.addWall(*((WallObstacle*) walls[i]));
-    }
-    const ObstacleList& teles = OBSTACLEMGR.getTeles();
-    for (int i = 0; i < teles.size(); ++i) {
-        worldSceneBuilder.addTeleporter(*((Teleporter*) teles[i]));
-    }
-    worldSceneBuilder.addGround(BZDBCache::worldSize);
-    const ObstacleList& meshes = OBSTACLEMGR.getMeshes();
-    for (int i = 0; i < meshes.size(); i++)
-        worldSceneBuilder.addMesh (*((MeshObstacle*) meshes[i]));
-    
-    worldSceneObjGen.createWorldObject(&worldSceneBuilder);
-    worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
+        worldSceneObjGen.destroyWorldObject();
+        worldSceneBuilder.reset();
+
+        MAGNUMMATERIALMGR.forceLoadTextures();
+        MAGNUMMATERIALMGR.rescanTextures();
+        MagnumTextureManager::instance().disableAutomaticLoading();
+
+        const ObstacleList& boxes = OBSTACLEMGR.getBoxes();
+        for (int i = 0; i < boxes.size(); ++i) {
+            worldSceneBuilder.addBox(*((BoxBuilding*) boxes[i]));
+        }
+        const ObstacleList& pyrs = OBSTACLEMGR.getPyrs();
+        for (int i = 0; i < pyrs.size(); ++i) {
+            worldSceneBuilder.addPyr(*((PyramidBuilding*) pyrs[i]));
+        }
+        const ObstacleList& bases = OBSTACLEMGR.getBases();
+        for (int i = 0; i < bases.size(); ++i) {
+            worldSceneBuilder.addBase(*((BaseBuilding*) bases[i]));
+        }
+        const ObstacleList& walls = OBSTACLEMGR.getWalls();
+        for (int i = 0; i < walls.size(); ++i) {
+            worldSceneBuilder.addWall(*((WallObstacle*) walls[i]));
+        }
+        const ObstacleList& teles = OBSTACLEMGR.getTeles();
+        for (int i = 0; i < teles.size(); ++i) {
+            worldSceneBuilder.addTeleporter(*((Teleporter*) teles[i]));
+        }
+        worldSceneBuilder.addGround(BZDBCache::worldSize);
+        const ObstacleList& meshes = OBSTACLEMGR.getMeshes();
+        for (int i = 0; i < meshes.size(); i++)
+            worldSceneBuilder.addMesh (*((MeshObstacle*) meshes[i]));
+        
+        worldSceneObjGen.createWorldObject(&worldSceneBuilder);
+        worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
     }
 }
 

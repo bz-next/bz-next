@@ -62,8 +62,8 @@ BZMaterialViewer::BZMaterialViewer() :
         .setWrapping(GL::SamplerWrapping::ClampToEdge)
         .setMagnificationFilter(GL::SamplerFilter::Linear)
         .setMinificationFilter(GL::SamplerFilter::Linear)
-#ifdef TARGET_EMSCRIPTEN
-        .setStorage(1, GL::TextureFormat::RGBA, bufsize);
+#ifdef MAGNUM_TARGET_GLES2
+        .setStorage(1, GL::TextureFormat::RGBA8, bufsize);
 #else
         .setStorage(1, GL::TextureFormat::RGBA8, bufsize);
 #endif

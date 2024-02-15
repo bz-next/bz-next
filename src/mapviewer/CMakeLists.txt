@@ -11,8 +11,7 @@ endif()
 
 add_executable(mapviewer WIN32 mapviewer.cpp ${MAPVIEWER_BZFLAG_TEXTURE_RESOURCES} ${BUNDLEDMAPS_RESOURCES}
     defaultBZDB.cxx
-    defaultBZDB.h
-    Downloads.cxx)
+    defaultBZDB.h)
 target_link_libraries(mapviewer PRIVATE
     Corrade::Main
     Magnum::Application
@@ -25,6 +24,7 @@ target_link_libraries(mapviewer PRIVATE
     Magnum::SceneGraph
     Magnum::DebugTools
     MagnumIntegration::ImGui
+    Magnum::Sdl2Application
     ${ZLIB_LIBRARIES}
     Threads::Threads
     bzcommon
@@ -41,7 +41,7 @@ target_link_libraries(mapviewer PRIVATE
     bzwidgets)
 
 if (CORRADE_TARGET_EMSCRIPTEN)
-    target_link_libraries(mapviewer PRIVATE Magnum::EmscriptenApplication Magnum::AnyImageImporter Magnum::AnyImageConverter MagnumPlugins::PngImporter Magnum::AnySceneImporter)
+    target_link_libraries(mapviewer PRIVATE Magnum::AnyImageImporter Magnum::AnyImageConverter MagnumPlugins::PngImporter Magnum::AnySceneImporter)
 endif()
 
 target_compile_options(mapviewer PRIVATE -w)

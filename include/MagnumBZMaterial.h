@@ -220,6 +220,11 @@ public:
     // Trigger the texture manager to load all referenced textures by accessing them
     void forceLoadTextures();
 
+    // Sometimes we don't have a texture available by the time the mat is created
+    // We may want to update material properties post- texture downloading, for
+    // example, detecting opaque textures and disabling texalpha.
+    void rescanTextures();
+
     std::vector<std::string> getMaterialNames();
 
     typedef std::set<std::string> TextureSet;

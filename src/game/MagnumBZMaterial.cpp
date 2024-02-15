@@ -537,6 +537,18 @@ bool MagnumBZMaterial::operator==(const MagnumBZMaterial& m) const
     return true;
 }
 
+void MagnumBZMaterialManager::rescanTextures() {
+    for (auto m: materials) {
+        if (m->getTextureCount() > 0) {
+            auto texname = m->getTexture(0);
+            auto tex = MagnumTextureManager::instance().getTexture(texname.c_str());
+            if (tex.texture != NULL && tex.hasAlpha == false) {
+                m->setUseTextureAlpha(false);
+            }
+        }
+    }
+}
+
 
 static void* pack4Float(void *buf, const float values[4])
 {
@@ -969,13 +981,13 @@ void MagnumBZMaterial::addTexture(const std::string& texname)
     texinfo->localname = texname;
     texinfo->matrix = -1;
     texinfo->combineMode = decal;
-    texinfo->useAlpha = false;
+    texinfo->useAlpha = true;
     texinfo->useColor = true;
     texinfo->useSphereMap = false;
 
     auto t = MagnumTextureManager::instance().getTexture(texname.c_str());
-    if (t.texture) {
-        texinfo->useAlpha = t.hasAlpha;
+    if (t.texture && !t.hasAlpha) {
+        texinfo->useAlpha = false;
     }
 
     return;

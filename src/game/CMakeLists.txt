@@ -4,6 +4,7 @@ CacheManager.cxx
 CollisionManager.cxx
 CommandsStandard.cxx
 DirectoryNames.cxx
+Downloads.cxx
 DynamicColor.cxx
 Frustum.cxx
 Intersect.cxx
