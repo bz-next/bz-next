@@ -345,7 +345,12 @@ void MagnumBZMaterialManager::makeTextureList(TextureSet& set, bool referenced) 
         const MagnumBZMaterial* mat = materials[i];
         for (int j = 0; j < mat->getTextureCount(); j++)
         {
-            if (mat->getReference() || !referenced)
+            // Assume ALL MATERIALS ARE USED, always pass referenced=false
+            // because the alternative is needing to call a magic function
+            // in the depths of rendering or something, to signal that a material
+            // is used at all. This is not great because usually we only have a const
+            // reference to the material when we are using it!
+            //if (mat->getReference() || !referenced)
                 set.insert(mat->getTexture(j));
         }
     }

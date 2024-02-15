@@ -35,6 +35,7 @@ EM_JS_INLINE(void, upload, (char const *accept_types, upload_handler callback, v
   globalThis["open_file"] = function(e) {
     const file_reader = new FileReader();
     file_reader.onload = (event) => {
+      event.preventDefault();
       const uint8Arr = new Uint8Array(event.target.result);
       const num_bytes = uint8Arr.length * uint8Arr.BYTES_PER_ELEMENT;
       const data_ptr = Module["_malloc"](num_bytes);
@@ -86,7 +87,7 @@ EMSCRIPTEN_KEEPALIVE inline int upload_file_return(char const *filename, char co
 EMSCRIPTEN_KEEPALIVE inline int upload_file_return(char const *filename, char const *mime_type, char *buffer, size_t buffer_size, upload_handler callback, void *callback_data) {
   /// Load a file - this function is called from javascript when the file upload is activated
   callback(filename, mime_type, {buffer, buffer_size}, callback_data);
-  return 1;
+  return 0;
 }
 
 }

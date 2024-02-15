@@ -3,14 +3,16 @@ cmake_minimum_required(VERSION 3.5)
 set_directory_properties(PROPERTIES CORRADE_USE_PEDANTIC_FLAGS ON)
 
 corrade_add_resource(MAPVIEWER_BZFLAG_TEXTURE_RESOURCES "${PROJECT_SOURCE_DIR}/data/texresources.conf")
+corrade_add_resource(BUNDLEDMAPS_RESOURCES resources/resources.conf)
 
 if (MINGW)
     set(CMAKE_EXE_LINKER_FLAGS "-mconsole")
 endif()
 
-add_executable(mapviewer WIN32 mapviewer.cpp ${MAPVIEWER_BZFLAG_TEXTURE_RESOURCES}
+add_executable(mapviewer WIN32 mapviewer.cpp ${MAPVIEWER_BZFLAG_TEXTURE_RESOURCES} ${BUNDLEDMAPS_RESOURCES}
     defaultBZDB.cxx
-    defaultBZDB.h)
+    defaultBZDB.h
+    Downloads.cxx)
 target_link_libraries(mapviewer PRIVATE
     Corrade::Main
     Magnum::Application
@@ -39,7 +41,7 @@ target_link_libraries(mapviewer PRIVATE
     bzwidgets)
 
 if (CORRADE_TARGET_EMSCRIPTEN)
-    target_link_libraries(mapviewer PRIVATE Magnum::AnyImageImporter Magnum::AnyImageConverter MagnumPlugins::PngImporter Magnum::AnySceneImporter)
+    target_link_libraries(mapviewer PRIVATE Magnum::EmscriptenApplication Magnum::AnyImageImporter Magnum::AnyImageConverter MagnumPlugins::PngImporter Magnum::AnySceneImporter)
 endif()
 
 target_compile_options(mapviewer PRIVATE -w)

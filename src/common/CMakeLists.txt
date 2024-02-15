@@ -38,6 +38,8 @@ set(BZCOMMON_SOURCES
 
 if (NOT CORRADE_TARGET_EMSCRIPTEN)
     list(APPEND BZCOMMON_SOURCES cURLManager.cxx)
+else()
+    list(APPEND BZCOMMON_SOURCES cURLManagerEmscriptenShim.cpp)
 endif()
 
 add_library(bzcommon STATIC ${BZCOMMON_SOURCES})

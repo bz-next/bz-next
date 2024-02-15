@@ -1,11 +1,17 @@
+#include "Magnum/GL/Context.h"
 #include <Corrade/Utility/Arguments.h>
 #include <Corrade/Utility/DebugStl.h>
+#include <Corrade/Utility/Resource.h>
 
 #include <Magnum/GL/Version.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/GL/Renderer.h>
 
+#ifndef TARGET_EMSCRIPTEN
 #include <Magnum/Platform/Sdl2Application.h>
+#else
+#include <Magnum/Platform/EmscriptenApplication.h>
+#endif
 #include <Magnum/SceneGraph/Camera.h>
 #include <Magnum/SceneGraph/Scene.h>
 #include <Magnum/ImGuiIntegration/Context.hpp>
@@ -48,6 +54,8 @@
 #include "DynamicColor.h"
 #include "Teleporter.h"
 
+#include "Downloads.h"
+
 #include "BZWReader.h"
 
 // defaults for bzdb
@@ -72,14 +80,14 @@ BasicLoggingCallback blc;
 using namespace Magnum;
 using namespace Magnum::Math::Literals;
 
-class MapViewer: public Platform::Sdl2Application {
+class MapViewer: public Platform::Application {
     public:
         explicit MapViewer(const Arguments& arguments);
         void init();
 
 
     private:
-        void tickEvent() override;
+        //void tickEvent() override;
 
         void drawEvent() override;
 
@@ -89,7 +97,7 @@ class MapViewer: public Platform::Sdl2Application {
         void mouseMoveEvent(MouseMoveEvent& e) override;
         void mouseScrollEvent(MouseScrollEvent& e) override;
         void textInputEvent(TextInputEvent& event) override;
-        void exitEvent(ExitEvent& event) override;
+        //void exitEvent(ExitEvent& event) override;
 
         void keyPressEvent(KeyEvent& event) override;
         void keyReleaseEvent(KeyEvent& event) override;
@@ -132,6 +140,9 @@ class MapViewer: public Platform::Sdl2Application {
 
 #ifdef TARGET_EMSCRIPTEN
         static void handleUploadedMap(const std::string& filename, const std::string& mime_type, std::string_view buffer, void*);
+        static volatile bool shouldLoadMap;
+        static std::string mapData;
+        static std::string mapFilename;
 #endif
 
         void loadMap(std::string path, const std::string& data);
@@ -162,13 +173,19 @@ class MapViewer: public Platform::Sdl2Application {
 
 MapViewer *MapViewer::instance = NULL;
 
+#ifdef TARGET_EMSCRIPTEN
+volatile bool MapViewer::shouldLoadMap = false;
+std::string MapViewer::mapData;
+std::string MapViewer::mapFilename;
+#endif
+
 MapViewer::MapViewer(const Arguments& arguments):
-    Platform::Sdl2Application{arguments, Configuration{}
+    Platform::Application{arguments, Configuration{}
         .setTitle("BZFlag Map Viewer")
-        .setWindowFlags(Configuration::WindowFlag::Resizable),
+        .setWindowFlags(Configuration::WindowFlag::Resizable | Configuration::WindowFlag::AlwaysRequestAnimationFrame),
 #if defined(MAGNUM_TARGET_GLES) || defined(MAGNUM_TARGET_GLES2)
         // No multisampling for GLES, assume less capable machine
-        GLConfiguration{}.setVersion(GL::Version::GLES200)
+        GLConfiguration{}.setVersion(GL::Version::GLES300)
 #else
         GLConfiguration{}.setSampleCount(4)
 #endif
@@ -179,6 +196,8 @@ MapViewer::MapViewer(const Arguments& arguments):
     assert(instance == NULL);
 
     instance = this;
+
+    MAGNUM_ASSERT_GL_VERSION_SUPPORTED(GL::Version::GLES300);
 
     loggingCallback = &blc;
     debugLevel = 0;
@@ -222,15 +241,17 @@ MapViewer::MapViewer(const Arguments& arguments):
 
     init();
 }
-
+/*
 void MapViewer::exitEvent(ExitEvent& event) {
     event.setAccepted();
     MagnumTextureManager::instance().clear();
-}
+}*/
 
 #ifdef TARGET_EMSCRIPTEN
 void MapViewer::handleUploadedMap(const std::string& filename, const std::string& mime_type, std::string_view buffer, void*) {
-    instance->loadMap(filename, std::string(buffer));
+    mapFilename = filename;
+    mapData = std::string(buffer);
+    shouldLoadMap = true;
 }
 #endif
 
@@ -393,12 +414,15 @@ void MapViewer::drawEvent() {
     _imgui.drawFrame();
 
     swapBuffers();
-}
-
-void MapViewer::tickEvent() {
     loopIteration();
     redraw();
 }
+
+/*
+void MapViewer::tickEvent() {
+    loopIteration();
+    redraw();
+}*/
 
 void MapViewer::viewportEvent(ViewportEvent& e) {
     GL::defaultFramebuffer.setViewport({{}, e.framebufferSize()});
@@ -496,6 +520,17 @@ void MapViewer::init() {
     worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
 
     setErrorCallback(startupErrorCallback);
+
+    /*Utility::Resource rs{"bundledmaps"};
+    if (rs.hasFile("church.bzw")) {
+        Warning{} << "Loading churchyard from bundled resources";
+        mapFilename = "church.bzw";
+        mapData = rs.getRaw(mapFilename);
+        shouldLoadMap = true;
+    }*/
+
+    //CachedTexture *test = new CachedTexture("https://images.bzflag.org/bz_legacy/louman/churchyard/Brick05.png");
+
 }
 
 void MapViewer::loadMap(std::string path, const std::string& data)
@@ -506,10 +541,8 @@ void MapViewer::loadMap(std::string path, const std::string& data)
     PHYDRVMGR.clear();
     TRANSFORMMGR.clear();
     OBSTACLEMGR.clear();
+    Downloads::removeTextures();
     MagnumTextureManager::instance().clear();
-
-    worldSceneObjGen.destroyWorldObject();
-    worldSceneBuilder.reset();
 
     if (data == "") {
         BZWReader* reader = new BZWReader(path);
@@ -522,6 +555,38 @@ void MapViewer::loadMap(std::string path, const std::string& data)
     }
 
     MAGNUMMATERIALMGR.loadDefaultMaterials();
+
+    Downloads::startDownloads(true, true, false);
+
+}
+
+void MapViewer::startupErrorCallback(const char* msg)
+{
+    Warning{} << msg;
+}
+
+void MapViewer::loopIteration()
+{
+    // set this step game time
+    GameTime::setStepTime();
+
+    // update the dynamic colors
+    DYNCOLORMGR.update();
+
+    // update the texture matrices
+    TEXMATRIXMGR.update();
+
+    if (shouldLoadMap) {
+        loadMap(mapFilename, mapData);
+        shouldLoadMap = false;
+    }
+
+    //CachedTexture *t = new CachedTexture("https://images.bzflag.org/bz_legacy/trepan/tiles/Bad_Road_Condition.png");
+
+    if (Downloads::requestFinalized()) {
+        Downloads::finalizeDownloads();
+        worldSceneObjGen.destroyWorldObject();
+    worldSceneBuilder.reset();
 
     const ObstacleList& boxes = OBSTACLEMGR.getBoxes();
     for (int i = 0; i < boxes.size(); ++i) {
@@ -550,25 +615,7 @@ void MapViewer::loadMap(std::string path, const std::string& data)
     
     worldSceneObjGen.createWorldObject(&worldSceneBuilder);
     worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
-
-}
-
-void MapViewer::startupErrorCallback(const char* msg)
-{
-    Warning{} << msg;
-}
-
-void MapViewer::loopIteration()
-{
-    // set this step game time
-    GameTime::setStepTime();
-
-    // update the dynamic colors
-    DYNCOLORMGR.update();
-
-    // update the texture matrices
-    TEXMATRIXMGR.update();
-
+    }
 }
 
 MAGNUM_APPLICATION_MAIN(MapViewer)

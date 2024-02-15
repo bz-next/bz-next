@@ -1,21 +1,11 @@
-/* bzflag
- * Copyright (c) 1993-2021 Tim Riker
- *
- * This package is free software;  you can redistribute it and/or
- * modify it under the terms of the license found in the file
- * named COPYING that should have accompanied this file.
- *
- * THIS PACKAGE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR
- * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
- */
+#ifndef CURLMANAGEREMSCRIPTENSHIM_H
+#define CURLMANAGEREMSCRIPTENSHIM_H
 
-#ifndef CURL_MANAGER_H
-#define CURL_MANAGER_H
+#ifndef TARGET_EMSCRIPTEN
+#error "Do not include this file!"
+#endif
 
-#ifdef TARGET_EMSCRIPTEN
-#include "cURLManagerEmscriptenShim.h"
-#else
+#include <emscripten/fetch.h>
 
 // bzflag common header
 #include "common.h"
@@ -23,11 +13,11 @@
 #include "network.h"
 
 // system headers
-#include <curl/curl.h>
 #include <string>
 #include <map>
 #include <vector>
 
+using EMProgressCallbackT = void(*)(emscripten_fetch_t *);
 
 class cURLManager
 {
@@ -52,7 +42,7 @@ public:
     void setRequestFileTime(bool request);
     void setURL(const std::string &url);
     void setURLwithNonce(const std::string &url);
-    void setProgressFunction(curl_progress_callback func, const void* data);
+    void setProgressFunction(EMProgressCallbackT func, const void* data);
     void setTimeCondition(timeCondition condition, time_t &t);
     void setInterface(const std::string &interfaceIP);
     void setUserAgent(const std::string &userAgent);
@@ -75,15 +65,11 @@ protected:
     unsigned int  theLen;
 private:
 
-    void      infoComplete(CURLcode result);
+    void      infoComplete(int result);
 
-    static bool   inited;
-    static bool   justCalled;
-    CURL         *easyHandle;
-    static CURLM *multiHandle;
-    static char   errorBuffer[CURL_ERROR_SIZE];
+    emscripten_fetch_attr_t attr;
     bool      added;
-    std::string   usedUrl;
+    std::string   fileUrl;
     std::string   interfaceIP;
     std::string   userAgent;
     std::string   postData;
@@ -93,10 +79,7 @@ private:
 
     static void   setup();
 
-    static size_t writeFunction(void *ptr, size_t size, size_t nmemb,
-                                void *stream);
-
-    static std::map<CURL*, cURLManager*> cURLMap;
+    static void downloadSucceeded(emscripten_fetch_t *fetch);
 };
 
 
@@ -136,14 +119,4 @@ protected:
     bool doingStuff;
 };
 
-#endif // TARGET_EMSCRIPTEN
-
-#endif // CURL_MANAGER_H
-
-// Local Variables: ***
-// mode: C++ ***
-// tab-width: 4 ***
-// c-basic-offset: 4 ***
-// indent-tabs-mode: nil ***
-// End: ***
-// ex: shiftwidth=4 tabstop=4
+#endif

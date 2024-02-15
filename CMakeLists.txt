@@ -26,6 +26,7 @@ set(MAGNUM_WITH_ANYSCENEIMPORTER ON CACHE BOOL "" FORCE)
 set(MAGNUM_WITH_OBJIMPORTER ON CACHE BOOL "" FORCE)
 set(MAGNUM_WITH_PNGIMPORTER ON CACHE BOOL "" FORCE)
 set(MAGNUM_WITH_SDL2APPLICATION ON CACHE BOOL "" FORCE)
+set(MAGNUM_WITH_EMSCRIPTENAPPLICATION ON CACHE BOOL "" FORCE)
 set(MAGNUM_WITH_IMGUI ON CACHE BOOL "" FORCE)
 
 set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
@@ -35,6 +36,16 @@ add_subdirectory(magnum-integration EXCLUDE_FROM_ALL)
 add_subdirectory(magnum-plugins EXCLUDE_FROM_ALL)
 
 find_package(Corrade REQUIRED Main)
+if(CORRADE_TARGET_EMSCRIPTEN)
+find_package(Magnum REQUIRED
+    GL
+    Shaders
+    Primitives
+    MeshTools
+    Trade
+    EmscriptenApplication
+    DebugTools)
+else()
 find_package(Magnum REQUIRED
     GL
     Shaders
@@ -43,6 +54,7 @@ find_package(Magnum REQUIRED
     Trade
     Sdl2Application
     DebugTools)
+endif()
 
 find_package(MagnumIntegration REQUIRED ImGui)
 find_package(MagnumPlugins REQUIRED PngImporter)
@@ -100,7 +112,7 @@ find_package(ZLIB REQUIRED)
 
 if (EMSCRIPTEN)
     add_compile_definitions(TARGET_EMSCRIPTEN)
-    add_link_options(-sEXPORTED_FUNCTIONS=['_main','_malloc','_free'] -sEXPORTED_RUNTIME_METHODS=[ccall] -sALLOW_MEMORY_GROWTH=1)
+    add_link_options(-sFETCH=1 -sUSE_WEBGL2=1 -sEXPORTED_FUNCTIONS=['_main','_malloc','_free'] -sEXPORTED_RUNTIME_METHODS=[ccall] -sALLOW_MEMORY_GROWTH=1)
 endif()
 
 # No cURL on emscripten

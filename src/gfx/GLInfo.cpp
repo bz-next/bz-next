@@ -9,7 +9,11 @@
 
 #include "Magnum/GL/AbstractShaderProgram.h"
 #include "Magnum/GL/Buffer.h"
+#ifdef CORRADE_TARGET_EMSCRIPTEN
+#include "Magnum/Platform/EmscriptenApplication.h"
+#else
 #include "Magnum/Platform/Sdl2Application.h"
+#endif
 #if !defined(MAGNUM_TARGET_GLES2) && !defined(MAGNUM_TARGET_WEBGL)
 #include "Magnum/GL/BufferTexture.h"
 #endif
