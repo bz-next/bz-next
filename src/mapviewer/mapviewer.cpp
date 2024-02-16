@@ -26,6 +26,7 @@
 #include "BZMaterialBrowser.h"
 #include "BZMaterialViewer.h"
 #include "ObstacleBrowser.h"
+#include "BZWTextEditor.h"
 
 #include "WorldMeshGenerator.h"
 
@@ -127,6 +128,9 @@ class MapViewer: public Platform::Sdl2Application {
         void maybeShowGLInfo();
         bool showGLInfo = false;
 
+        void maybeShowEditor();
+        bool showEditor = false;
+
         bool showGrid = false;
 
 #ifndef TARGET_EMSCRIPTEN
@@ -139,12 +143,11 @@ class MapViewer: public Platform::Sdl2Application {
 
 #ifdef TARGET_EMSCRIPTEN
         static void handleUploadedMap(const std::string& filename, const std::string& mime_type, std::string_view buffer, void*);
-        static volatile bool shouldLoadMap;
-        static std::string mapData;
-        static std::string mapFilename;
 #endif
+        static void handleSaveFromEditor(const std::string& filename, const std::string& data);
+        static void handleUpdateFromEditor(const std::string& filename, const std::string& data);
 
-        void loadMap(std::string path, const std::string& data);
+        void loadMap(std::string path, const std::string& data, bool reloadEditor = true);
 
         void loopIteration();
 
@@ -162,21 +165,16 @@ class MapViewer: public Platform::Sdl2Application {
         BZMaterialBrowser matBrowser;
         BZMaterialViewer matViewer;
         ObstacleBrowser obsBrowser;
+        BZWTextEditor editor;
 #ifndef TARGET_EMSCRIPTEN
         ImGui::FileBrowser fileBrowser;
 #endif
 
-        // Ugh... need this for a C-style callback from emscripten
+        // For C-style callbacks from other code / emscripten
         static MapViewer *instance;
 };
 
 MapViewer *MapViewer::instance = NULL;
-
-#ifdef TARGET_EMSCRIPTEN
-volatile bool MapViewer::shouldLoadMap = false;
-std::string MapViewer::mapData;
-std::string MapViewer::mapFilename;
-#endif
 
 MapViewer::MapViewer(const Arguments& arguments):
     Platform::Sdl2Application{arguments, Configuration{}
@@ -228,6 +226,9 @@ MapViewer::MapViewer(const Arguments& arguments):
     fileBrowser.SetTypeFilters({".bzw"});
 #endif
 
+    editor.setReloadCallback(handleUpdateFromEditor);
+    editor.setSaveCallback(handleSaveFromEditor);
+
     /* Set up proper blending to be used by ImGui. There's a great chance
        you'll need this exact behavior for the rest of your scene. If not, set
        this only for the drawFrame() call. */
@@ -239,6 +240,16 @@ MapViewer::MapViewer(const Arguments& arguments):
     init();
 }
 
+void MapViewer::handleSaveFromEditor(const std::string& filename, const std::string& data) {
+#ifdef TARGET_EMSCRIPTEN
+    emscripten_browser_file::download(filename, "text/plain", data);
+#endif
+}
+
+void MapViewer::handleUpdateFromEditor(const std::string& filename, const std::string& data) {
+    instance->loadMap(filename, data, false);
+}
+
 void MapViewer::exitEvent(ExitEvent& event) {
     event.setAccepted();
     MagnumTextureManager::instance().clear();
@@ -246,9 +257,7 @@ void MapViewer::exitEvent(ExitEvent& event) {
 
 #ifdef TARGET_EMSCRIPTEN
 void MapViewer::handleUploadedMap(const std::string& filename, const std::string& mime_type, std::string_view buffer, void*) {
-    mapFilename = filename;
-    mapData = std::string(buffer);
-    shouldLoadMap = true;
+    instance->loadMap(filename, std::string(buffer));
 }
 #endif
 
@@ -278,6 +287,7 @@ void MapViewer::showMainMenuBar() {
 }
 
 void MapViewer::showMenuView() {
+    if (ImGui::MenuItem("Editor", NULL, &showEditor)) {}
 #ifndef MAGNUM_TARGET_GLES2
     if (ImGui::MenuItem("Grid", NULL, &showGrid)) {}
 #endif
@@ -355,6 +365,14 @@ void MapViewer::maybeShowGLInfo()
     }
 }
 
+void MapViewer::maybeShowEditor()
+{
+    if (showEditor) {
+        ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
+        editor.draw("Editor", &showEditor);
+    }
+}
+
 #ifndef TARGET_EMSCRIPTEN
 void MapViewer::maybeShowFileBrowser() {
     // Filebrowser tracks whether to draw internally
@@ -371,11 +389,6 @@ void MapViewer::drawEvent() {
 
     _imgui.newFrame();
 
-    if(ImGui::GetIO().WantTextInput && !isTextInputActive())
-        startTextInput();
-    else if(!ImGui::GetIO().WantTextInput && isTextInputActive())
-        stopTextInput();
-
     showMainMenuBar();
     maybeShowProfiler();
     maybeShowTMBrowser();
@@ -383,11 +396,17 @@ void MapViewer::drawEvent() {
     maybeShowMATViewer();
     maybeShowObsBrowser();
     maybeShowGLInfo();
+    maybeShowEditor();
 #ifndef TARGET_EMSCRIPTEN
     maybeShowFileBrowser();
 #endif
 
     _imgui.updateApplicationCursor(*this);
+
+    if(ImGui::GetIO().WantTextInput && !isTextInputActive())
+        startTextInput();
+    else if(!ImGui::GetIO().WantTextInput && isTextInputActive())
+        stopTextInput();
 
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
     GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
@@ -427,24 +446,20 @@ void MapViewer::viewportEvent(ViewportEvent& e) {
 }
 
 void MapViewer::keyPressEvent(KeyEvent& event) {
-    event.setAccepted();
     if(_imgui.handleKeyPressEvent(event)) return;
 }
 
 void MapViewer::keyReleaseEvent(KeyEvent& event) {
-    event.setAccepted();
     if(_imgui.handleKeyReleaseEvent(event)) return;
 }
 
 void MapViewer::mousePressEvent(MouseEvent& e) {
-    e.setAccepted();
     if(_imgui.handleMousePressEvent(e)) return;
     if (e.button() == MouseEvent::Button::Left)
         _previousPosition = positionOnSphere(e.position());
 }
 
 void MapViewer::mouseReleaseEvent(MouseEvent& e) {
-    e.setAccepted();
     if(_imgui.handleMouseReleaseEvent(e)) return;
     if (e.button() == MouseEvent::Button::Left)
         _previousPosition = Vector3{};
@@ -464,7 +479,6 @@ void MapViewer::mouseScrollEvent(MouseScrollEvent& e) {
 }
 
 void MapViewer::mouseMoveEvent(MouseMoveEvent &e) {
-    e.setAccepted();
     if(_imgui.handleMouseMoveEvent(e)) return;
     if (!(e.buttons() & MouseMoveEvent::Button::Left)) return;
 
@@ -480,7 +494,6 @@ void MapViewer::mouseMoveEvent(MouseMoveEvent &e) {
 }
 
 void MapViewer::textInputEvent(TextInputEvent& e) {
-    e.setAccepted();
     if(_imgui.handleTextInputEvent(e)) return;
 }
 
@@ -519,7 +532,7 @@ void MapViewer::init() {
     setErrorCallback(startupErrorCallback);
 }
 
-void MapViewer::loadMap(std::string path, const std::string& data)
+void MapViewer::loadMap(std::string path, const std::string& data, bool reloadEditor)
 {
     worldSceneObjGen.destroyWorldObject();
     worldSceneBuilder.reset();
@@ -544,6 +557,9 @@ void MapViewer::loadMap(std::string path, const std::string& data)
         delete reader;
     }
 
+    if (reloadEditor)
+        editor.loadFile(path, data);
+
     MAGNUMMATERIALMGR.loadDefaultMaterials();
 
     Downloads::startDownloads(true, true, false);
@@ -565,13 +581,6 @@ void MapViewer::loopIteration()
 
     // update the texture matrices
     TEXMATRIXMGR.update();
-
-    if (shouldLoadMap) {
-        loadMap(mapFilename, mapData);
-        shouldLoadMap = false;
-    }
-
-    //CachedTexture *t = new CachedTexture("https://images.bzflag.org/bz_legacy/trepan/tiles/Bad_Road_Condition.png");
 
     if (Downloads::requestFinalized()) {
         Downloads::finalizeDownloads();
