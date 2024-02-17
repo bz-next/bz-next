@@ -113,6 +113,7 @@ CachedTexture::CachedTexture(const std::string &texUrl) : cURLManager()
         std::string msg = ColorStrings[GreyColor];
         msg     += "downloading: " + url;
         //addMessage(NULL, msg);
+        Magnum::Warning{} << msg.c_str();
         if (cached)
         {
             // use the cached file -- just in case
@@ -134,6 +135,8 @@ void CachedTexture::setParams(bool check, long timeout)
 void CachedTexture::finalization(char *data, unsigned int length, bool good)
 {
     time_t filetime;
+
+    Magnum::Warning{} << "finalization";
 
     textureCounter--;
     if (good)
@@ -235,6 +238,7 @@ void Downloads::startDownloads(bool doDownloads, bool updateDownloads,
                     MAGNUMMATERIALMGR.setTextureLocal(texUrl, "");
                 }
                 cachedTexVector.push_back(new CachedTexture(texUrl));
+                Magnum::Warning{} << "added ct" << texUrl.c_str();
             }
         }
     else

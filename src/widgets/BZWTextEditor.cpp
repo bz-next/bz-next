@@ -1,7 +1,10 @@
+#include <fstream>
+
 #include "BZWTextEditor.h"
 #include <imgui.h>
 
 #include <Magnum/ImGuiIntegration/Widgets.h>
+#include <sstream>
 
 using namespace Magnum;
 
@@ -13,9 +16,19 @@ BZWTextEditor::BZWTextEditor() {
     editor.SetLanguageDefinition(TextEditor::LanguageDefinition::BZW());
 }
 
-void BZWTextEditor::loadFile(const std::string& filename, const std::string& data) {
+void BZWTextEditor::loadFile(const std::string& filename, const std::string& data, bool loadFile) {
     currentFile = filename;
-    editor.SetText(data);
+
+	if (loadFile) {
+		std::ifstream fs(filename);
+		std::ostringstream ss;
+		ss << fs.rdbuf();
+		editor.SetText(ss.str());
+	} else {
+		editor.SetText(data);
+	}
+
+    
 }
 
 void BZWTextEditor::setSaveCallback(SaveCallback cb) {

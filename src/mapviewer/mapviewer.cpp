@@ -29,10 +29,12 @@
 #include "BZWTextEditor.h"
 
 #include "WorldMeshGenerator.h"
+#include "cURLManager.h"
 
 #include <ctime>
 #include <cassert>
 #include <cstring>
+#include <fstream>
 
 #ifdef TARGET_EMSCRIPTEN
 #include "emscripten_browser_file.h"
@@ -243,6 +245,10 @@ MapViewer::MapViewer(const Arguments& arguments):
 void MapViewer::handleSaveFromEditor(const std::string& filename, const std::string& data) {
 #ifdef TARGET_EMSCRIPTEN
     emscripten_browser_file::download(filename, "text/plain", data);
+#else
+    std::ofstream of(filename);
+    of << data;
+    of.close();
 #endif
 }
 
@@ -378,7 +384,7 @@ void MapViewer::maybeShowFileBrowser() {
     // Filebrowser tracks whether to draw internally
     fileBrowser.Display();
     if (fileBrowser.HasSelected()) {
-        loadMap(fileBrowser.GetSelected().string(), "");
+        loadMap(fileBrowser.GetSelected().string(), "", true);
         fileBrowser.ClearSelected();
     }
 }
@@ -557,8 +563,9 @@ void MapViewer::loadMap(std::string path, const std::string& data, bool reloadEd
         delete reader;
     }
 
-    if (reloadEditor)
-        editor.loadFile(path, data);
+    if (reloadEditor) {
+        editor.loadFile(path, data, data == "");
+    }
 
     MAGNUMMATERIALMGR.loadDefaultMaterials();
 
@@ -581,6 +588,9 @@ void MapViewer::loopIteration()
 
     // update the texture matrices
     TEXMATRIXMGR.update();
+
+    // Needed for desktop. On emscripten this is a no-op
+    cURLManager::perform();
 
     if (Downloads::requestFinalized()) {
         Downloads::finalizeDownloads();

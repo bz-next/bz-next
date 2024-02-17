@@ -13,7 +13,7 @@ class BZWTextEditor {
 
     BZWTextEditor();
     void draw(const char* title, bool* p_open);
-    void loadFile(const std::string& filename, const std::string& data);
+    void loadFile(const std::string& filename, const std::string& data, bool loadFile = false);
     void setSaveCallback(SaveCallback cb);
     void setReloadCallback(ReloadCallback cb);
     private:
