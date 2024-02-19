@@ -136,8 +136,6 @@ void CachedTexture::finalization(char *data, unsigned int length, bool good)
 {
     time_t filetime;
 
-    Magnum::Warning{} << "finalization";
-
     textureCounter--;
     if (good)
     {
