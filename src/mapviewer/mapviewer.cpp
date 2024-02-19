@@ -27,6 +27,7 @@
 #include "BZMaterialViewer.h"
 #include "ObstacleBrowser.h"
 #include "BZWTextEditor.h"
+#include "AboutDialog.h"
 
 #include "WorldMeshGenerator.h"
 #include "cURLManager.h"
@@ -133,6 +134,9 @@ class MapViewer: public Platform::Sdl2Application {
         void maybeShowEditor();
         bool showEditor = false;
 
+        void maybeShowAbout();
+        bool showAbout = false;
+
         bool showGrid = false;
 
 #ifndef TARGET_EMSCRIPTEN
@@ -168,6 +172,7 @@ class MapViewer: public Platform::Sdl2Application {
         BZMaterialViewer matViewer;
         ObstacleBrowser obsBrowser;
         BZWTextEditor editor;
+        AboutDialog about;
 #ifndef TARGET_EMSCRIPTEN
         ImGui::FileBrowser fileBrowser;
 #endif
@@ -288,6 +293,9 @@ void MapViewer::showMainMenuBar() {
             showMenuDebug();
             ImGui::EndMenu();
         }
+        if (ImGui::MenuItem("About")) {
+            showAbout = true;
+        }
         ImGui::EndMainMenuBar();
     }
 }
@@ -390,6 +398,12 @@ void MapViewer::maybeShowFileBrowser() {
 }
 #endif
 
+void MapViewer::maybeShowAbout() {
+    if (showAbout) {
+        about.draw("About", &showAbout);
+    }
+}
+
 void MapViewer::drawEvent() {
     GL::defaultFramebuffer.clear(GL::FramebufferClear::Color | GL::FramebufferClear::Depth);
 
@@ -403,6 +417,7 @@ void MapViewer::drawEvent() {
     maybeShowObsBrowser();
     maybeShowGLInfo();
     maybeShowEditor();
+    maybeShowAbout();
 #ifndef TARGET_EMSCRIPTEN
     maybeShowFileBrowser();
 #endif

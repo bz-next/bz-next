@@ -7,6 +7,7 @@ set(WIDGETS_SOURCES
     BZChatConsole.cpp
     TextEditor.cpp
     BZWTextEditor.cpp
+    AboutDialog.cpp
 )
 
 add_library(bzwidgets STATIC ${WIDGETS_SOURCES})

@@ -1,5 +1,5 @@
 #ifndef OBSTACLEBROWSER_H
-#define OBSTACLECROWSER_H
+#define OBSTACLEBROWSER_H
 
 class ObstacleBrowser {
     public:
