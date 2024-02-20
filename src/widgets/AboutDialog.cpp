@@ -13,7 +13,7 @@ void AboutDialog::draw(const char *title, bool *p_open) {
 
     ImGui::Begin(title, p_open, ImGuiWindowFlags_AlwaysAutoResize);
     ImGui::Text("BZ-Next Rendering Engine");
-    ImGui::Text("Released under MIT License, (c) 2024 bz-next");
+    ImGui::Text("Released under MPL and LGPL License, (c) 2024 bz-next");
     ImGui::Separator();
     ImGui::Text("Uses code from the following projects:");
     ImGui::Text("BZFlag");

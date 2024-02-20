@@ -229,6 +229,7 @@ MapViewer::MapViewer(const Arguments& arguments):
     GL::Renderer::enable(GL::Renderer::Feature::Blending);
 
     _imgui = ImGuiIntegration::Context(Vector2{windowSize()}/dpiScaling(), windowSize(), framebufferSize());
+    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
 #ifndef TARGET_EMSCRIPTEN
     fileBrowser.SetTitle("Select Map File");
