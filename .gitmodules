@@ -16,3 +16,6 @@
 [submodule "toolchains"]
 	path = toolchains
 	url = https://github.com/mosra/toolchains.git
+[submodule "steam-audio"]
+	path = steam-audio
+	url = https://github.com/ValveSoftware/steam-audio.git
