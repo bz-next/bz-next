@@ -91,6 +91,8 @@ public:
     int findMatrix(const std::string& name) const;
     const TextureMatrix* getMatrix(int id) const;
 
+    const std::vector<TextureMatrix*> &getMatList() const;
+
     int packSize() const;
     void* pack(void*) const;
     const void* unpack(const void*);

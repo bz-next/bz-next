@@ -275,7 +275,7 @@ void CacheManager::limitCacheSize()
 }
 
 
-std::vector<CacheManager::CacheRecord> CacheManager::getCacheList() const
+const std::vector<CacheManager::CacheRecord>& CacheManager::getCacheList() const
 {
     return records;
 }

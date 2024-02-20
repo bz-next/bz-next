@@ -8,6 +8,9 @@ set(WIDGETS_SOURCES
     TextEditor.cpp
     BZWTextEditor.cpp
     AboutDialog.cpp
+    OnlineMapBrowser.cpp
+    CacheBrowser.cpp
+    TexMatBrowser.cpp
 )
 
 add_library(bzwidgets STATIC ${WIDGETS_SOURCES})

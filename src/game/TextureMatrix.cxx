@@ -144,6 +144,12 @@ int TextureMatrixManager::packSize() const
 }
 
 
+const std::vector<TextureMatrix*> &TextureMatrixManager::getMatList() const
+{
+    return matrices;
+}
+
+
 void TextureMatrixManager::print(std::ostream& out,
                                  const std::string& indent) const
 {

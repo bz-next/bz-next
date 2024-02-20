@@ -42,7 +42,7 @@ public:
     bool findURL(const std::string& url, CacheRecord& record);
     bool addFile(CacheRecord& rec, const void* data);
 
-    std::vector<CacheRecord> getCacheList() const;
+    const std::vector<CacheRecord>& getCacheList() const;
 
     void limitCacheSize();
 

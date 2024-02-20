@@ -28,6 +28,8 @@
 #include "ObstacleBrowser.h"
 #include "BZWTextEditor.h"
 #include "AboutDialog.h"
+#include "CacheBrowser.h"
+#include "TexMatBrowser.h"
 
 #include "WorldMeshGenerator.h"
 #include "cURLManager.h"
@@ -137,6 +139,12 @@ class MapViewer: public Platform::Sdl2Application {
         void maybeShowAbout();
         bool showAbout = false;
 
+        void maybeShowCacheBrowser();
+        bool showCacheBrowser = false;
+
+        void maybeShowTexMatBrowser();
+        bool showTexMatBrowser = false;
+
         bool showGrid = false;
 
 #ifndef TARGET_EMSCRIPTEN
@@ -173,6 +181,8 @@ class MapViewer: public Platform::Sdl2Application {
         ObstacleBrowser obsBrowser;
         BZWTextEditor editor;
         AboutDialog about;
+        CacheBrowser cacheBrowser;
+        TexMatBrowser texMatBrowser;
 #ifndef TARGET_EMSCRIPTEN
         ImGui::FileBrowser fileBrowser;
 #endif
@@ -314,6 +324,8 @@ void MapViewer::showMenuTools() {
     if (ImGui::MenuItem("Material Viewer", NULL, &showMATViewer)) {}
     ImGui::Separator();
     if (ImGui::MenuItem("Obstacle Manager", NULL, &showObsBrowser)) {}
+    if (ImGui::MenuItem("Cache Browser", NULL, &showCacheBrowser)) {}
+    if (ImGui::MenuItem("Texture Matrix Browser", NULL, &showTexMatBrowser)) {}
 }
 
 void MapViewer::showMenuDebug() {
@@ -404,6 +416,18 @@ void MapViewer::maybeShowAbout() {
     }
 }
 
+void MapViewer::maybeShowCacheBrowser() {
+    if (showCacheBrowser) {
+        cacheBrowser.draw("Cache Browser", &showCacheBrowser);
+    }
+}
+
+void MapViewer::maybeShowTexMatBrowser() {
+    if (showTexMatBrowser) {
+        texMatBrowser.draw("Texture Matrix Browser", &showTexMatBrowser);
+    }
+}
+
 void MapViewer::drawEvent() {
     GL::defaultFramebuffer.clear(GL::FramebufferClear::Color | GL::FramebufferClear::Depth);
 
@@ -418,6 +442,8 @@ void MapViewer::drawEvent() {
     maybeShowGLInfo();
     maybeShowEditor();
     maybeShowAbout();
+    maybeShowCacheBrowser();
+    maybeShowTexMatBrowser();
 #ifndef TARGET_EMSCRIPTEN
     maybeShowFileBrowser();
 #endif
