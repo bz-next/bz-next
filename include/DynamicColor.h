@@ -124,6 +124,8 @@ public:
     void* pack(void*) const;
     const void* unpack(const void*);
 
+    const std::vector<DynamicColor*>& getColorList() const;
+
     void print(std::ostream& out, const std::string& indent) const;
 
 private:

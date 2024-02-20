@@ -136,6 +136,12 @@ int MeshTransformManager::packSize() const
 }
 
 
+const std::vector<MeshTransform*>& MeshTransformManager::getTransformList() const
+{
+    return transforms;
+}
+
+
 void MeshTransformManager::print(std::ostream& out, const std::string& indent) const
 {
     std::vector<MeshTransform*>::const_iterator it;

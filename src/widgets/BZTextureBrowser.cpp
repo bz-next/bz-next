@@ -18,7 +18,8 @@ void BZTextureBrowser::draw(const char *title, bool *p_open) {
     for (const auto& e: names) {
         names_cc+= e + std::string("\0", 1);
     }
-    ImGui::Begin(title, p_open, ImGuiWindowFlags_AlwaysAutoResize);
+    ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
+    ImGui::Begin(title, p_open, ImGuiWindowFlags_NoScrollbar);
     if (names_cc.size() >= 0) {
         ImGui::Combo("Texture Name", &itemCurrent, names_cc.c_str(), names_cc.size());
     } else {
@@ -26,7 +27,10 @@ void BZTextureBrowser::draw(const char *title, bool *p_open) {
     }
     if (names_cc.size() >= 0) {
         TextureData tex = tm.getTexture(names[itemCurrent].c_str());
-        ImGuiIntegration::image(*tex.texture, {(float)tex.width, (float)tex.height});
+        ImVec2 ws = ImGui::GetContentRegionAvail();
+        float width = fmin((float)ws.x, (float)tex.width);
+        float height = fmin((float)tex.height, width/(float)tex.width*(float)tex.height);
+        ImGuiIntegration::image(*tex.texture, {width, height});
     }
     ImGui::End();
 }

@@ -151,6 +151,12 @@ int DynamicColorManager::packSize() const
 }
 
 
+const std::vector<DynamicColor*>& DynamicColorManager::getColorList() const
+{
+    return colors;
+}
+
+
 void DynamicColorManager::print(std::ostream& out, const std::string& indent) const
 {
     std::vector<DynamicColor*>::const_iterator it;

@@ -140,6 +140,12 @@ int PhysicsDriverManager::packSize() const
 }
 
 
+const std::vector<PhysicsDriver*>& PhysicsDriverManager::getDriverList() const
+{
+    return drivers;
+}
+
+
 void PhysicsDriverManager::print(std::ostream& out,
                                  const std::string& indent) const
 {

@@ -11,6 +11,9 @@ set(WIDGETS_SOURCES
     OnlineMapBrowser.cpp
     CacheBrowser.cpp
     TexMatBrowser.cpp
+    DynColorBrowser.cpp
+    MeshTransformBrowser.cpp
+    PhyDrvBrowser.cpp
 )
 
 add_library(bzwidgets STATIC ${WIDGETS_SOURCES})

@@ -34,7 +34,7 @@ class BZMaterialViewer {
     
 
     void renderPreview();
-
+    
     const Magnum::Math::Vector2<int> bufsize{256, 256};
 };
 

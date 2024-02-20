@@ -122,6 +122,8 @@ public:
     void* pack(void*) const;
     const void* unpack(const void*);
 
+    const std::vector<PhysicsDriver*>& getDriverList() const;
+
     void print(std::ostream& out, const std::string& indent) const;
 
 private:

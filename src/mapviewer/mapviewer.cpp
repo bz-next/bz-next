@@ -30,6 +30,9 @@
 #include "AboutDialog.h"
 #include "CacheBrowser.h"
 #include "TexMatBrowser.h"
+#include "DynColorBrowser.h"
+#include "MeshTransformBrowser.h"
+#include "PhyDrvBrowser.h"
 
 #include "WorldMeshGenerator.h"
 #include "cURLManager.h"
@@ -112,38 +115,24 @@ class MapViewer: public Platform::Sdl2Application {
         // IMGUI
         void showMainMenuBar();
         void showMenuView();
-        void showMenuTools();
         void showMenuDebug();
 
-        void maybeShowProfiler();
+        void drawWindows();
+
+        // Window should draw
         bool showProfiler = false;
-
-        void maybeShowTMBrowser();
         bool showTMBrowser = false;
-
-        void maybeShowMATBrowser();
         bool showMATBrowser = false;
-
-        void maybeShowMATViewer();
         bool showMATViewer = false;
-
-        void maybeShowObsBrowser();
         bool showObsBrowser = false;
-
-        void maybeShowGLInfo();
         bool showGLInfo = false;
-
-        void maybeShowEditor();
         bool showEditor = false;
-
-        void maybeShowAbout();
         bool showAbout = false;
-
-        void maybeShowCacheBrowser();
         bool showCacheBrowser = false;
-
-        void maybeShowTexMatBrowser();
         bool showTexMatBrowser = false;
+        bool showPhyDrvBrowser = false;
+        bool showDynColorBrowser = false;
+        bool showMeshTransformBrowser = false;
 
         bool showGrid = false;
 
@@ -183,6 +172,9 @@ class MapViewer: public Platform::Sdl2Application {
         AboutDialog about;
         CacheBrowser cacheBrowser;
         TexMatBrowser texMatBrowser;
+        DynColorBrowser dynColorBrowser;
+        MeshTransformBrowser meshTFBrowser;
+        PhyDrvBrowser phyDrvBrowser;
 #ifndef TARGET_EMSCRIPTEN
         ImGui::FileBrowser fileBrowser;
 #endif
@@ -295,10 +287,6 @@ void MapViewer::showMainMenuBar() {
             showMenuView();
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Tools")) {
-            showMenuTools();
-            ImGui::EndMenu();
-        }
         if (ImGui::BeginMenu("Debug")) {
             showMenuDebug();
             ImGui::EndMenu();
@@ -311,21 +299,23 @@ void MapViewer::showMainMenuBar() {
 }
 
 void MapViewer::showMenuView() {
-    if (ImGui::MenuItem("Editor", NULL, &showEditor)) {}
-#ifndef MAGNUM_TARGET_GLES2
-    if (ImGui::MenuItem("Grid", NULL, &showGrid)) {}
-#endif
-}
-
-void MapViewer::showMenuTools() {
-    if (ImGui::MenuItem("Texture Manager", NULL, &showTMBrowser)) {}
+    if (ImGui::MenuItem("Map Editor", NULL, &showEditor)) {}
     ImGui::Separator();
-    if (ImGui::MenuItem("Material Manager", NULL, &showMATBrowser)) {}
+    if (ImGui::MenuItem("Obstacle Browser", NULL, &showObsBrowser)) {}
+    if (ImGui::MenuItem("Texture Browser", NULL, &showTMBrowser)) {}
+    if (ImGui::MenuItem("Material Browser", NULL, &showMATBrowser)) {}
+    if (ImGui::MenuItem("Texture Matrix Browser", NULL, &showTexMatBrowser)) {}
+    if (ImGui::MenuItem("Dynamic Color Browser", NULL, &showDynColorBrowser)) {}
+    if (ImGui::MenuItem("Physics Driver Browser", NULL, &showPhyDrvBrowser)) {}
+    if (ImGui::MenuItem("Mesh Transform Browser", NULL, &showMeshTransformBrowser)) {}
+    ImGui::Separator();
     if (ImGui::MenuItem("Material Viewer", NULL, &showMATViewer)) {}
     ImGui::Separator();
-    if (ImGui::MenuItem("Obstacle Manager", NULL, &showObsBrowser)) {}
     if (ImGui::MenuItem("Cache Browser", NULL, &showCacheBrowser)) {}
-    if (ImGui::MenuItem("Texture Matrix Browser", NULL, &showTexMatBrowser)) {}
+#ifndef MAGNUM_TARGET_GLES2
+    ImGui::Separator();
+    if (ImGui::MenuItem("Grid", NULL, &showGrid)) {}
+#endif
 }
 
 void MapViewer::showMenuDebug() {
@@ -343,45 +333,30 @@ void MapViewer::showMenuDebug() {
 
 }
 
-void MapViewer::maybeShowProfiler() {
+void MapViewer::drawWindows() {
     if (showProfiler) {
         ImGui::Begin("Profiler", &showProfiler);
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
             1000.0/Double(ImGui::GetIO().Framerate), Double(ImGui::GetIO().Framerate));
         ImGui::End();
     }
-}
 
-void MapViewer::maybeShowTMBrowser()
-{
     if (showTMBrowser) {
-        tmBrowser.draw("Texture Manager", &showTMBrowser);
+        tmBrowser.draw("Texture Browser", &showTMBrowser);
     }
-}
 
-void MapViewer::maybeShowMATBrowser()
-{
     if (showMATBrowser) {
-        matBrowser.draw("Material Manager", &showMATBrowser);
+        matBrowser.draw("Material Browser", &showMATBrowser);
     }
-}
 
-void MapViewer::maybeShowMATViewer()
-{
     if (showMATViewer) {
         matViewer.draw("Material Viewer", &showMATViewer);
     }
-}
 
-void MapViewer::maybeShowObsBrowser() {
     if (showObsBrowser) {
-        ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
-        obsBrowser.draw("Obstacle Manager", &showObsBrowser);
+        obsBrowser.draw("Obstacle Browser", &showObsBrowser);
     }
-}
 
-void MapViewer::maybeShowGLInfo()
-{
     static std::string info = getGLInfo();
     if (showGLInfo) {
         ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
@@ -389,42 +364,42 @@ void MapViewer::maybeShowGLInfo()
         ImGui::TextWrapped(info.c_str());
         ImGui::End();
     }
-}
 
-void MapViewer::maybeShowEditor()
-{
     if (showEditor) {
-        ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
-        editor.draw("Editor", &showEditor);
+        editor.draw("Map Editor", &showEditor);
     }
-}
 
 #ifndef TARGET_EMSCRIPTEN
-void MapViewer::maybeShowFileBrowser() {
     // Filebrowser tracks whether to draw internally
     fileBrowser.Display();
     if (fileBrowser.HasSelected()) {
         loadMap(fileBrowser.GetSelected().string(), "", true);
         fileBrowser.ClearSelected();
     }
-}
 #endif
 
-void MapViewer::maybeShowAbout() {
     if (showAbout) {
         about.draw("About", &showAbout);
     }
-}
 
-void MapViewer::maybeShowCacheBrowser() {
     if (showCacheBrowser) {
         cacheBrowser.draw("Cache Browser", &showCacheBrowser);
     }
-}
 
-void MapViewer::maybeShowTexMatBrowser() {
     if (showTexMatBrowser) {
         texMatBrowser.draw("Texture Matrix Browser", &showTexMatBrowser);
+    }
+
+    if (showDynColorBrowser) {
+        dynColorBrowser.draw("Dynamic Color Browser", &showDynColorBrowser);
+    }
+
+    if (showMeshTransformBrowser) {
+        meshTFBrowser.draw("Mesh Transform Browser", &showMeshTransformBrowser);
+    }
+
+    if (showPhyDrvBrowser) {
+        phyDrvBrowser.draw("Physics Driver Browser", &showPhyDrvBrowser);
     }
 }
 
@@ -434,19 +409,7 @@ void MapViewer::drawEvent() {
     _imgui.newFrame();
 
     showMainMenuBar();
-    maybeShowProfiler();
-    maybeShowTMBrowser();
-    maybeShowMATBrowser();
-    maybeShowMATViewer();
-    maybeShowObsBrowser();
-    maybeShowGLInfo();
-    maybeShowEditor();
-    maybeShowAbout();
-    maybeShowCacheBrowser();
-    maybeShowTexMatBrowser();
-#ifndef TARGET_EMSCRIPTEN
-    maybeShowFileBrowser();
-#endif
+    drawWindows();
 
     _imgui.updateApplicationCursor(*this);
 

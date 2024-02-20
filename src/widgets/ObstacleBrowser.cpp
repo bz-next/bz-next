@@ -36,8 +36,9 @@ void ObstacleBrowser::draw(const char *title, bool *p_open) {
     for (const auto& e: names) {
         names_cc += e + std::string("\0", 1);
     }
-    ImGui::Begin(title, p_open, ImGuiWindowFlags_AlwaysAutoResize);
-    ImGui::BeginChild("ObjLists", ImVec2(400, 260));
+    ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
+    ImGui::Begin(title, p_open);
+    ImGui::BeginChild("ObjLists");
     if (ImGui::TreeNode("Walls")) {
         const auto& list = OBSTACLEMGR.getWalls();
         for (int i = 0; i < list.size(); ++i) {

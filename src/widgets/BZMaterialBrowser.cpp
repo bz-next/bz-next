@@ -17,7 +17,8 @@ void BZMaterialBrowser::draw(const char *title, bool *p_open) {
 
     std::vector<std::string> names = MAGNUMMATERIALMGR.getMaterialNames();
     std::string names_cc;
-    ImGui::Begin(title, p_open, ImGuiWindowFlags_AlwaysAutoResize);
+    ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
+    ImGui::Begin(title, p_open);
     ImGui::Checkbox("Only Show Legacy Indexed", &onlyIndexed);
     bool haveMaterial = false;
     int numFoundMaterials = 0;

@@ -62,11 +62,7 @@ BZMaterialViewer::BZMaterialViewer() :
         .setWrapping(GL::SamplerWrapping::ClampToEdge)
         .setMagnificationFilter(GL::SamplerFilter::Linear)
         .setMinificationFilter(GL::SamplerFilter::Linear)
-#ifdef MAGNUM_TARGET_GLES2
         .setStorage(1, GL::TextureFormat::RGBA8, bufsize);
-#else
-        .setStorage(1, GL::TextureFormat::RGBA8, bufsize);
-#endif
 
     itemCurrent = 0;
 
@@ -124,11 +120,14 @@ void BZMaterialViewer::draw(const char *title, bool *p_open) {
     for (const auto& e: names) {
         names_cc += e + std::string("\0", 1);
     }
-    renderPreview();
-    ImGui::Begin(title, p_open, ImGuiWindowFlags_AlwaysAutoResize);
+    ImGui::Begin(title, p_open, ImGuiWindowFlags_NoScrollbar);
         ImGui::Combo("Material Name", &itemCurrent, names_cc.c_str(), names_cc.size());
         ImGui::Separator();
-        ImGuiIntegration::image(renderTex, {(float)bufsize[0], (float)bufsize[1]});
+        ImVec2 ws = ImGui::GetContentRegionAvail();
+        renderPreview();
+        float width = fmin((float)ws.x, (float)bufsize[0]);
+        float height = fmin((float)bufsize[1], width/(float)bufsize[0]*(float)bufsize[1]);
+        ImGuiIntegration::image(renderTex, {width, height});
     ImGui::End();
 }
 
@@ -160,7 +159,7 @@ void BZMaterialViewer::renderPreview() {
     Math::Matrix4<float> normalMat;
 
     Matrix4 transformationMatrix = Matrix4::translation(Vector3::zAxis(-2.0f));
-    Matrix4 projectionMatrix = Matrix4::perspectiveProjection(35.0_degf, 1.0f, 0.001f, 100.0f);
+    Matrix4 projectionMatrix = Matrix4::perspectiveProjection(35.0_degf, 1.0f, 0.01f, 100.0f);
 
 
     if (itemCurrent < names.size()) {
