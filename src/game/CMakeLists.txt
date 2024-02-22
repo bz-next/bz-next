@@ -21,6 +21,7 @@ ServerListCache.cxx
 StartupInfo.cxx
 TextureMatrix.cxx
 MagnumBZMaterial.cpp
+CachedResource.cpp
 )
 
 if (NOT CORRADE_TARGET_EMSCRIPTEN)
@@ -28,5 +29,7 @@ if (NOT CORRADE_TARGET_EMSCRIPTEN)
 endif()
 
 add_library(bzgame STATIC ${BZGAME_SOURCES})
+
+target_include_directories(bzgame PUBLIC include/)
 
 target_link_libraries(bzgame bzcommon bznet Magnum::GL)
