@@ -33,6 +33,7 @@
 #include "DynColorBrowser.h"
 #include "MeshTransformBrowser.h"
 #include "PhyDrvBrowser.h"
+#include "OnlineMapBrowser.h"
 
 #include "WorldMeshGenerator.h"
 #include "cURLManager.h"
@@ -133,6 +134,7 @@ class MapViewer: public Platform::Sdl2Application {
         bool showPhyDrvBrowser = false;
         bool showDynColorBrowser = false;
         bool showMeshTransformBrowser = false;
+        bool showMapBrowser = true;
 
         bool showGrid = false;
 
@@ -175,6 +177,7 @@ class MapViewer: public Platform::Sdl2Application {
         DynColorBrowser dynColorBrowser;
         MeshTransformBrowser meshTFBrowser;
         PhyDrvBrowser phyDrvBrowser;
+        OnlineMapBrowser mapBrowser;
 #ifndef TARGET_EMSCRIPTEN
         ImGui::FileBrowser fileBrowser;
 #endif
@@ -402,6 +405,10 @@ void MapViewer::drawWindows() {
     if (showPhyDrvBrowser) {
         phyDrvBrowser.draw("Physics Driver Browser", &showPhyDrvBrowser);
     }
+
+    if (showMapBrowser) {
+        mapBrowser.draw("Map Browser", &showMapBrowser);
+    }
 }
 
 void MapViewer::drawEvent() {
@@ -541,6 +548,9 @@ void MapViewer::init() {
     resetBZDB();
 
     setErrorCallback(startupErrorCallback);
+
+    CACHEMGR.loadIndex();
+    CACHEMGR.limitCacheSize();
 }
 
 void MapViewer::loadMap(std::string path, const std::string& data, bool reloadEditor)

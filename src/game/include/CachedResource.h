@@ -19,6 +19,8 @@ class CachedResource : cURLManager
     void fetch();
     bool isComplete() const;
     bool isError() const;
+    bool isInProgress() const;
+    const std::vector<char>& getData() const { return _data; }
     virtual void finalization(char *data, unsigned int length, bool good);
     static void  setParams(bool check, long timeout);
     static int activeTransfer();
@@ -30,6 +32,7 @@ class CachedResource : cURLManager
     std::vector<char> _data;
     bool _isComplete;
     bool _isError;
+    bool _inProgress;
 };
 
 #endif

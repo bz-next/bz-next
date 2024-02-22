@@ -18,18 +18,27 @@ CachedResource::CachedResource(const std::string &indexURL) : cURLManager()
 
     _isComplete = false;
     _isError = false;
+    _inProgress = false;
 }
 
 void CachedResource::fetch()
 {
-    if (_isComplete) return;
-    CacheManager::CacheRecord oldrec;
-    CACHEMGR.findURL(url, oldrec);
+    if (_isComplete || _inProgress) return;
     setTimeout(5.0); // TODO: Grab this from BZDB
     setRequestFileTime(true);
+
     std::string msg = "Downloading " + url;
-    setTimeCondition(ModifiedSince, oldrec.date);
+
+    CacheManager::CacheRecord oldrec;
+    if (CACHEMGR.findURL(url, oldrec)) {
+        setTimeCondition(ModifiedSince, oldrec.date);
+    } else {
+        std::cout << "not found" << std::endl;
+    }
+
     addHandle();
+
+    _inProgress = true;
 }
 
 bool CachedResource::isComplete() const
@@ -40,6 +49,11 @@ bool CachedResource::isComplete() const
 bool CachedResource::isError() const
 {
     return _isError;
+}
+
+bool CachedResource::isInProgress() const
+{
+    return _inProgress;
 }
 
 void CachedResource::finalization(char *data, unsigned int length, bool good)
@@ -54,29 +68,33 @@ void CachedResource::finalization(char *data, unsigned int length, bool good)
             rec.size = length;
             rec.date = filetime;
             CACHEMGR.addFile(rec, data);
+            // Save the cache index
+            // TODO: It's better to batch this, but this is foolproof
+            CACHEMGR.saveIndex();
             // Load the data into our object, since we'll need it.
             _data.reserve(length);
             for (unsigned int i = 0; i < length; ++i) {
                 _data.push_back(data[i]);
             }
             _isComplete = true;
-        }
-    } else {
-        // Maybe we didn't download it and it's in the cache
-        // This might happen if the remote resource isn't newer than what we already have
-        // In that case, try to load it!
-        CacheManager::CacheRecord rec;
-        if (CACHEMGR.findURL(url, rec)) {
-            std::string localname = CACHEMGR.getLocalName(rec.name);
-            auto is = FILEMGR.createDataInStream(localname, true);
-            std::copy(std::istream_iterator<char>(*is), std::istream_iterator<char>(), std::back_inserter(_data));
         } else {
-            // We weren't able to find it... all hope is lost
-            _isError = true;
+            // Maybe we didn't download it and it's in the cache
+            // This might happen if the remote resource isn't newer than what we already have
+            // In that case, try to load it!
+            CacheManager::CacheRecord rec;
+            if (CACHEMGR.findURL(url, rec)) {
+                auto is = FILEMGR.createDataInStream(rec.name, false);
+                std::noskipws(*is);
+                std::copy(std::istream_iterator<char>(*is), std::istream_iterator<char>(), std::back_inserter(_data));
+            } else {
+                // We weren't able to find it... all hope is lost
+                _isError = true;
+            }
         }
-        // Regardless of outcome, we are done.
-        _isComplete = true;
     }
+    // Regardless of outcome, we are done.
+    _isComplete = true;
+    _inProgress = false;
 }
 
 void CachedResource::collectData(char *ptr, int len)

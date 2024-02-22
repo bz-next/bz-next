@@ -30,4 +30,5 @@ target_link_libraries(bzwidgets
     ${ZLIB_LIBRARIES}
     Threads::Threads
     MagnumIntegration::ImGui
+    bzgame
 )
