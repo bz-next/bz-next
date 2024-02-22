@@ -44,6 +44,8 @@ endif()
 
 add_library(bzcommon STATIC ${BZCOMMON_SOURCES})
 
+target_include_directories(bzcommon PUBLIC include/)
+
 target_link_libraries(bzcommon
     ${CURL_LIBRARIES}
 )

@@ -249,7 +249,7 @@ typedef unsigned char   uint8_t;
 
 #define bzcountof(__x)   (sizeof(__x) / sizeof(__x[0]))
 
-
+/*
 #ifdef HAVE_STD__ISNAN
 #  ifdef isnan
 #    undef isnan
@@ -273,10 +273,10 @@ inline int isnan(Tp f)
 }
 #    else
 #      define isnan(f) ((f) != (f))
-#    endif /* __cplusplus */
-#  endif /* HAVE_ISNAN */
-#endif /* HAVE_STD__ISNAN */
-
+#    endif 
+#  endif 
+#endif 
+*/
 
 #ifndef HAVE_STD__MAX
 #  ifdef __cplusplus

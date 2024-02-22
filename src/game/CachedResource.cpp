@@ -70,6 +70,8 @@ void CachedResource::finalization(char *data, unsigned int length, bool good)
             CACHEMGR.addFile(rec, data);
             // Save the cache index
             // TODO: It's better to batch this, but this is foolproof
+            // Just make sure your app calls loadIndex() during init,
+            // so that you aren't writing back a mostly empty file.
             CACHEMGR.saveIndex();
             // Load the data into our object, since we'll need it.
             _data.reserve(length);
