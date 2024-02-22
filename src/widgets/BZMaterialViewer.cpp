@@ -120,6 +120,7 @@ void BZMaterialViewer::draw(const char *title, bool *p_open) {
     for (const auto& e: names) {
         names_cc += e + std::string("\0", 1);
     }
+    ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
     ImGui::Begin(title, p_open, ImGuiWindowFlags_NoScrollbar);
         ImGui::Combo("Material Name", &itemCurrent, names_cc.c_str(), names_cc.size());
         ImGui::Separator();
