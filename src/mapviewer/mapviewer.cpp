@@ -152,6 +152,8 @@ class MapViewer: public Platform::Sdl2Application {
         static void handleSaveFromEditor(const std::string& filename, const std::string& data);
         static void handleUpdateFromEditor(const std::string& filename, const std::string& data);
 
+        static void handleLoadFromMapBrowser(const CachedResource& mapRsc);
+
         void loadMap(std::string path, const std::string& data, bool reloadEditor = true);
 
         void loopIteration();
@@ -242,6 +244,8 @@ MapViewer::MapViewer(const Arguments& arguments):
     editor.setReloadCallback(handleUpdateFromEditor);
     editor.setSaveCallback(handleSaveFromEditor);
 
+    OnlineMapBrowser::setOnDownloadCompleteCallback(handleLoadFromMapBrowser);
+
     /* Set up proper blending to be used by ImGui. There's a great chance
        you'll need this exact behavior for the rest of your scene. If not, set
        this only for the drawFrame() call. */
@@ -265,6 +269,11 @@ void MapViewer::handleSaveFromEditor(const std::string& filename, const std::str
 
 void MapViewer::handleUpdateFromEditor(const std::string& filename, const std::string& data) {
     instance->loadMap(filename, data, false);
+}
+
+void MapViewer::handleLoadFromMapBrowser(const CachedResource& mapRsc) {
+    std::string data = std::string(mapRsc.getData().begin(), mapRsc.getData().end());
+    instance->loadMap(mapRsc.getFilename(), data);
 }
 
 void MapViewer::exitEvent(ExitEvent& event) {
@@ -303,6 +312,8 @@ void MapViewer::showMainMenuBar() {
 }
 
 void MapViewer::showMenuView() {
+    if (ImGui::MenuItem("Map Browser", NULL, &showMapBrowser)) {}
+    ImGui::Separator();
     if (ImGui::MenuItem("Map Editor", NULL, &showEditor)) {}
     ImGui::Separator();
     if (ImGui::MenuItem("Obstacle Browser", NULL, &showObsBrowser)) {}

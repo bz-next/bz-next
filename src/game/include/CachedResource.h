@@ -15,12 +15,15 @@
 class CachedResource : cURLManager
 {
     public:
+    using OnCompleteCallback = void(*)(const CachedResource&);
     CachedResource(const std::string &indexURL);
     void fetch();
     bool isComplete() const;
     bool isError() const;
     bool isInProgress() const;
     const std::vector<char>& getData() const { return _data; }
+    std::string getFilename() const;
+    void setOnCompleteCallback(OnCompleteCallback cb) { _onComplete = cb; }
     virtual void finalization(char *data, unsigned int length, bool good);
     static void  setParams(bool check, long timeout);
     static int activeTransfer();
@@ -33,6 +36,7 @@ class CachedResource : cURLManager
     bool _isComplete;
     bool _isError;
     bool _inProgress;
+    OnCompleteCallback _onComplete = NULL;
 };
 
 #endif

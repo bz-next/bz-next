@@ -1,98 +1,61 @@
+#include <iostream>
+
 #include <imgui.h>
 #include <Magnum/ImGuiIntegration/Widgets.h>
 
+#include "include/OnlineMapBrowser.h"
 #include "json.hpp"
 
 #include "OnlineMapBrowser.h"
 
-static std::string jsontest = R"TEST(
-    {
-        "index": {
-            "ahs3": {
-                "maps": [
-                    {
-                        "name": "INCOMING!",
-                        "file": "ahs3_INCOMING.bzw",
-                        "license": "CC BY 4.0"
-                    },
-                    {
-                        "name": "Ironside Battlefield",
-                        "file": "ahs3_Ironside_Battlefield.bzw",
-                        "license": "CC BY 4.0"
-                    },
-                    {
-                        "name": "Paradise Valley",
-                        "file": "ahs3_Paradise_Valley.bzw",
-                        "license": "CC BY 4.0"
-                    },
-                    {
-                        "name": "XUG",
-                        "file": "ahs3_XUG_FFA.bzw",
-                        "license": "CC BY 4.0"
-                    }
-                ]
-            },
-            "Ian": {
-                "maps": [
-                    {
-                        "name": "Fairground",
-                        "file": "ian_fairground.bzw",
-                        "license": "Open / unspecified"
-                    }
-                ]
-            },
-            "DucatiWannabe": {
-                "maps": [
-                    {
-                        "name": "Missile War 2.3",
-                        "file": "dw_missilewar2.3.bzw",
-                        "license": "Ask author to host"
-                    },
-                    {
-                        "name": "Missile War 3",
-                        "file": "dw_missilewar3.bzw",
-                        "license": "Ask author to host"
-                    }
-                ]
-            }
-        }
-    }
-)TEST";
+#include "bzfio.h"
+
+const std::string archiveroot = "https://bz-next.github.io/maparchive/";
+
+OnlineMapBrowser::OnMapDownloadComplete OnlineMapBrowser::_cb = NULL;
+CachedResource* OnlineMapBrowser::mapRsc = NULL;
 
 using json = nlohmann::json;
-
-/*void from_json(const json& j, MapInfo& mi)
-{
-    j.at("name").get_to(mi.name);
-    j.at("file").get_to(mi.file);
-    j.at("license").get_to(mi.license);
-}
-
-void from_json(const json& j, AuthorInfo& ai)
-{
-    j.at("name")
-}*/
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MapInfo, name, file, license);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MapList, maps);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(MapIndex, index);
 
-OnlineMapBrowser::OnlineMapBrowser() : mapIndex("https://bz-next.github.io/index.html")
+OnlineMapBrowser::OnlineMapBrowser() : mapIndex(archiveroot + "maps.json")
 {
+    // Eh whatever. Is this class a singleton or not? Who cares! :)
+    // Callbacks are annoying
+    mapRsc = NULL;
 }
 
 void OnlineMapBrowser::draw(const char* title, bool* p_open)
 {
     maybeLoadFetchedData();
+    ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
     ImGui::Begin(title, p_open);
+    ImGui::Text("Browse archived maps by author:");
+    ImGui::Separator();
     ImGui::BeginChild("MapList");
     for (const auto& e: _mi.index) {
-        if (ImGui::TreeNode(e.first.c_str())) { // Author
+        std::string authlabel = "Author: " + e.first;
+        if (ImGui::TreeNode(authlabel.c_str())) { // Author
+            
             ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.0f, 0.5f));
             for (const auto& m: e.second.maps) {
-                ImVec2 ws = ImGui::GetContentRegionAvail();
-                std::string label = m.name + " [License: " + m.license + "]";
-                if (ImGui::Button(label.c_str(), {ws.x, 0})) {}
+                ImGui::Text("Name:    %s", m.name.c_str());
+                ImGui::Text("License: %s", m.license.c_str());
+                std::string label = "Load " + m.file;
+                if (ImGui::Button(label.c_str())) {
+                    if (mapRsc) delete mapRsc;
+                    mapRsc = new CachedResource(archiveroot + m.file);
+                    mapRsc->setOnCompleteCallback([](const CachedResource& rsc) {
+                        if (!rsc.isError())
+                            if (OnlineMapBrowser::_cb)
+                                OnlineMapBrowser::_cb(rsc);
+                    });
+                    mapRsc->fetch();
+                }
+                ImGui::Separator();
             }
             ImGui::PopStyleVar();
             ImGui::TreePop();
@@ -111,7 +74,15 @@ void OnlineMapBrowser::maybeLoadFetchedData()
     if (fetchedData == "" && mapIndex.isComplete() && !mapIndex.isError()) {
         auto& data = mapIndex.getData();
         fetchedData = std::string(data.begin(), data.end());
-        mapIndexJSON = json::parse(jsontest);
-        _mi = mapIndexJSON.template get<MapIndex>();
+        try {
+            mapIndexJSON = json::parse(fetchedData);
+        } catch (json::parse_error &e) {
+            logDebugMessage(1, "JSON parse failed.");
+        }
+        try {
+            _mi = mapIndexJSON.template get<MapIndex>();
+        } catch (json::type_error &e) {
+            logDebugMessage(1, "JSON interpretation failed.");
+        }
     }
 }

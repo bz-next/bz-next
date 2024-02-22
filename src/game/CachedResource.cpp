@@ -10,6 +10,7 @@
 #include <istream>
 #include <algorithm>
 #include <iterator>
+#include <iostream>
 
 CachedResource::CachedResource(const std::string &indexURL) : cURLManager()
 {
@@ -27,18 +28,21 @@ void CachedResource::fetch()
     setTimeout(5.0); // TODO: Grab this from BZDB
     setRequestFileTime(true);
 
-    std::string msg = "Downloading " + url;
-
     CacheManager::CacheRecord oldrec;
     if (CACHEMGR.findURL(url, oldrec)) {
         setTimeCondition(ModifiedSince, oldrec.date);
-    } else {
-        std::cout << "not found" << std::endl;
     }
-
     addHandle();
 
     _inProgress = true;
+}
+
+std::string CachedResource::getFilename() const {
+    CacheManager::CacheRecord rec;
+    if (CACHEMGR.findURL(url, rec)) {
+        return rec.name;
+    }
+    return std::string();
 }
 
 bool CachedResource::isComplete() const
@@ -97,6 +101,7 @@ void CachedResource::finalization(char *data, unsigned int length, bool good)
     // Regardless of outcome, we are done.
     _isComplete = true;
     _inProgress = false;
+    if (_onComplete) _onComplete(*this);
 }
 
 void CachedResource::collectData(char *ptr, int len)

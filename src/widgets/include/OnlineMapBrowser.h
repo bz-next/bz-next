@@ -28,18 +28,22 @@ struct MapIndex {
 //void from_json(const nlohmann::json& j, AuthorInfo& ai);
 class OnlineMapBrowser {
     public:
+    using OnMapDownloadComplete = void(*)(const CachedResource&);
     OnlineMapBrowser();
     void draw(const char* title, bool* p_open);
+    static void setOnDownloadCompleteCallback(OnMapDownloadComplete cb) { _cb = cb; }
     private:
     void maybeLoadFetchedData();
 
     CachedResource mapIndex;
+    static CachedResource *mapRsc;
     std::string fetchedData;
 
     nlohmann::json mapIndexJSON;
 
     MapIndex _mi;
 
+    static OnMapDownloadComplete _cb;
 
 };
 
