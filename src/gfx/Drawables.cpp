@@ -54,16 +54,6 @@ void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::C
             // to get transparency working.
             if (alphathresh > 0.999f) alphathresh = 0.999f;
 
-            // Quick and dirty hack to help with fake alpha blending
-            // Set alpha threshold to 10% on materials with texalpha
-            // This may make some materials look worse, but most will
-            // look a bit better, since most textures that use alpha
-            // won't have areas of 10% alpha that aren't meant to be
-            // basically thrown away.
-            if (mat->getUseTextureAlpha(0)) {
-                alphathresh = fmax(alphathresh, 0.1f);
-            }
-
             Matrix3 texmat;
 
             if (mat->getTextureMatrix(0) != -1) {
