@@ -93,6 +93,14 @@
 #include "BZMaterialBrowser.h"
 #include "BZMaterialViewer.h"
 #include "ObstacleBrowser.h"
+#include "BZWTextEditor.h"
+#include "AboutDialog.h"
+#include "CacheBrowser.h"
+#include "TexMatBrowser.h"
+#include "DynColorBrowser.h"
+#include "MeshTransformBrowser.h"
+#include "PhyDrvBrowser.h"
+#include "OnlineMapBrowser.h"
 
 #include "WorldMeshGenerator.h"
 
@@ -218,40 +226,26 @@ class BZFlagNew: public Platform::Sdl2Application {
         // IMGUI
         void showMainMenuBar();
         void showMenuView();
-        void showMenuTools();
         void showMenuDebug();
 
-        void maybeShowConsole();
+        void drawWindows();
+
         bool showConsole = false;
-
-        void maybeShowProfiler();
         bool showProfiler = false;
-
-        void maybeShowConnect();
         bool showConnect = true;
-
-        void maybeShowScoreboard();
         bool showScoreboard = false;
-
-        void maybeShowTMBrowser();
         bool showTMBrowser = false;
-
-        void maybeShowMATBrowser();
         bool showMATBrowser = false;
-
-        void maybeShowMATViewer();
         bool showMATViewer = false;
-
-        void maybeShowObsBrowser();
         bool showObsBrowser = false;
-
-        void maybeShowGLInfo();
         bool showGLInfo = false;
-
-        void maybeShowMatExclude();
-        bool showMatExclude = false;
-
         bool showGrid = false;
+        bool showAbout = false;
+        bool showCacheBrowser = false;
+        bool showTexMatBrowser = false;
+        bool showPhyDrvBrowser = false;
+        bool showDynColorBrowser = false;
+        bool showMeshTransformBrowser = false;
         
         Vector3 positionOnSphere(const Vector2i& position) const;
 
@@ -380,6 +374,12 @@ class BZFlagNew: public Platform::Sdl2Application {
         BZMaterialBrowser matBrowser;
         BZMaterialViewer matViewer;
         ObstacleBrowser obsBrowser;
+        AboutDialog about;
+        CacheBrowser cacheBrowser;
+        TexMatBrowser texMatBrowser;
+        DynColorBrowser dynColorBrowser;
+        MeshTransformBrowser meshTFBrowser;
+        PhyDrvBrowser phyDrvBrowser;
 
         bool isQuit = false;
 };
@@ -449,6 +449,8 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
 
     _imgui = ImGuiIntegration::Context(Vector2{windowSize()}/dpiScaling(), windowSize(), framebufferSize());
 
+    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
     console.registerCommandCallback([&](const char* txt){
         onConsoleText(txt);
     });
@@ -473,33 +475,36 @@ void BZFlagNew::showMainMenuBar() {
             showMenuView();
             ImGui::EndMenu();
         }
-        if (ImGui::BeginMenu("Tools")) {
-            showMenuTools();
-            ImGui::EndMenu();
-        }
         if (ImGui::BeginMenu("Debug")) {
             showMenuDebug();
             ImGui::EndMenu();
+        }
+        if (ImGui::MenuItem("About")) {
+            showAbout = true;
         }
         ImGui::EndMainMenuBar();
     }
 }
 
 void BZFlagNew::showMenuView() {
-    if (ImGui::MenuItem("Scoreboard", NULL, &showScoreboard)) {}
     if (ImGui::MenuItem("Console", NULL, &showConsole)) {}
-#ifndef MAGNUM_TARGET_GLES2
-    if (ImGui::MenuItem("Grid", NULL, &showGrid)) {}
-#endif
-}
-
-void BZFlagNew::showMenuTools() {
-    if (ImGui::MenuItem("Texture Manager", NULL, &showTMBrowser)) {}
+    if (ImGui::MenuItem("Scoreboard", NULL, &showScoreboard)) {}
     ImGui::Separator();
-    if (ImGui::MenuItem("Material Manager", NULL, &showMATBrowser)) {}
+    if (ImGui::MenuItem("Obstacle Browser", NULL, &showObsBrowser)) {}
+    if (ImGui::MenuItem("Texture Browser", NULL, &showTMBrowser)) {}
+    if (ImGui::MenuItem("Material Browser", NULL, &showMATBrowser)) {}
+    if (ImGui::MenuItem("Texture Matrix Browser", NULL, &showTexMatBrowser)) {}
+    if (ImGui::MenuItem("Dynamic Color Browser", NULL, &showDynColorBrowser)) {}
+    if (ImGui::MenuItem("Physics Driver Browser", NULL, &showPhyDrvBrowser)) {}
+    if (ImGui::MenuItem("Mesh Transform Browser", NULL, &showMeshTransformBrowser)) {}
+    ImGui::Separator();
     if (ImGui::MenuItem("Material Viewer", NULL, &showMATViewer)) {}
     ImGui::Separator();
-    if (ImGui::MenuItem("Obstacle Manager", NULL, &showObsBrowser)) {}
+    if (ImGui::MenuItem("Cache Browser", NULL, &showCacheBrowser)) {}
+#ifndef MAGNUM_TARGET_GLES2
+    ImGui::Separator();
+    if (ImGui::MenuItem("Grid", NULL, &showGrid)) {}
+#endif
 }
 
 void BZFlagNew::showMenuDebug() {
@@ -514,81 +519,58 @@ void BZFlagNew::showMenuDebug() {
     if (ImGui::MenuItem("Force Load Material Textures")) {
         MAGNUMMATERIALMGR.forceLoadTextures();
     }
-    if (ImGui::MenuItem("Exclude Materials from World", NULL, &showMatExclude)) {
-    }
-
 }
 
-void BZFlagNew::maybeShowConsole() {
+void BZFlagNew::drawWindows() {
+
     if (showConsole)
         console.draw("Console", &showConsole);
-}
 
-void BZFlagNew::maybeShowProfiler() {
     if (showProfiler) {
         ImGui::Begin("Profiler", &showProfiler);
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
             1000.0/Double(ImGui::GetIO().Framerate), Double(ImGui::GetIO().Framerate));
         ImGui::End();
     }
-}
-
-void BZFlagNew::maybeShowConnect() {
 
     static char callsign[128];
     static char password[128];
     static char hostname[128];
     static char port[128];
 
-    if (!showConnect) return;
-
-    ImGui::Begin("Connect", &showConnect, ImGuiWindowFlags_AlwaysAutoResize);
-    ImGui::InputText("Callsign", callsign, IM_ARRAYSIZE(callsign));
-    ImGui::InputText("Password", password, IM_ARRAYSIZE(password), ImGuiInputTextFlags_Password);
-    ImGui::InputText("Hostname", hostname, IM_ARRAYSIZE(hostname));
-    ImGui::InputText("Port", port, IM_ARRAYSIZE(port));
-    if (ImGui::Button("Connect")) {
-        tryConnect(callsign, password, hostname, port);
+    if (showConnect) {
+        ImGui::Begin("Connect", &showConnect, ImGuiWindowFlags_AlwaysAutoResize);
+        ImGui::InputText("Callsign", callsign, IM_ARRAYSIZE(callsign));
+        ImGui::InputText("Password", password, IM_ARRAYSIZE(password), ImGuiInputTextFlags_Password);
+        ImGui::InputText("Hostname", hostname, IM_ARRAYSIZE(hostname));
+        ImGui::InputText("Port", port, IM_ARRAYSIZE(port));
+        if (ImGui::Button("Connect")) {
+            tryConnect(callsign, password, hostname, port);
+        }
+        ImGui::End();
     }
-    ImGui::End();
-}
 
-void BZFlagNew::maybeShowScoreboard() {
     if (showScoreboard) {
         scoreboard.draw("Scoreboard", &showScoreboard);
     }
-}
 
-void BZFlagNew::maybeShowTMBrowser()
-{
     if (showTMBrowser) {
-        tmBrowser.draw("Texture Manager", &showTMBrowser);
+        tmBrowser.draw("Texture Browser", &showTMBrowser);
     }
-}
 
-void BZFlagNew::maybeShowMATBrowser()
-{
     if (showMATBrowser) {
-        matBrowser.draw("Material Manager", &showMATBrowser);
+        matBrowser.draw("Material Browser", &showMATBrowser);
     }
-}
 
-void BZFlagNew::maybeShowMATViewer()
-{
     if (showMATViewer) {
         matViewer.draw("Material Viewer", &showMATViewer);
     }
-}
 
-void BZFlagNew::maybeShowObsBrowser() {
     if (showObsBrowser) {
         ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
-        obsBrowser.draw("Obstacle Manager", &showObsBrowser);
+        obsBrowser.draw("Obstacle Browser", &showObsBrowser);
     }
-}
 
-void BZFlagNew::maybeShowGLInfo()
-{
     static std::string info = getGLInfo();
     if (showGLInfo) {
         ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
@@ -596,40 +578,29 @@ void BZFlagNew::maybeShowGLInfo()
         ImGui::TextWrapped(info.c_str());
         ImGui::End();
     }
-}
 
-static bool excludeSetScratchArea[10000];
-void BZFlagNew::maybeShowMatExclude()
-{
-    if (showMatExclude) {
-        ImGui::Begin("Exclude Materials from World Mesh", &showMatExclude);
-        std::vector<std::string> names = MAGNUMMATERIALMGR.getMaterialNames();
-        int i = 0;
-        for (auto name: names) {
-            // Yes this is horrifyingly ugly
-            ImGui::Checkbox(name.c_str(), (bool *)&excludeSetScratchArea[i]);
-            i++;
-        }
-        if (ImGui::Button("Recompile with excludes")) {
-            std::set<std::string> matset;
-            for (int i = 0; i < names.size(); ++i) {
-                if (excludeSetScratchArea[i]) matset.insert(names[i]);
-            }
-            worldSceneObjGen.setExcludeSet(matset);
-            worldSceneObjGen.destroyWorldObject();
-            worldSceneObjGen.createWorldObject(&worldMeshGen);
-            worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
-        }
-        if (ImGui::Button("Clear excludes")) {
-            for (auto& x: excludeSetScratchArea) {
-                x = 0;
-            }
-            worldSceneObjGen.clearExcludeSet();
-            worldSceneObjGen.destroyWorldObject();
-            worldSceneObjGen.createWorldObject(&worldMeshGen);
-            worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
-        }
-        ImGui::End();
+    if (showAbout) {
+        about.draw("About", &showAbout);
+    }
+
+    if (showCacheBrowser) {
+        cacheBrowser.draw("Cache Browser", &showCacheBrowser);
+    }
+
+    if (showTexMatBrowser) {
+        texMatBrowser.draw("Texture Matrix Browser", &showTexMatBrowser);
+    }
+
+    if (showDynColorBrowser) {
+        dynColorBrowser.draw("Dynamic Color Browser", &showDynColorBrowser);
+    }
+
+    if (showMeshTransformBrowser) {
+        meshTFBrowser.draw("Mesh Transform Browser", &showMeshTransformBrowser);
+    }
+
+    if (showPhyDrvBrowser) {
+        phyDrvBrowser.draw("Physics Driver Browser", &showPhyDrvBrowser);
     }
 }
 
@@ -671,16 +642,7 @@ void BZFlagNew::drawEvent() {
         stopTextInput();
 
     showMainMenuBar();
-    maybeShowConsole();
-    maybeShowProfiler();
-    maybeShowConnect();
-    maybeShowScoreboard();
-    maybeShowTMBrowser();
-    maybeShowMATBrowser();
-    maybeShowMATViewer();
-    maybeShowObsBrowser();
-    maybeShowGLInfo();
-    maybeShowMatExclude();
+    drawWindows();
 
     /* Update application cursor */
     _imgui.updateApplicationCursor(*this);
