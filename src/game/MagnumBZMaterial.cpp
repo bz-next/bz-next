@@ -36,26 +36,19 @@ void MagnumBZMaterialManager::loadDefaultMaterials() {
     defaultMat.setName("_DefaultMaterial");
     MAGNUMMATERIALMGR.addMaterial(&defaultMat);
 
-    auto &tm = MagnumTextureManager::instance();
-    tm.getTexture("boxwall");
-    tm.getTexture("roof");
-
     auto *boxwallmat = new MagnumBZMaterial();
     boxwallmat->setName("boxWallMaterial");
     boxwallmat->addTexture("boxwall");
-    boxwallmat->setUseTextureAlpha(false);
     MAGNUMMATERIALMGR.addMaterial(boxwallmat);
 
     auto *roofmat = new MagnumBZMaterial();
     roofmat->setName("boxTopMaterial");
     roofmat->addTexture("roof");
-    roofmat->setUseTextureAlpha(false);
     MAGNUMMATERIALMGR.addMaterial(roofmat);
 
     auto *pyrmat = new MagnumBZMaterial();
     pyrmat->setName("pyrWallMaterial");
     pyrmat->addTexture("pyrwall");
-    pyrmat->setUseTextureAlpha(false);
     MAGNUMMATERIALMGR.addMaterial(pyrmat);
 
     TeamColor teams[4] = {
@@ -68,13 +61,11 @@ void MagnumBZMaterialManager::loadDefaultMaterials() {
         auto *basewall = new MagnumBZMaterial();
         basewall->setName(Team::getImagePrefix(t) + "baseWallMaterial");
         basewall->addTexture(Team::getImagePrefix(t) + "basewall");
-        basewall->setUseTextureAlpha(false);
         MAGNUMMATERIALMGR.addMaterial(basewall);
 
         auto *basetop = new MagnumBZMaterial();
         basetop->setName(Team::getImagePrefix(t) + "baseTopMaterial");
         basetop->addTexture(Team::getImagePrefix(t) + "basetop");
-        basetop->setUseTextureAlpha(false);
         MAGNUMMATERIALMGR.addMaterial(basetop); 
     }
 
@@ -97,7 +88,6 @@ void MagnumBZMaterialManager::loadDefaultMaterials() {
     auto *ground = new MagnumBZMaterial();
     ground->setName("GroundMaterial");
     ground->addTexture("std_ground");
-    ground->setUseTextureAlpha(false);
     MAGNUMMATERIALMGR.addMaterial(ground);
 }
 

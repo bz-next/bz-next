@@ -10,6 +10,8 @@ set(GFX_SOURCES
 add_library(bzgfx STATIC ${GFX_SOURCES})
 target_include_directories(bzgfx PUBLIC include/)
 
+add_subdirectory(SceneObjects)
+
 target_link_libraries(bzgfx
     Magnum::Application
     Magnum::GL

@@ -21,6 +21,9 @@ using namespace Magnum;
 #define MAGNUMROWCOL(r, c) (r+c*3)
 #define INTROWCOL(r, c) (r+c*4)
 
+Shaders::PhongGL* BZMaterialDrawable::_shader = NULL;
+Shaders::PhongGL* BZMaterialDrawable::_shaderUntex = NULL;
+
 void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::Camera3D& camera) {
     MagnumTextureManager &tm = MagnumTextureManager::instance();
 
@@ -72,7 +75,7 @@ void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::C
                 tmd[MAGNUMROWCOL(1, 2)] = tmid[INTROWCOL(1, 3)];
                 
             }
-            _shader.bindDiffuseTexture(*t.texture)
+            (*_shader).bindDiffuseTexture(*t.texture)
                 .bindAmbientTexture(*t.texture)
                 .setDiffuseColor(Color4{toMagnumColor(mat->getDiffuse()), 0.0f})
                 .setAmbientColor(mat->getNoLighting() ? Color4{1.0f*toMagnumColor(mat->getDiffuse()) + toMagnumColor(mat->getEmission()) + dyncol, mat->getDiffuse()[3]} : Color4{0.2*toMagnumColor(mat->getAmbient()) + toMagnumColor(mat->getEmission()) + dyncol, mat->getDiffuse()[3]})
@@ -88,7 +91,7 @@ void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::C
                 .setTextureMatrix(texmat)
                 .draw(_mesh);
         } else {
-            _shaderUntex
+            (*_shaderUntex)
                 .setDiffuseColor(Color4{toMagnumColor(mat->getDiffuse()), 0.0f})
                 .setAmbientColor(mat->getNoLighting() ? Color4{1.0f*toMagnumColor(mat->getDiffuse()) + toMagnumColor(mat->getEmission()) + dyncol, mat->getDiffuse()[3]} : Color4{0.2*toMagnumColor(mat->getAmbient()) + toMagnumColor(mat->getEmission()) + dyncol, mat->getDiffuse()[3]})
                 .setSpecularColor(Color4{toMagnumColor(mat->getSpecular()), 0.0f})
