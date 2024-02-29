@@ -1,4 +1,4 @@
-#include "Magnum/GL/Context.h"
+#include <Magnum/GL/Context.h>
 #include <Corrade/Utility/Arguments.h>
 #include <Corrade/Utility/DebugStl.h>
 #include <Corrade/Utility/Resource.h>
@@ -37,6 +37,9 @@
 
 #include "WorldMeshGenerator.h"
 #include "cURLManager.h"
+
+#include "SceneObjectManager.h"
+#include "DrawableGroupManager.h"
 
 #include <ctime>
 #include <cassert>
@@ -158,7 +161,7 @@ class MapViewer: public Platform::Sdl2Application {
 
         void loopIteration();
 
-        Scene3D _scene;
+        Scene3D _sceneRoot;
         Object3D _manipulator, _cameraObject;
         SceneGraph::Camera3D* _camera;
         SceneGraph::DrawableGroup3D _drawables;
@@ -217,7 +220,7 @@ MapViewer::MapViewer(const Arguments& arguments):
         .parse(arguments.argc, arguments.argv);
     
     _cameraObject
-        .setParent(&_scene)
+        .setParent(&_sceneRoot)
         .translate(Vector3::zAxis(10.0f));
         
     
@@ -226,7 +229,12 @@ MapViewer::MapViewer(const Arguments& arguments):
         .setProjectionMatrix(Matrix4::perspectiveProjection(35.0_degf, 1.0f, 1.0f, 1000.0f))
         .setViewport(GL::defaultFramebuffer.viewport().size());
     
-    _manipulator.setParent(&_scene);
+    _manipulator.setParent(&_sceneRoot);
+
+    Object3D* scene = SOMGR.addObj("Scene");
+    scene->setParent(&_manipulator);
+
+    scene->scale({0.05f, 0.05f, 0.05f});
 
 
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
@@ -340,7 +348,6 @@ void MapViewer::showMenuDebug() {
     if (ImGui::MenuItem("Recompile World Mesh")) {
         worldSceneObjGen.destroyWorldObject();
         worldSceneObjGen.createWorldObject(&worldSceneBuilder);
-        worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
     }
     if (ImGui::MenuItem("Force Load Material Textures")) {
         MAGNUMMATERIALMGR.forceLoadTextures();
@@ -443,12 +450,12 @@ void MapViewer::drawEvent() {
     GL::Renderer::disable(GL::Renderer::Feature::Blending);
 
     if (showGrid)
-        if (auto* dg = worldSceneObjGen.getDebugDrawableGroup())
+        if (auto* dg = DGRPMGR.getGroup("WorldDebugDrawables"))
             _camera->draw(*dg);
-    if (auto* dg = worldSceneObjGen.getDrawableGroup())
+    if (auto* dg = DGRPMGR.getGroup("WorldDrawables"))
         _camera->draw(*dg);
     GL::Renderer::enable(GL::Renderer::Feature::Blending);
-    if (auto* dg = worldSceneObjGen.getTransDrawableGroup())
+    if (auto* dg = DGRPMGR.getGroup("WorldTransDrawables"))
         _camera->draw(*dg);
 
     GL::Renderer::enable(GL::Renderer::Feature::Blending);
@@ -654,7 +661,6 @@ void MapViewer::loopIteration()
             worldSceneBuilder.addMesh (*((MeshObstacle*) meshes[i]));
         
         worldSceneObjGen.createWorldObject(&worldSceneBuilder);
-        worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
     }
 }
 
