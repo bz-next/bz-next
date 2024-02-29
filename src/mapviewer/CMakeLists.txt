@@ -4,12 +4,13 @@ set_directory_properties(PROPERTIES CORRADE_USE_PEDANTIC_FLAGS ON)
 
 corrade_add_resource(MAPVIEWER_BZFLAG_TEXTURE_RESOURCES "${PROJECT_SOURCE_DIR}/data/texresources.conf")
 corrade_add_resource(BUNDLEDMAPS_RESOURCES resources/resources.conf)
+corrade_add_resource(MAPVIEWER_SHADER_RESOURCES "${PROJECT_SOURCE_DIR}/src/gfx/Shaders/resources/resources.conf")
 
 if (MINGW)
     set(CMAKE_EXE_LINKER_FLAGS "-mconsole")
 endif()
 
-add_executable(mapviewer WIN32 mapviewer.cpp ${MAPVIEWER_BZFLAG_TEXTURE_RESOURCES} ${BUNDLEDMAPS_RESOURCES}
+add_executable(mapviewer WIN32 mapviewer.cpp ${MAPVIEWER_BZFLAG_TEXTURE_RESOURCES} ${BUNDLEDMAPS_RESOURCES} ${MAPVIEWER_SHADER_RESOURCES}
     defaultBZDB.cxx
     defaultBZDB.h)
 target_link_libraries(mapviewer PRIVATE

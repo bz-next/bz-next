@@ -14,6 +14,7 @@ add_library(bzgfx STATIC ${GFX_SOURCES})
 target_include_directories(bzgfx PUBLIC include/)
 
 add_subdirectory(SceneObjects)
+add_subdirectory(Shaders)
 
 target_link_libraries(bzgfx
     Magnum::Application

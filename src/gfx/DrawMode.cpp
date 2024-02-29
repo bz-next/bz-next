@@ -3,6 +3,7 @@
 #include <Magnum/SceneGraph/Camera.hpp>
 #include <Magnum/GL/Buffer.h>
 #include <Magnum/GL/TextureFormat.h>
+#include "BasicTexturedShader.h"
 #include "Magnum/GL/Renderer.h"
 #include "Magnum/Shaders/PhongGL.h"
 #include <Magnum/GL/Mesh.h>
@@ -107,6 +108,42 @@ void BZMaterialDrawMode::draw(const Matrix4& transformationMatrix, SceneGraph::C
                 .setLightPositions({
                     {camera.cameraMatrix().transformPoint({0.0f, 0.0f, 1000.0f}), 0.0f}
                 })
+                .draw(mesh);
+        }
+    }
+}
+
+BasicTexturedShaderDrawMode::BasicTexturedShaderDrawMode() {
+    _shader = new BasicTexturedShader();
+}
+
+void BasicTexturedShaderDrawMode::draw(const Matrix4& transformationMatrix, SceneGraph::Camera3D& camera, const MagnumBZMaterial* mat, GL::Mesh& mesh)  {
+    MagnumTextureManager &tm = MagnumTextureManager::instance();
+
+    auto toMagnumColor = [](const float *cp) {
+        return Color3{cp[0], cp[1], cp[2]};
+    };
+
+    // NULL material just skips render
+    if (mat) {
+
+        Color3 dyncol;
+        if (mat->getDynamicColor() != -1) {
+            auto * dc = DYNCOLORMGR.getColor(mat->getDynamicColor());
+            if (dc) {
+                dyncol = toMagnumColor(dc->getColor());
+            }
+        }
+
+        if (mat->getNoCulling())
+            GL::Renderer::disable(GL::Renderer::Feature::FaceCulling);
+        else
+            GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
+
+        TextureData t = tm.getTexture(mat->getTexture(0).c_str());
+        if (t.texture) {
+            (*_shader).bindTexture(*t.texture)
+                .setColor(Color3{toMagnumColor(mat->getDiffuse())})
                 .draw(mesh);
         }
     }
