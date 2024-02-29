@@ -19,7 +19,7 @@ class TankSceneObject : public Object3D {
     friend class TankObjectBuilder;
     public:
     explicit TankSceneObject():
-        Object3D{} {}
+        Object3D{} { setupScales(); }
     virtual ~TankSceneObject() {}
 
     enum TankPart
@@ -72,6 +72,16 @@ class TankSceneObject : public Object3D {
         LastTankSize
     };
 
+    float _scaleFactors[LastTankSize][3] =
+    {
+    {1.0f, 1.0f, 1.0f},   // Normal
+    {1.0f, 1.0f, 1.0f},   // Obese
+    {1.0f, 1.0f, 1.0f},   // Tiny
+    {1.0f, 0.001f, 1.0f}, // Narrow
+    {1.0f, 1.0f, 1.0f}    // Thief
+    };
+
+    void setupScales();
     void setObese() { _tankSize = Obese; _useDimensions = false; }
     void setTiny() { _tankSize = Tiny; _useDimensions = false; }
     void setNarrow() { _tankSize = Narrow; _useDimensions = false; }

@@ -4,13 +4,21 @@
 #include "common.h"
 
 #include "Team.h"
+#include <SDL_scancode.h>
 #include <string>
+
+#include "BZDBCache.h"
 
 using namespace Magnum;
 
 void TankSceneObject::setPosition(const float pos[3], const float angleRad) {
     Object3D::resetTransformation();
-    //Object3D::scale({10.0f, 10.0f, 10.0f});
+    Object3D::scale({10.0f, 10.0f, 10.0f});
+    if (_useDimensions) {
+        Object3D::scale({_dimensions[0], _dimensions[1], _dimensions[2]});
+    } else if (_tankSize != Normal) {
+        Object3D::scale({_scaleFactors[_tankSize][0], _scaleFactors[_tankSize][1], _scaleFactors[_tankSize][2]});
+    }
     Object3D::rotateZ(Math::Rad<float>(angleRad));
     Object3D::translate({pos[0], pos[1], pos[2]});
     /*for (int i = LeftWheel0; i <= LeftWheel3; ++i) {
@@ -20,6 +28,43 @@ void TankSceneObject::setPosition(const float pos[3], const float angleRad) {
         _parts[i]->rotateY(Math::Rad<float>(_rightTreadOffset));
     }*/
     
+}
+
+void TankSceneObject::setupScales() {
+float scale;
+
+    _scaleFactors[Normal][0] = BZDBCache::tankLength;
+    scale = (float)atof(BZDB.getDefault(StateDatabase::BZDB_TANKLENGTH).c_str());
+    _scaleFactors[Normal][0] /= scale;
+
+    _scaleFactors[Normal][1] = BZDBCache::tankWidth;
+    scale = (float)atof(BZDB.getDefault(StateDatabase::BZDB_TANKWIDTH).c_str());
+    _scaleFactors[Normal][1] /= scale;
+
+    _scaleFactors[Normal][2] = BZDBCache::tankHeight;
+    scale = (float)atof(BZDB.getDefault(StateDatabase::BZDB_TANKHEIGHT).c_str());
+    _scaleFactors[Normal][2] /= scale;
+
+    scale = BZDB.eval(StateDatabase::BZDB_OBESEFACTOR);
+    _scaleFactors[Obese][0] = scale * _scaleFactors[Normal][0];
+    _scaleFactors[Obese][1] = scale * _scaleFactors[Normal][1];
+    _scaleFactors[Obese][2] = _scaleFactors[Normal][2];
+
+    scale = BZDB.eval(StateDatabase::BZDB_TINYFACTOR);
+    _scaleFactors[Tiny][0] = scale * _scaleFactors[Normal][0];
+    _scaleFactors[Tiny][1] = scale * _scaleFactors[Normal][1];
+    _scaleFactors[Tiny][2] = _scaleFactors[Normal][2];
+
+    scale = BZDB.eval(StateDatabase::BZDB_THIEFTINYFACTOR);
+    _scaleFactors[Thief][0] = scale * _scaleFactors[Normal][0];
+    _scaleFactors[Thief][1] = scale * _scaleFactors[Normal][1];
+    _scaleFactors[Thief][2] = _scaleFactors[Normal][2];
+
+    _scaleFactors[Narrow][0] = _scaleFactors[Normal][0];
+    _scaleFactors[Narrow][1] = 0.001f;
+    _scaleFactors[Narrow][2] = _scaleFactors[Normal][2];
+
+    return;
 }
 
 void TankSceneObject::addTreadOffsets(float left, float right) {
@@ -43,7 +88,7 @@ void TankSceneObject::addTreadOffsets(float left, float right) {
             mat->setStaticSpin(-500.0f*_leftTreadOffset);
             mat->setStaticCenter(0.5f, 0.5f);
             mat->finalize();
-        } else std::cout << "here\n";
+        }
     }
     if (_rWheelMat) {
         auto mat = TEXMATRIXMGR.getMatrix(_rWheelMat->getTextureMatrix(0));
@@ -51,7 +96,7 @@ void TankSceneObject::addTreadOffsets(float left, float right) {
             mat->setStaticSpin(-500.0f*_rightTreadOffset);
             mat->setStaticCenter(0.5f, 0.5f);
             mat->finalize();
-        } else std::cout << "here\n";
+        }
     }
 }
 
@@ -67,7 +112,7 @@ void TankSceneObject::setExplodeFraction(float t) {
     _explodeFraction = t;
     for (int i = 0; i < LastTankPart; ++i) {
         _parts[i]->resetTransformation();
-        _parts[i]->rotate(Math::Rad<float>(t*_spin[i][3]), {_spin[i][0], _spin[i][1], _spin[i][2]});
+        _parts[i]->rotate(Math::Deg<float>(t*_spin[i][3]), {_spin[i][0], _spin[i][1], _spin[i][2]});
         _parts[i]->translate({t*_vel[i][0], t*_vel[i][1], t*_vel[i][2]});
     }
     _isExploding = true;
