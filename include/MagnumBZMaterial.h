@@ -210,10 +210,10 @@ public:
 
     void update();
     void clear(bool loadDefaults = true);
-    const MagnumBZMaterial* addMaterial(const MagnumBZMaterial* material);
-    const MagnumBZMaterial* addLegacyIndexedMaterial(const MagnumBZMaterial* material);
-    const MagnumBZMaterial* findMaterial(const std::string& name) const;
-    const MagnumBZMaterial* getMaterial(int id) const;
+    MagnumBZMaterial* addMaterial(const MagnumBZMaterial* material);
+    MagnumBZMaterial* addLegacyIndexedMaterial(const MagnumBZMaterial* material);
+    MagnumBZMaterial* findMaterial(const std::string& name) const;
+    MagnumBZMaterial* getMaterial(int id) const;
     // Legacy function for adapting some deep parts of mesh code that references material indices
     int getIndex(const MagnumBZMaterial* material) const;
 

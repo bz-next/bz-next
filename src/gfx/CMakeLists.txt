@@ -5,6 +5,7 @@ set(GFX_SOURCES
     WorldSceneObjectGenerator.cpp
     WorldMeshGenerator.cpp
     GLInfo.cpp
+    DrawableGroupManager.cpp
 )
 
 add_library(bzgfx STATIC ${GFX_SOURCES})

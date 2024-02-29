@@ -104,13 +104,19 @@
 
 #include "WorldMeshGenerator.h"
 
+#include "TankObjectBuilder.h"
+
+#include "DrawableGroupManager.h"
+
 #include <ctime>
 #include <cassert>
 #include <imgui.h>
 #include <sstream>
 #include <cstring>
 #include <functional>
+#include <utility>
 
+#include "global.h"
 #include "utime.h"
 
 #include "common.h"
@@ -361,8 +367,6 @@ class BZFlagNew: public Platform::Sdl2Application {
         SceneGraph::DrawableGroup3D _drawables;
         Vector3 _previousPosition;
 
-        std::vector<Object3D *> tankObjs;
-
         WorldSceneObjectGenerator worldSceneObjGen;
         WorldMeshGenerator worldMeshGen;
         //std::vector<ColoredDrawable *> tankDrawables;
@@ -380,6 +384,8 @@ class BZFlagNew: public Platform::Sdl2Application {
         DynColorBrowser dynColorBrowser;
         MeshTransformBrowser meshTFBrowser;
         PhyDrvBrowser phyDrvBrowser;
+
+        std::map<int, Object3D*> remoteTanks;
 
         bool isQuit = false;
 };
@@ -654,13 +660,27 @@ void BZFlagNew::drawEvent() {
     GL::Renderer::disable(GL::Renderer::Feature::ScissorTest);
     GL::Renderer::disable(GL::Renderer::Feature::Blending);
 
+    // Update tank positions and rotations
+    for (auto o: remoteTanks) {
+        auto rp = remotePlayers[o.first];
+        if (!rp) continue;
+
+        auto tank = o.second;
+        tank->resetTransformation();
+        const float* pos = rp->getPosition();
+        const float angle = rp->getAngle();
+        tank->rotateZ(Math::Rad<float>(angle));
+        tank->translate({pos[0], pos[1], pos[2]});
+    }
+
+    _camera->draw(_drawables);
     if (showGrid)
-        if (auto* dg = worldSceneObjGen.getDebugDrawableGroup())
+        if (auto* dg = DGRPMGR.getGroup("WorldDebugDrawables"))
             _camera->draw(*dg);
-    if (auto* dg = worldSceneObjGen.getDrawableGroup())
+    if (auto* dg = DGRPMGR.getGroup("WorldDrawables"))
         _camera->draw(*dg);
     GL::Renderer::enable(GL::Renderer::Feature::Blending);
-    if (auto* dg = worldSceneObjGen.getTransDrawableGroup())
+    if (auto* dg = DGRPMGR.getGroup("WorldTransDrawables"))
         _camera->draw(*dg);
 
         /* Set appropriate states. If you only draw ImGui, it is sufficient to
@@ -1271,6 +1291,17 @@ Player* BZFlagNew::addPlayer(PlayerId id, const void* msg, int showMessage) {
 
     //if (shotStats)
     //    shotStats->refresh();
+    {
+        auto team = remotePlayers[i]->getTeam();
+        auto& tankBuilder = TankObjectBuilder::instance();
+        if (Team::isColorTeam(team) || team == RabbitTeam || team == HunterTeam || team == RogueTeam) {
+            tankBuilder.setPlayerID(remotePlayers[i]->getId());
+            tankBuilder.setTeam(team);
+            Object3D *tankobj = tankBuilder.buildTank();
+            tankobj->setParent(worldSceneObjGen.getWorldObject());
+            remoteTanks.insert(std::make_pair(remotePlayers[i]->getId(), tankobj));
+        }
+    }
 
     return remotePlayers[i];
 }
@@ -1306,6 +1337,9 @@ bool BZFlagNew::removePlayer(PlayerId id) {
 
     delete remotePlayers[playerIndex];
     remotePlayers[playerIndex] = NULL;
+
+    delete remoteTanks[playerIndex];
+    remoteTanks.erase(playerIndex);
 
     while ((playerIndex >= 0)
             &&     (playerIndex+1 == curMaxPlayers)
@@ -1554,6 +1588,46 @@ void BZFlagNew::joinInternetGame2()
     //worldSceneObjGen.createWorldObject();
     worldSceneObjGen.createWorldObject(&worldMeshGen);
     worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
+
+    auto& tankBuilder = TankObjectBuilder::instance();
+    tankBuilder.setDrawableGroup(&_drawables);
+
+    for (int i = 0; i < curMaxPlayers; ++i) {
+        if (remotePlayers[i]) {
+            auto team = remotePlayers[i]->getTeam();
+            if (!Team::isColorTeam(team)) {
+                if (team != RabbitTeam && team != HunterTeam && team != RogueTeam) {
+                    continue;
+                }
+            }
+            tankBuilder.setPlayerID(remotePlayers[i]->getId());
+            tankBuilder.setTeam(team);
+            Object3D *tankobj = tankBuilder.buildTank();
+            tankobj->setParent(worldSceneObjGen.getWorldObject());
+            remoteTanks.insert(std::make_pair(remotePlayers[i]->getId(), tankobj));
+        }
+    }
+    /*
+    {
+    tankBuilder.setPlayerID(0);
+    tankBuilder.setTeam(RedTeam);
+    Object3D *tankobj = tankBuilder.buildTank();
+    tankobj->setParent(worldSceneObjGen.getWorldObject());
+    }
+    {
+    tankBuilder.setPlayerID(1);
+    tankBuilder.setTeam(GreenTeam);
+    Object3D *tankobj = tankBuilder.buildTank();
+    tankobj->setParent(worldSceneObjGen.getWorldObject());
+    tankobj->translate({20.0f, 0.0f, 0.0f});
+    }
+    {
+    tankBuilder.setPlayerID(2);
+    tankBuilder.setTeam(BlueTeam);
+    Object3D *tankobj = tankBuilder.buildTank();
+    tankobj->setParent(worldSceneObjGen.getWorldObject());
+    tankobj->translate({-20.0f, 0.0f, 0.0f});
+    }*/
 
     // make radar
     //  radar = new RadarRenderer(*sceneRenderer, *world);

@@ -40,6 +40,7 @@ public:
     static const float*     getShotColor(TeamColor team); // const
     static const std::string    getAnsiCode(TeamColor team); // const
     static bool         isColorTeam(TeamColor); // const
+    static bool isPlayableTeam(TeamColor);
 
     static void     setColors(TeamColor,
                               const float* tank,

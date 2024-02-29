@@ -28,6 +28,8 @@
 #include "sound.h"
 #include "Roaming.h"
 
+#include "TankObjectBuilder.h"
+
 // for dead reckoning
 static const float  MaxUpdateTime = 1.0f;       // seconds
 
@@ -100,6 +102,7 @@ Player::Player(const PlayerId& _id, TeamColor _team,
     {
         // make scene nodes
         //tankNode = new TankSceneNode(state.pos, forward);
+        auto& tb = TankObjectBuilder::instance();
         //tankIDLNode = new TankIDLSceneNode(tankNode);
         changeTeam(team);
         const float sphereRad = (1.5f * BZDBCache::tankRadius);

@@ -136,7 +136,7 @@ void MagnumBZMaterialManager::forceLoadTextures()
     }
 }
 
-const MagnumBZMaterial* MagnumBZMaterialManager::addLegacyIndexedMaterial(const MagnumBZMaterial* material)
+MagnumBZMaterial* MagnumBZMaterialManager::addLegacyIndexedMaterial(const MagnumBZMaterial* material)
 {
     std::ostringstream namebuilder;
     namebuilder << "_LegacyMaterialIndex" << legacyMaterialIndex;
@@ -145,7 +145,7 @@ const MagnumBZMaterial* MagnumBZMaterialManager::addLegacyIndexedMaterial(const 
     indexedMat->addAlias(namebuilder.str());
     indexedMat->setLegacyIndex(legacyMaterialIndex);
 
-    const auto* mat = addMaterial(indexedMat);
+    auto* mat = addMaterial(indexedMat);
 
     delete indexedMat;
 
@@ -154,7 +154,7 @@ const MagnumBZMaterial* MagnumBZMaterialManager::addLegacyIndexedMaterial(const 
     return mat;
 }
 
-const MagnumBZMaterial* MagnumBZMaterialManager::addMaterial(const MagnumBZMaterial* material)
+MagnumBZMaterial* MagnumBZMaterialManager::addMaterial(const MagnumBZMaterial* material)
 {
     for (unsigned int i = 0; i < materials.size(); i++)
     {
@@ -179,7 +179,7 @@ const MagnumBZMaterial* MagnumBZMaterialManager::addMaterial(const MagnumBZMater
 }
 
 
-const MagnumBZMaterial* MagnumBZMaterialManager::findMaterial(const std::string& target) const
+MagnumBZMaterial* MagnumBZMaterialManager::findMaterial(const std::string& target) const
 {
     if (target.size() <= 0)
         return NULL;
@@ -200,7 +200,7 @@ const MagnumBZMaterial* MagnumBZMaterialManager::findMaterial(const std::string&
     {
         for (unsigned int i = 0; i < materials.size(); i++)
         {
-            const MagnumBZMaterial* mat = materials[i];
+            MagnumBZMaterial* mat = materials[i];
             // check the base name
             if (target == mat->getName())
                 return mat;
@@ -217,9 +217,9 @@ const MagnumBZMaterial* MagnumBZMaterialManager::findMaterial(const std::string&
 }
 
 
-const MagnumBZMaterial* MagnumBZMaterialManager::getMaterial(int id) const
+MagnumBZMaterial* MagnumBZMaterialManager::getMaterial(int id) const
 {
-    const MagnumBZMaterial *ret;
+    MagnumBZMaterial *ret;
     ret = findMaterial(std::to_string(id));
     if (ret) {
         return ret;
@@ -487,6 +487,13 @@ MagnumBZMaterial& MagnumBZMaterial::operator=(const MagnumBZMaterial& m)
 bool MagnumBZMaterial::operator==(const MagnumBZMaterial& m) const
 {
     int i;
+
+    // No automatic aliasing of materials by properties.
+    // Sometimes, we want to add two identical materials and change one later
+    // for example, for animation or effects.
+    if (name != m.name) {
+        return false;
+    }
 
     if ((dynamicColor != m.dynamicColor) ||
             (memcmp (ambient, m.ambient, sizeof(float[4])) != 0) ||

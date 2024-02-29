@@ -14,55 +14,18 @@
 #include "MagnumDefs.h"
 #include "Team.h"
 
+#include "TankSceneObject.h"
+
 class TankObjectBuilder {
-    enum TankPart
-    {
-        Body = 0,
-        Barrel,
-        Turret,
-        LeftCasing,
-        RightCasing,
-
-        LeftTread, // animated parts
-        RightTread,
-        LeftWheel0,
-        LeftWheel1,
-        LeftWheel2,
-        LeftWheel3,
-        RightWheel0,
-        RightWheel1,
-        RightWheel2,
-        RightWheel3,
-
-        LastTankPart
-    };
-
-    static constexpr const char* ObjLabels[] = {
-        "Body",
-        "Barrel",
-        "Turret",
-        "LeftCasing",
-        "RightCasing",
-        "LeftTread",
-        "RightTread",
-        "LeftWheel0",
-        "LeftWheel1",
-        "LeftWheel2",
-        "LeftWheel3",
-        "RightWheel0",
-        "RightWheel1",
-        "RightWheel2",
-        "RightWheel3",
-    };
-    
     public:
-        TankObjectBuilder() : _meshes{LastTankPart} {}
+        static TankObjectBuilder& instance() { static TankObjectBuilder instance; return instance; }
         void setPlayerID(int playerID);
         void setTeam(TeamColor tc);
         void setAnimableGroup(Magnum::SceneGraph::AnimableGroup3D* agrp);
         void setDrawableGroup(Magnum::SceneGraph::DrawableGroup3D* dgrp);
-        Object3D* buildTank();
+        TankSceneObject* buildTank();
     private:
+        TankObjectBuilder() : _meshes{TankSceneObject::LastTankPart} {}
         int _playerID;
         TeamColor _tc;
         Magnum::SceneGraph::AnimableGroup3D* _agrp = NULL;
@@ -72,6 +35,7 @@ class TankObjectBuilder {
         void loadTankMesh();
 
         Corrade::Containers::Array<Magnum::GL::Mesh> _meshes;
+        bool _isMeshLoaded = false;
 };
 
 #endif

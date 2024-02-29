@@ -28,9 +28,6 @@ class WorldSceneObjectGenerator {
         // Assumes that world is already loaded and OBSTACLEMGR is ready to go
         void createWorldObject(const WorldMeshGenerator *sb);
 
-        Magnum::SceneGraph::DrawableGroup3D *getDrawableGroup();
-        Magnum::SceneGraph::DrawableGroup3D *getTransDrawableGroup();
-        Magnum::SceneGraph::DrawableGroup3D *getDebugDrawableGroup();
         Object3D *getWorldObject();
 
         // Specify materials to exclude when creating world object
@@ -48,9 +45,6 @@ class WorldSceneObjectGenerator {
         std::map<std::string, std::vector<Magnum::GL::Mesh>> worldMeshes;
         Object3D *worldParent;
         Magnum::GL::Mesh *debugLine;
-        Magnum::SceneGraph::DrawableGroup3D *worldDebugDrawables;
-        Magnum::SceneGraph::DrawableGroup3D *worldDrawables;
-        Magnum::SceneGraph::DrawableGroup3D *worldTransDrawables;
         Magnum::Shaders::PhongGL coloredShader;
         Magnum::Shaders::PhongGL coloredShaderInstanced{Magnum::Shaders::PhongGL::Configuration{}
             .setFlags(Magnum::Shaders::PhongGL::Flag::InstancedTransformation|

@@ -24,23 +24,10 @@
 #include <Magnum/SceneGraph/Scene.h>
 #include <Magnum/Shaders/PhongGL.h>
 
+#include "DrawableGroupManager.h"
+
 using namespace Magnum;
 using namespace Magnum::Math::Literals;
-
-SceneGraph::DrawableGroup3D *WorldSceneObjectGenerator::getDrawableGroup()
-{
-    return worldDrawables;
-}
-
-SceneGraph::DrawableGroup3D *WorldSceneObjectGenerator::getTransDrawableGroup()
-{
-    return worldTransDrawables;
-}
-
-SceneGraph::DrawableGroup3D *WorldSceneObjectGenerator::getDebugDrawableGroup()
-{
-    return worldDebugDrawables;
-}
 
 Object3D *WorldSceneObjectGenerator::getWorldObject()
 {
@@ -48,9 +35,6 @@ Object3D *WorldSceneObjectGenerator::getWorldObject()
 }
 
 WorldSceneObjectGenerator::WorldSceneObjectGenerator() {
-    worldDrawables = NULL;
-    worldTransDrawables = NULL;
-    worldDebugDrawables = NULL;
     worldParent = NULL;
     debugLine = NULL;
 }
@@ -68,9 +52,9 @@ void WorldSceneObjectGenerator::clearExcludeSet() {
 }
 
 void WorldSceneObjectGenerator::createWorldObject(const WorldMeshGenerator *sb) {
-    worldDrawables = new SceneGraph::DrawableGroup3D{};
-    worldTransDrawables = new SceneGraph::DrawableGroup3D{};
-    worldDebugDrawables = new SceneGraph::DrawableGroup3D{};
+    auto worldDrawables = DGRPMGR.addGroup("WorldDrawables");
+    auto worldTransDrawables = DGRPMGR.addGroup("WorldTransDrawables");
+    auto worldDebugDrawables = DGRPMGR.addGroup("WorldDebugDrawables");
     worldParent = new Object3D{};
     worldParent->scale({0.05, 0.05, 0.05});
 
@@ -145,15 +129,9 @@ void WorldSceneObjectGenerator::createWorldObject(const WorldMeshGenerator *sb) 
 }
 
 void WorldSceneObjectGenerator::destroyWorldObject() {
-    if (worldDrawables) delete worldDrawables;
-    if (worldTransDrawables) delete worldTransDrawables;
-    if (worldDebugDrawables) delete worldDebugDrawables;
     if (worldParent) delete worldParent;
     if (debugLine) delete debugLine;
     worldMeshes.clear();
-    worldDrawables = NULL;
-    worldTransDrawables = NULL;
-    worldDebugDrawables = NULL;
     worldParent = NULL;
     debugLine = NULL;
 }

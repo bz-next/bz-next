@@ -15,6 +15,7 @@
 #include "AnsiCodes.h"
 #include "BZDBCache.h"
 #include "Pack.h"
+#include "global.h"
 
 float           Team::tankColor[NumTeams][3] =
 {
@@ -161,6 +162,14 @@ const std::string   Team::getAnsiCode(TeamColor team) // const
 bool        Team::isColorTeam(TeamColor team) // const
 {
     return team >= RedTeam  && team <= PurpleTeam;
+}
+
+bool Team::isPlayableTeam(TeamColor team) {
+    if (isColorTeam(team)) return true;
+    if (team == RabbitTeam || team == HunterTeam || team == RogueTeam) {
+        return true;
+    }
+    return false;
 }
 
 void            Team::setColors(TeamColor team,

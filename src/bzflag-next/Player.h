@@ -26,6 +26,8 @@
 #include "PlayerState.h"
 #include "ShotStatistics.h"
 
+#include "TankSceneObject.h"
+
 
 /* local interface headers */
 class ShotPath;
@@ -265,6 +267,7 @@ private:
     //TankSceneNode*    tankNode;
     //TankIDLSceneNode* tankIDLNode;
     //SphereSceneNode*  pausedSphere;
+    TankSceneObject *tankObj;
 #ifndef BUILDING_BZADMIN
     float       color[4];
     float       teleAlpha;

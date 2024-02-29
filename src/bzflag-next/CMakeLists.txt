@@ -9,9 +9,10 @@ if (MINGW)
 endif()
 
 corrade_add_resource(BZFLAG_TEXTURE_RESOURCES "${PROJECT_SOURCE_DIR}/data/texresources.conf")
+corrade_add_resource(BZGFX_TANK_RESOURCES "${PROJECT_SOURCE_DIR}/data/tankresources.conf")
 
 add_compile_definitions(BUILDING_CLIENT)
-add_executable(bzflag-next WIN32 bzflag-next.cpp ${BZNEXT_RESOURCES} ${BZFLAG_TEXTURE_RESOURCES}
+add_executable(bzflag-next WIN32 bzflag-next.cpp ${BZGFX_TANK_RESOURCES} ${BZFLAG_TEXTURE_RESOURCES}
     ActionBinding.cxx
     ActionBinding.h
     AutoPilot.cxx
