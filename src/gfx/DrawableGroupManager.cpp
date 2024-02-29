@@ -13,7 +13,6 @@ SceneGraph::DrawableGroup3D* DrawableGroupManager::getGroup(const std::string& n
     if (it != _dgrps.end()) {
         return &it->second;
     }
-    Warning{} << "Could not find" << name.c_str();
     return NULL;
 }
 
@@ -21,6 +20,5 @@ SceneGraph::DrawableGroup3D* DrawableGroupManager::addGroup(const std::string& n
     auto g = getGroup(name);
     if (g != NULL) return g;
     _dgrps.insert(std::make_pair(name, SceneGraph::DrawableGroup3D{}));
-    Warning{} << "Added" << name.c_str();
     return &_dgrps[name];
 }

@@ -7,6 +7,7 @@ set(GFX_SOURCES
     GLInfo.cpp
     DrawableGroupManager.cpp
     SceneObjectManager.cpp
+    DrawMode.cpp
 )
 
 add_library(bzgfx STATIC ${GFX_SOURCES})

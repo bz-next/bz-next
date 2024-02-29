@@ -14,6 +14,7 @@
 #endif
 
 #include "MagnumBZMaterial.h"
+#include "DrawMode.h"
 
 class BZMaterialDrawable : public Magnum::SceneGraph::Drawable3D {
     public:
@@ -21,24 +22,12 @@ class BZMaterialDrawable : public Magnum::SceneGraph::Drawable3D {
             Magnum::SceneGraph::Drawable3D{object, &group},
             _mesh(mesh),
             _matPtr(mptr)
-        {
-            // Quick and dirty way to share a shader among all the bzmaterialdrawables
-            if (_shader == NULL)
-                _shader = new Magnum::Shaders::PhongGL{Magnum::Shaders::PhongGL::Configuration{}
-                    .setFlags(
-                        Magnum::Shaders::PhongGL::Flag::DiffuseTexture |
-                        Magnum::Shaders::PhongGL::Flag::AmbientTexture |
-                        Magnum::Shaders::PhongGL::Flag::AlphaMask |
-                        Magnum::Shaders::PhongGL::Flag::TextureTransformation)};
-            if (_shaderUntex == NULL)
-                _shaderUntex = new Magnum::Shaders::PhongGL{Magnum::Shaders::PhongGL::Configuration{}};
-        }
+        {}
 
     private:
         void draw(const Magnum::Matrix4& transformationMatrix, Magnum::SceneGraph::Camera3D& camera) override;
 
-        static Magnum::Shaders::PhongGL *_shader;
-        static Magnum::Shaders::PhongGL *_shaderUntex;
+        static BZMaterialDrawMode* _mode;
         Magnum::GL::Mesh& _mesh;
         const MagnumBZMaterial *_matPtr;
 };
