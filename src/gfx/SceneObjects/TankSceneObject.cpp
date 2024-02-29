@@ -13,7 +13,7 @@ using namespace Magnum;
 
 void TankSceneObject::setPosition(const float pos[3], const float angleRad) {
     Object3D::resetTransformation();
-    Object3D::scale({10.0f, 10.0f, 10.0f});
+    //Object3D::scale({10.0f, 10.0f, 10.0f});
     if (_useDimensions) {
         Object3D::scale({_dimensions[0], _dimensions[1], _dimensions[2]});
     } else if (_tankSize != Normal) {

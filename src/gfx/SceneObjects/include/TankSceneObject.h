@@ -19,7 +19,7 @@ class TankSceneObject : public Object3D {
     friend class TankObjectBuilder;
     public:
     explicit TankSceneObject():
-        Object3D{} { setupScales(); }
+        Object3D{} { setupScales(); setNormal(); }
     virtual ~TankSceneObject() {}
 
     enum TankPart
@@ -109,14 +109,14 @@ class TankSceneObject : public Object3D {
         float _dimensions[3];
         float _leftTreadOffset = 0.0f;
         float _rightTreadOffset = 0.0f;
-        float _leftWheelOffset;
-        float _rightWheelOffset;
-        bool _useDimensions;
-        float _explodeFraction;
+        float _leftWheelOffset = 0.0f;
+        float _rightWheelOffset = 0.0f;
+        bool _useDimensions = false;
+        float _explodeFraction = 0.0f;
         bool _isExploding = false;
 
         float _color[4];
-        TankSize _tankSize;
+        TankSize _tankSize = Normal;
 
         // For explosion
         float _spin[LastTankPart][4];

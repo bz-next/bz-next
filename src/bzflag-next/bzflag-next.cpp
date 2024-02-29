@@ -1492,14 +1492,14 @@ int BZFlagNew::main() {
     ServerListCache::get()->loadCache();
 
     BZDB.set("callsign", "testingbz");
-    BZDB.set("server", "bzflagnation.org");
-    BZDB.set("port", "4206");
+    BZDB.set("server", "localhost");
+    BZDB.set("port", "5154");
 
     startupInfo.useUDPconnection=true;
     startupInfo.team = ObserverTeam;
     strcpy(startupInfo.callsign, "testingbz");
-    strcpy(startupInfo.serverName, "bzflagnation.org");
-    startupInfo.serverPort = 4206;
+    strcpy(startupInfo.serverName, "localhost");
+    startupInfo.serverPort = 5154;
 
     startupInfo.autoConnect = true;
 

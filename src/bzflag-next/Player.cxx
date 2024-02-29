@@ -968,7 +968,6 @@ void Player::addToScene(SceneDatabase* scene, TeamColor effectiveTeam,
             tankObj->setColor(newColor);
         }
         tankObj->setExplodeFraction(t);
-        std::cout << "Explode fraction " << t << std::endl;
         //tankObj->setClipPlane(groundPlane); // shadows are not clipped
         //scene->addDynamicNode(tankNode);
     }
