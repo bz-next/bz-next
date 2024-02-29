@@ -107,6 +107,7 @@
 #include "TankObjectBuilder.h"
 
 #include "DrawableGroupManager.h"
+#include "SceneObjectManager.h"
 
 #include <ctime>
 #include <cassert>
@@ -428,6 +429,14 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
     
     _manipulator.setParent(&_scene);
 
+    Object3D* scene = SOMGR.addObj("Scene");
+    scene->setParent(&_manipulator);
+
+    scene->scale({0.05f, 0.05f, 0.05f});
+
+    SOMGR.addObj("TanksParent")->setParent(scene);
+
+    DGRPMGR.addGroup("TankDrawables");
 
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
     GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
@@ -520,7 +529,6 @@ void BZFlagNew::showMenuDebug() {
     if (ImGui::MenuItem("Recompile World Mesh")) {
         worldSceneObjGen.destroyWorldObject();
         worldSceneObjGen.createWorldObject(&worldMeshGen);
-        worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
     }
     if (ImGui::MenuItem("Force Load Material Textures")) {
         MAGNUMMATERIALMGR.forceLoadTextures();
@@ -673,13 +681,14 @@ void BZFlagNew::drawEvent() {
         tank->translate({pos[0], pos[1], pos[2]});
     }
 
-    _camera->draw(_drawables);
     if (showGrid)
         if (auto* dg = DGRPMGR.getGroup("WorldDebugDrawables"))
             _camera->draw(*dg);
     if (auto* dg = DGRPMGR.getGroup("WorldDrawables"))
         _camera->draw(*dg);
     GL::Renderer::enable(GL::Renderer::Feature::Blending);
+    if (auto* dg = DGRPMGR.getGroup("TankDrawables"))
+        _camera->draw(*dg);
     if (auto* dg = DGRPMGR.getGroup("WorldTransDrawables"))
         _camera->draw(*dg);
 
@@ -1291,7 +1300,7 @@ Player* BZFlagNew::addPlayer(PlayerId id, const void* msg, int showMessage) {
 
     //if (shotStats)
     //    shotStats->refresh();
-    {
+    /*{
         auto team = remotePlayers[i]->getTeam();
         auto& tankBuilder = TankObjectBuilder::instance();
         if (Team::isColorTeam(team) || team == RabbitTeam || team == HunterTeam || team == RogueTeam) {
@@ -1301,7 +1310,7 @@ Player* BZFlagNew::addPlayer(PlayerId id, const void* msg, int showMessage) {
             tankobj->setParent(worldSceneObjGen.getWorldObject());
             remoteTanks.insert(std::make_pair(remotePlayers[i]->getId(), tankobj));
         }
-    }
+    }*/
 
     return remotePlayers[i];
 }
@@ -1483,14 +1492,14 @@ int BZFlagNew::main() {
     ServerListCache::get()->loadCache();
 
     BZDB.set("callsign", "testingbz");
-    BZDB.set("server", "localhost");
-    BZDB.set("port", "5154");
+    BZDB.set("server", "bzflagnation.org");
+    BZDB.set("port", "4206");
 
     startupInfo.useUDPconnection=true;
     startupInfo.team = ObserverTeam;
     strcpy(startupInfo.callsign, "testingbz");
-    strcpy(startupInfo.serverName, "localhost");
-    startupInfo.serverPort = 5154;
+    strcpy(startupInfo.serverName, "bzflagnation.org");
+    startupInfo.serverPort = 4206;
 
     startupInfo.autoConnect = true;
 
@@ -1506,13 +1515,13 @@ int BZFlagNew::main() {
     //MAGNUMMATERIALMGR.loadDefaultMaterials();
 
     worldSceneObjGen.createWorldObject(&worldMeshGen);
-    worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
 
     startPlaying();
 
     killAres();
     AresHandler::globalShutdown();
     tm.clear();
+    TankObjectBuilder::instance().cleanup();
     exit(0);
     return 0;
 }
@@ -1551,6 +1560,10 @@ void BZFlagNew::joinInternetGame2()
 
     //world->makeMeshDrawMgrs();
 
+    MAGNUMMATERIALMGR.forceLoadTextures();
+    MAGNUMMATERIALMGR.rescanTextures();
+    MagnumTextureManager::instance().disableAutomaticLoading();
+
     const ObstacleList& boxes = OBSTACLEMGR.getBoxes();
     for (int i = 0; i < boxes.size(); ++i) {
         worldMeshGen.addBox(*((BoxBuilding*) boxes[i]));
@@ -1587,12 +1600,11 @@ void BZFlagNew::joinInternetGame2()
     
     //worldSceneObjGen.createWorldObject();
     worldSceneObjGen.createWorldObject(&worldMeshGen);
-    worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
 
-    auto& tankBuilder = TankObjectBuilder::instance();
-    tankBuilder.setDrawableGroup(&_drawables);
+    //auto& tankBuilder = TankObjectBuilder::instance();
+    //tankBuilder.setDrawableGroup(&_drawables);
 
-    for (int i = 0; i < curMaxPlayers; ++i) {
+    /*for (int i = 0; i < curMaxPlayers; ++i) {
         if (remotePlayers[i]) {
             auto team = remotePlayers[i]->getTeam();
             if (!Team::isColorTeam(team)) {
@@ -1606,7 +1618,7 @@ void BZFlagNew::joinInternetGame2()
             tankobj->setParent(worldSceneObjGen.getWorldObject());
             remoteTanks.insert(std::make_pair(remotePlayers[i]->getId(), tankobj));
         }
-    }
+    }*/
     /*
     {
     tankBuilder.setPlayerID(0);
@@ -2278,12 +2290,45 @@ void BZFlagNew::playingLoop()
         if (world)
             world->updateAnimations(dt);
 
-        // draw frame
+
+
         // update the dynamic colors
         DYNCOLORMGR.update();
-
         // update the texture matrices
         TEXMATRIXMGR.update();
+
+        // Prepare scene for render
+        for (int i = 0; i < curMaxPlayers; i++)
+        {
+            if (remotePlayers[i])
+            {
+                const bool colorblind = (myTank->getFlag() == ::Flags::Colorblindness);
+                //remotePlayers[i]->addShots(scene, colorblind);
+
+                TeamColor effectiveTeam = RogueTeam;
+                if (!colorblind)
+                {
+                    if ((remotePlayers[i]->getFlag() == ::Flags::Masquerade)
+                            && (myTank->getFlag() != ::Flags::Seer)
+                            && (myTank->getTeam() != ObserverTeam))
+                        effectiveTeam = myTank->getTeam();
+                    else
+                        effectiveTeam = remotePlayers[i]->getTeam();
+                }
+
+                /*const bool inCockpt  = ROAM.isRoaming() && !devDriving &&
+                                        (ROAM.getMode() == Roaming::roamViewFP) &&
+                                        ROAM.getTargetTank() &&
+                                        (ROAM.getTargetTank()->getId() == i);
+                const bool showPlayer = !inCockpt || showTreads;*/
+
+                // add player tank if required
+                remotePlayers[i]->addToScene(NULL, effectiveTeam,
+                                                false, false,
+                                                true, false /*showIDL*/);
+            }
+        }
+
         mainLoopIteration();
 
         // updateSound()

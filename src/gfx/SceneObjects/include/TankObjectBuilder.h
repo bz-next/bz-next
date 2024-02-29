@@ -21,14 +21,14 @@ class TankObjectBuilder {
         static TankObjectBuilder& instance() { static TankObjectBuilder instance; return instance; }
         void setPlayerID(int playerID);
         void setTeam(TeamColor tc);
-        void setAnimableGroup(Magnum::SceneGraph::AnimableGroup3D* agrp);
         void setDrawableGroup(Magnum::SceneGraph::DrawableGroup3D* dgrp);
         TankSceneObject* buildTank();
+
+        void cleanup();
     private:
         TankObjectBuilder() : _meshes{TankSceneObject::LastTankPart} {}
         int _playerID;
         TeamColor _tc;
-        Magnum::SceneGraph::AnimableGroup3D* _agrp = NULL;
         Magnum::SceneGraph::DrawableGroup3D* _dgrp = NULL;
 
         void prepareMaterials();

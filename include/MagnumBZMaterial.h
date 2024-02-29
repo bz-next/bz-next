@@ -42,6 +42,7 @@ public:
     void setDynamicColor(int);
     void setAmbient(const float[4]);
     void setDiffuse(const float[4]);
+    void setDiffuseAlpha(const float alpha);
     void setSpecular(const float[4]);
     void setEmission(const float[4]);
     void setShininess(const float);

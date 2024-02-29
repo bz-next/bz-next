@@ -94,7 +94,7 @@ int TextureMatrixManager::findMatrix(const std::string& texmat) const
 }
 
 
-const TextureMatrix* TextureMatrixManager::getMatrix(int id) const
+TextureMatrix* TextureMatrixManager::getMatrix(int id) const
 {
     if ((id >= 0) && (id < (int)matrices.size()))
         return matrices[id];
@@ -248,10 +248,6 @@ TextureMatrix::TextureMatrix()
 {
     name = "";
 
-    // load the identity matrices
-    memcpy(matrix, fullIdentity, sizeof(float[4][4]));
-    memcpy(staticMatrix, partialIdentity, sizeof(float[3][2]));
-
     // the static parameters
     useStatic = false;
     rotation = 0.0f;
@@ -281,6 +277,10 @@ void TextureMatrix::finalize()
 {
     useStatic = false;
     useDynamic = false;
+
+    // load the identity matrices
+    memcpy(matrix, fullIdentity, sizeof(float[4][4]));
+    memcpy(staticMatrix, partialIdentity, sizeof(float[3][2]));
 
     if ((rotation != 0.0f) ||
             (uFixedShift != 0.0f) || (vFixedShift != 0.0f) ||

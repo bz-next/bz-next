@@ -43,7 +43,6 @@ class WorldSceneObjectGenerator {
             Magnum::Color3 color;
         };
         std::map<std::string, std::vector<Magnum::GL::Mesh>> worldMeshes;
-        Object3D *worldParent;
         Magnum::GL::Mesh *debugLine;
         Magnum::Shaders::PhongGL coloredShader;
         Magnum::Shaders::PhongGL coloredShaderInstanced{Magnum::Shaders::PhongGL::Configuration{}

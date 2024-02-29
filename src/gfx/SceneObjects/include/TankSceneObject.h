@@ -83,6 +83,8 @@ class TankSceneObject : public Object3D {
     void setExplodeFraction(float t);
     void resetExplosion() { _isExploding = false; _explodeFraction = 0.0f; }
 
+    bool isExploding() const { return _isExploding; }
+
     void rebuildExplosion();
 
     void setColor(const float rgba[4]);
@@ -91,12 +93,12 @@ class TankSceneObject : public Object3D {
     private:
 
         Object3D* _parts[LastTankPart];
-        MagnumBZMaterial *_bodyMat, *_lTreadMat, *_rTreadMat;
+        MagnumBZMaterial *_bodyMat, *_lTreadMat, *_rTreadMat, *_barrelMat, *_lWheelMat, *_rWheelMat;
         TeamColor _team;
 
         float _dimensions[3];
-        float _leftTreadOffset;
-        float _rightTreadOffset;
+        float _leftTreadOffset = 0.0f;
+        float _rightTreadOffset = 0.0f;
         float _leftWheelOffset;
         float _rightWheelOffset;
         bool _useDimensions;

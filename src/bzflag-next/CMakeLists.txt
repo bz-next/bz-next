@@ -40,8 +40,8 @@ add_executable(bzflag-next WIN32 bzflag-next.cpp ${BZGFX_TANK_RESOURCES} ${BZFLA
     defaultBZDB.h
     #DisplayMenu.cxx
     #DisplayMenu.h
-    Downloads.cxx
-    Downloads.h
+    #Downloads.cxx
+    #Downloads.h
     #EffectsMenu.cxx
     #EffectsMenu.h
     #effectsRenderer.cxx

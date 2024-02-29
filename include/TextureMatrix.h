@@ -89,7 +89,7 @@ public:
     void clear();
     int addMatrix(TextureMatrix* matrix);
     int findMatrix(const std::string& name) const;
-    const TextureMatrix* getMatrix(int id) const;
+    TextureMatrix* getMatrix(int id) const;
 
     const std::vector<TextureMatrix*> &getMatList() const;
 

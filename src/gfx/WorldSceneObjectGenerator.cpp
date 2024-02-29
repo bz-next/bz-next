@@ -25,17 +25,12 @@
 #include <Magnum/Shaders/PhongGL.h>
 
 #include "DrawableGroupManager.h"
+#include "SceneObjectManager.h"
 
 using namespace Magnum;
 using namespace Magnum::Math::Literals;
 
-Object3D *WorldSceneObjectGenerator::getWorldObject()
-{
-    return worldParent;
-}
-
 WorldSceneObjectGenerator::WorldSceneObjectGenerator() {
-    worldParent = NULL;
     debugLine = NULL;
 }
 
@@ -51,21 +46,28 @@ void WorldSceneObjectGenerator::clearExcludeSet() {
     materialsToExclude.clear();
 }
 
+Object3D* WorldSceneObjectGenerator::getWorldObject() {
+    return SOMGR.getObj("WorldParent");
+}
+
 void WorldSceneObjectGenerator::createWorldObject(const WorldMeshGenerator *sb) {
     auto worldDrawables = DGRPMGR.addGroup("WorldDrawables");
     auto worldTransDrawables = DGRPMGR.addGroup("WorldTransDrawables");
     auto worldDebugDrawables = DGRPMGR.addGroup("WorldDebugDrawables");
-    worldParent = new Object3D{};
-    worldParent->scale({0.05, 0.05, 0.05});
+    SOMGR.delObj("WorldParent");
+    Object3D *worldParent = SOMGR.addObj("WorldParent");
+    worldParent->setParent(SOMGR.getObj("Scene"));
 
 #ifndef MAGNUM_TARGET_GLES2
     {
-        debugLine = new GL::Mesh{
-            MeshTools::compileLines(
-                MeshTools::generateLines(
-                    WorldPrimitiveGenerator::debugLine(
-                        {-1.0f, 0.0f, 0.0f},
-                        {1.0f, 0.0f, 0.0f})))};
+        if (!debugLine) {
+            debugLine = new GL::Mesh{
+                MeshTools::compileLines(
+                    MeshTools::generateLines(
+                        WorldPrimitiveGenerator::debugLine(
+                            {-1.0f, 0.0f, 0.0f},
+                            {1.0f, 0.0f, 0.0f})))};
+        }
         Object3D *debugLines = new Object3D{};
         debugLines->setParent(worldParent);
         debugLines->scale(Vector3{100.0, 100.0, 100.0});
@@ -129,9 +131,6 @@ void WorldSceneObjectGenerator::createWorldObject(const WorldMeshGenerator *sb) 
 }
 
 void WorldSceneObjectGenerator::destroyWorldObject() {
-    if (worldParent) delete worldParent;
-    if (debugLine) delete debugLine;
+    SOMGR.delObj("WorldParent");
     worldMeshes.clear();
-    worldParent = NULL;
-    debugLine = NULL;
 }

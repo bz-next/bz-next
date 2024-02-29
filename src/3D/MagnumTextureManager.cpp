@@ -114,7 +114,7 @@ TextureData MagnumTextureManager::getTexture( const char* name, bool reportFail 
     TextureNameMap::iterator it = textureNames.find(name);
     if (it != textureNames.end())
         return it->second.data;
-    else if (autoLoad)   // we don't have it so try and load it
+    else // we don't have it so try and load it
     {
 
         OSFile osFilename(name); // convert to native format
@@ -251,8 +251,11 @@ TextureData MagnumTextureManager::loadTexture(FileTextureInit &init, bool report
     if (filename == "") {
         return {NULL, 0, 0};
     }
-    if (CACHEMGR.isCacheFileType(init.name))
+    if (CACHEMGR.isCacheFileType(init.name)) {
+        // This prevents us from trying to load unavailable cached textures every frame
+        if (!autoLoad) return {NULL, 0, 0, false};
         filename = CACHEMGR.getLocalName(filename);
+    }
 
     // TODO: Support other file types JUST BY NOT REQUIRING THIS EXTENSION!!!
     // The current code is dumb in that it appends the extension last minute based on what exists...

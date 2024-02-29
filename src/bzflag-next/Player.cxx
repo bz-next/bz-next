@@ -29,6 +29,8 @@
 #include "Roaming.h"
 
 #include "TankObjectBuilder.h"
+#include "SceneObjectManager.h"
+#include "DrawableGroupManager.h"
 
 // for dead reckoning
 static const float  MaxUpdateTime = 1.0f;       // seconds
@@ -103,6 +105,12 @@ Player::Player(const PlayerId& _id, TeamColor _team,
         // make scene nodes
         //tankNode = new TankSceneNode(state.pos, forward);
         auto& tb = TankObjectBuilder::instance();
+        tb.setPlayerID(id);
+        tb.setTeam(_team);
+        tb.setDrawableGroup(DGRPMGR.getGroup("TankDrawables"));
+        tankObj = tb.buildTank();
+        tankObj->setParent(SOMGR.addObj("TanksParent"));
+        std::cout << "Added team " << _team << " player " << id << std::endl;
         //tankIDLNode = new TankIDLSceneNode(tankNode);
         changeTeam(team);
         const float sphereRad = (1.5f * BZDBCache::tankRadius);
@@ -146,6 +154,7 @@ Player::~Player()
         //delete tankIDLNode;
         //delete tankNode;
         //delete pausedSphere;
+        delete tankObj;
     }
 }
 
@@ -395,6 +404,7 @@ void Player::setExplode(const TimeKeeper& t)
     setStatus((getStatus() | short(PlayerState::Exploding) | short(PlayerState::Falling)) &
               ~(short(PlayerState::Alive) | short(PlayerState::Paused)));
     //tankNode->rebuildExplosion();
+    tankObj->rebuildExplosion();
     // setup the flag effect to revert to normal
     updateFlagEffect(Flags::Null);
 }
@@ -685,6 +695,7 @@ void Player::updateTreads(float dt)
     const float rightOff = dt * (speedFactor + angularFactor);
 
     //tankNode->addTreadOffsets(leftOff, rightOff);
+    tankObj->addTreadOffsets(leftOff, rightOff);
 
     return;
 }
@@ -837,6 +848,8 @@ void Player::setVisualTeam (TeamColor visualTeam)
 
     int jumpJetsTexture = tm.getTextureID("jumpjets", false);
     //tankNode->setJumpJetsTexture(jumpJetsTexture);*/
+
+    tankObj->setTeam(visualTeam);
 }
 
 
@@ -869,6 +882,96 @@ void Player::addToScene(SceneDatabase* scene, TeamColor effectiveTeam,
                         bool inCockpit, bool seerView,
                         bool showTreads, bool showIDL)
 {
+    tankObj->setPosition(state.pos, state.azimuth);
+    if (useDimensions)
+        tankObj->setDimensions(dimensionsScale);
+    else
+    {
+        if (flagType == Flags::Obesity) tankObj->setObese();
+        else if (flagType == Flags::Tiny) tankObj->setTiny();
+        else if (flagType == Flags::Narrow) tankObj->setNarrow();
+        else if (flagType == Flags::Thief) tankObj->setThief();
+        else tankObj->setNormal();
+    }
+
+    if (seerView)
+    {
+        if (isPhantomZoned())
+            color[3] = 0.25f;
+        else
+            color[3] = teleAlpha;
+    }
+
+    if (isAlive())
+    {
+        tankObj->setColor(color);
+        tankObj->setExplodeFraction(0.0f);
+        //tankObj->setJumpJets(state.jumpJetsScale);
+        //scene->addDynamicNode(tankNode);
+
+        if (isCrossingWall())
+        {
+            /*// get which plane to compute IDL against
+            GLfloat plane[4];
+            const GLfloat a = atan2f(forward[1], forward[0]);
+            const Obstacle* obstacle =
+                World::getWorld()->hitBuilding(state.pos, a,
+                                               dimensions[0], dimensions[1],
+                                               dimensions[2]);
+            if ((obstacle && obstacle->isCrossing(state.pos, a,
+                                                  dimensions[0], dimensions[1],
+                                                  dimensions[2], plane)) ||
+                    World::getWorld()->crossingTeleporter(state.pos, a,
+                            dimensions[0], dimensions[1],
+                            dimensions[2], plane))
+            {
+                // stick in interdimensional lights node
+                if (showIDL)
+                {
+                    tankIDLNode->move(plane);
+                    scene->addDynamicNode(tankIDLNode);
+                }
+
+                // add clipping plane to tank node
+                if (!inCockpit)
+                    tankNode->setClipPlane(plane);
+            }*/
+        }
+        else if (getPosition()[2] < 0.0f)
+        {
+            // this should only happen with Burrow flags
+            //tankObj->setClipPlane(groundPlane);
+        } // isCrossingWall()
+    }   // isAlive()
+    else if (isExploding() && (state.pos[2] > ZERO_TOLERANCE))
+    {
+        float t = float((TimeKeeper::getTick() - explodeTime) /
+                        BZDB.eval(StateDatabase::BZDB_EXPLODETIME));
+        if (t > 1.0f)
+        {
+            // FIXME - setStatus(DeadStatus);
+            t = 1.0f;
+        }
+        else if (t < 0.0f)
+        {
+            // shouldn't happen but why take chances
+            t = 0.0f;
+        }
+        // fade at the end of the explosion
+        const float fadeRatio = 0.8f;
+        if (t > fadeRatio)
+        {
+            GLfloat newColor[4];
+            memcpy(newColor, color, sizeof(float[3]));
+            const float fadeFactor = (1.0f - t) / (1.0f - fadeRatio);
+            newColor[3] = color[3] * fadeFactor;
+            tankObj->setColor(newColor);
+        }
+        tankObj->setExplodeFraction(t);
+        std::cout << "Explode fraction " << t << std::endl;
+        //tankObj->setClipPlane(groundPlane); // shadows are not clipped
+        //scene->addDynamicNode(tankNode);
+    }
     /*const GLfloat groundPlane[4] = {0.0f, 0.0f, 1.0f, 0.0f};
 
     if (!isAlive() && !isExploding())

@@ -897,6 +897,11 @@ void MagnumBZMaterial::setDiffuse(const float color[4])
     return;
 }
 
+void MagnumBZMaterial::setDiffuseAlpha(const float alpha)
+{
+    diffuse[3] = alpha;
+}
+
 void MagnumBZMaterial::setSpecular(const float color[4])
 {
     memcpy (specular, color, sizeof(float[4]));

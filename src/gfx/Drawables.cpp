@@ -33,6 +33,7 @@ void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::C
         return Color3{cp[0], cp[1], cp[2]};
     };
 
+    // NULL material just skips render
     if (mat) {
 
         Color3 dyncol;
@@ -104,8 +105,6 @@ void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::C
                 })
                 .draw(_mesh);
         }
-    } else {
-        Warning{} << "Missing material";
     }
 }
 

@@ -30,10 +30,6 @@ void TankObjectBuilder::setPlayerID(int playerID) {
     _playerID = playerID;
 }
 
-void TankObjectBuilder::setAnimableGroup(AnimableGroup3D* agrp) {
-    _agrp = agrp;
-}
-
 void TankObjectBuilder::setDrawableGroup(DrawableGroup3D* dgrp) {
     _dgrp = dgrp;
 }
@@ -101,7 +97,7 @@ void TankObjectBuilder::prepareMaterials() {
         mat->addTexture("treads");
         TextureMatrix *tm = new TextureMatrix;
         tm->setName(treadLeftName);
-        tm->setDynamicShift(0.2f, 0.0f);
+        //tm->setDynamicShift(0.2f, 0.0f);
         tm->finalize();
         int id = TEXMATRIXMGR.addMatrix(tm);
         mat->setTextureMatrix(id);
@@ -113,7 +109,37 @@ void TankObjectBuilder::prepareMaterials() {
         mat->addTexture("treads");
         TextureMatrix *tm = new TextureMatrix;
         tm->setName(treadRightName);
-        tm->setDynamicShift(-0.2f, 0.0f);
+        //tm->setDynamicShift(-0.2f, 0.0f);
+        tm->finalize();
+        int id = TEXMATRIXMGR.addMatrix(tm);
+        mat->setTextureMatrix(id);
+        MAGNUMMATERIALMGR.addMaterial(mat);
+    }
+    // Add wheel materials if they don't already exist
+    std::string wheelPrefix = "_Player" + std::to_string(_playerID) + "Wheel";
+    std::string wheelLeftName = wheelPrefix + "Left";
+    std::string wheelRightName = wheelPrefix + "Right";
+    if (MAGNUMMATERIALMGR.findMaterial(wheelLeftName) == NULL) {
+        auto *mat = new MagnumBZMaterial();
+        mat->setName(wheelLeftName);
+        std::string texname = Team::getImagePrefix(_tc) + "tank";
+        mat->addTexture(texname);
+        TextureMatrix *tm = new TextureMatrix;
+        tm->setName(wheelLeftName);
+        //tm->setDynamicShift(0.2f, 0.0f);
+        tm->finalize();
+        int id = TEXMATRIXMGR.addMatrix(tm);
+        mat->setTextureMatrix(id);
+        MAGNUMMATERIALMGR.addMaterial(mat);
+    }
+    if (MAGNUMMATERIALMGR.findMaterial(wheelRightName) == NULL) {
+        auto *mat = new MagnumBZMaterial();
+        mat->setName(wheelRightName);
+        std::string texname = Team::getImagePrefix(_tc) + "tank";
+        mat->addTexture(texname);
+        TextureMatrix *tm = new TextureMatrix;
+        tm->setName(wheelRightName);
+        //tm->setDynamicShift(-0.2f, 0.0f);
         tm->finalize();
         int id = TEXMATRIXMGR.addMatrix(tm);
         mat->setTextureMatrix(id);
@@ -131,7 +157,8 @@ void TankObjectBuilder::prepareMaterials() {
 }
 
 TankSceneObject* TankObjectBuilder::buildTank() {
-    if (_dgrp == NULL /*|| _agrp == NULL*/) return NULL;
+    if (_dgrp == NULL) return NULL;
+
     if (!_isMeshLoaded) loadTankMesh();
     prepareMaterials();
 
@@ -139,49 +166,70 @@ TankSceneObject* TankObjectBuilder::buildTank() {
     auto barrelmat = MAGNUMMATERIALMGR.findMaterial("_Player" + std::to_string(_playerID) + "TankBarrel");
     auto treadLeftMat = MAGNUMMATERIALMGR.findMaterial("_Player" + std::to_string(_playerID) + "TreadLeft");
     auto treadRightMat = MAGNUMMATERIALMGR.findMaterial("_Player" + std::to_string(_playerID) + "TreadRight");
+    auto wheelLeftMat = MAGNUMMATERIALMGR.findMaterial("_Player" + std::to_string(_playerID) + "WheelLeft");
+    auto wheelRightMat = MAGNUMMATERIALMGR.findMaterial("_Player" + std::to_string(_playerID) + "WheelRight");
+    
 
     TankSceneObject *tank = new TankSceneObject{};
     
     Object3D *body = new Object3D;
     body->setParent(tank);
     new BZMaterialDrawable{*body, _meshes[0], bodymat, *_dgrp};
+    tank->_parts[TankSceneObject::Body] = body;
 
     Object3D *barrel = new Object3D;
     barrel->setParent(tank);
     new BZMaterialDrawable{*barrel, _meshes[1], barrelmat, *_dgrp};
+    tank->_parts[TankSceneObject::Barrel] = barrel;
 
     Object3D *turret = new Object3D;
     turret->setParent(tank);
     new BZMaterialDrawable{*turret, _meshes[2], bodymat, *_dgrp};
+    tank->_parts[TankSceneObject::Turret] = turret;
 
     Object3D *leftcasing = new Object3D;
     leftcasing->setParent(tank);
     new BZMaterialDrawable{*leftcasing, _meshes[3], bodymat, *_dgrp};
+    tank->_parts[TankSceneObject::LeftCasing] = leftcasing;
 
     Object3D *rightcasing = new Object3D;
     rightcasing->setParent(tank);
     new BZMaterialDrawable{*rightcasing, _meshes[4], bodymat, *_dgrp};
+    tank->_parts[TankSceneObject::RightCasing] = rightcasing;
 
     Object3D *lefttread = new Object3D;
     lefttread->setParent(tank);
     new BZMaterialDrawable{*lefttread, _meshes[5], treadLeftMat, *_dgrp};
+    tank->_parts[TankSceneObject::LeftTread] = lefttread;
 
     Object3D *righttread = new Object3D;
     righttread->setParent(tank);
     new BZMaterialDrawable{*righttread, _meshes[6], treadRightMat, *_dgrp};
+    tank->_parts[TankSceneObject::RightTread] = righttread;
 
     // The wheels
     for (int i = TankSceneObject::LeftWheel0; i <= TankSceneObject::RightWheel3; ++i) {
         Object3D *w = new Object3D;
         w->setParent(tank);
-        new BZMaterialDrawable{*w, _meshes[i], bodymat, *_dgrp};
+        new BZMaterialDrawable{*w, _meshes[i], (i <= TankSceneObject::LeftWheel3) ? wheelLeftMat : wheelRightMat, *_dgrp};
+        tank->_parts[i] = w;
     }
 
     tank->_bodyMat = bodymat;
     tank->_lTreadMat = treadLeftMat;
     tank->_rTreadMat = treadRightMat;
+    tank->_barrelMat = barrelmat;
+    tank->_lWheelMat = wheelLeftMat;
+    tank->_rWheelMat = wheelRightMat;
     tank->_team = _tc;
 
     return tank;
     
+}
+
+void TankObjectBuilder::cleanup() {
+    for (int i = 0; i < TankSceneObject::LastTankPart; ++i) {
+        _meshes[i].release();
+    }
+    _isMeshLoaded = false;
 }
