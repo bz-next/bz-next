@@ -1,4 +1,5 @@
 #include "TankObjectBuilder.h"
+#include "Corrade/Tags.h"
 #include "TankSceneObject.h"
 #include <Magnum/SceneGraph/SceneGraph.h>
 #include <Magnum/Trade/AbstractImporter.h>
@@ -229,7 +230,7 @@ TankSceneObject* TankObjectBuilder::buildTank() {
 
 void TankObjectBuilder::cleanup() {
     for (int i = 0; i < TankSceneObject::LastTankPart; ++i) {
-        _meshes[i].release();
+        _meshes[i] = GL::Mesh{NoCreate};
     }
     _isMeshLoaded = false;
 }
