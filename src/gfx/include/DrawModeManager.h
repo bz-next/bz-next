@@ -1,6 +1,8 @@
 #ifndef DRAWMODEMANAGER_H
 #define DRAWMODEMANAGER_H
 
+#include "DrawMode.h"
+
 // A basic class to handle muxing of shaders
 // So that, for instance, we can switch over to rendering a depth map
 // without having to create new drawables and drawable groups just for that purpose.
@@ -9,8 +11,10 @@
 // to do its rendering.
 class DrawModeManager {
     public:
-    DrawModeManager() {}
-    
+    void setDrawMode(DrawMode* mode) { _mode = mode; }
+    DrawMode* getDrawMode() { return _mode; }
+    private:
+    DrawMode* _mode = NULL;
 };
 
 extern DrawModeManager DRAWMODEMGR;

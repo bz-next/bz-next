@@ -15,6 +15,7 @@
 
 #include <imgui.h>
 
+#include "DrawableGroupBrowser.h"
 #include "GLInfo.h"
 
 #include "MagnumBZMaterial.h"
@@ -138,6 +139,7 @@ class MapViewer: public Platform::Sdl2Application {
         bool showDynColorBrowser = false;
         bool showMeshTransformBrowser = false;
         bool showMapBrowser = true;
+        bool showDrawableGroupBrowser = false;
 
         bool showGrid = false;
 
@@ -183,6 +185,7 @@ class MapViewer: public Platform::Sdl2Application {
         MeshTransformBrowser meshTFBrowser;
         PhyDrvBrowser phyDrvBrowser;
         OnlineMapBrowser mapBrowser;
+        DrawableGroupBrowser dgrpBrowser;
 #ifndef TARGET_EMSCRIPTEN
         ImGui::FileBrowser fileBrowser;
 #endif
@@ -335,6 +338,8 @@ void MapViewer::showMenuView() {
     if (ImGui::MenuItem("Material Viewer", NULL, &showMATViewer)) {}
     ImGui::Separator();
     if (ImGui::MenuItem("Cache Browser", NULL, &showCacheBrowser)) {}
+    ImGui::Separator();
+    if (ImGui::MenuItem("Drawable Group Browser", NULL, &showDrawableGroupBrowser)) {}
 #ifndef MAGNUM_TARGET_GLES2
     ImGui::Separator();
     if (ImGui::MenuItem("Grid", NULL, &showGrid)) {}
@@ -426,6 +431,10 @@ void MapViewer::drawWindows() {
 
     if (showMapBrowser) {
         mapBrowser.draw("Map Browser", &showMapBrowser);
+    }
+
+    if (showDrawableGroupBrowser) {
+        dgrpBrowser.draw("Drawable Group Browser", &showDrawableGroupBrowser);
     }
 }
 

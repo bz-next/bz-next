@@ -109,6 +109,9 @@
 #include "DrawableGroupManager.h"
 #include "SceneObjectManager.h"
 
+#include "DrawableGroupBrowser.h"
+#include "SceneObjectBrowser.h"
+
 #include <ctime>
 #include <cassert>
 #include <imgui.h>
@@ -253,6 +256,8 @@ class BZFlagNew: public Platform::Sdl2Application {
         bool showPhyDrvBrowser = false;
         bool showDynColorBrowser = false;
         bool showMeshTransformBrowser = false;
+        bool showDrawableGroupBrowser = false;
+        bool showSceneObjectBrowser = false;
         
         Vector3 positionOnSphere(const Vector2i& position) const;
 
@@ -385,6 +390,8 @@ class BZFlagNew: public Platform::Sdl2Application {
         DynColorBrowser dynColorBrowser;
         MeshTransformBrowser meshTFBrowser;
         PhyDrvBrowser phyDrvBrowser;
+        DrawableGroupBrowser dgrpBrowser;
+        SceneObjectBrowser soBrowser;
 
         std::map<int, Object3D*> remoteTanks;
 
@@ -516,6 +523,9 @@ void BZFlagNew::showMenuView() {
     if (ImGui::MenuItem("Material Viewer", NULL, &showMATViewer)) {}
     ImGui::Separator();
     if (ImGui::MenuItem("Cache Browser", NULL, &showCacheBrowser)) {}
+    ImGui::Separator();
+    if (ImGui::MenuItem("Drawable Group Browser", NULL, &showDrawableGroupBrowser)) {}
+    if (ImGui::MenuItem("Scene Object Browser", NULL, &showSceneObjectBrowser)) {}
 #ifndef MAGNUM_TARGET_GLES2
     ImGui::Separator();
     if (ImGui::MenuItem("Grid", NULL, &showGrid)) {}
@@ -615,6 +625,14 @@ void BZFlagNew::drawWindows() {
 
     if (showPhyDrvBrowser) {
         phyDrvBrowser.draw("Physics Driver Browser", &showPhyDrvBrowser);
+    }
+
+    if (showDrawableGroupBrowser) {
+        dgrpBrowser.draw("Drawable Group Browser", &showDrawableGroupBrowser);
+    }
+
+    if (showSceneObjectBrowser) {
+        soBrowser.draw("Scene Object Browser", &showSceneObjectBrowser);
     }
 }
 

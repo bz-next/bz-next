@@ -14,6 +14,8 @@ set(WIDGETS_SOURCES
     DynColorBrowser.cpp
     MeshTransformBrowser.cpp
     PhyDrvBrowser.cpp
+    DrawableGroupBrowser.cpp
+    SceneObjectBrowser.cpp
 )
 
 add_library(bzwidgets STATIC ${WIDGETS_SOURCES})
@@ -31,4 +33,5 @@ target_link_libraries(bzwidgets
     Threads::Threads
     MagnumIntegration::ImGui
     bzgame
+    bzgfx
 )

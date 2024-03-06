@@ -13,6 +13,7 @@ class SceneObjectManager {
     Object3D* getObj(const std::string& name);
     Object3D* addObj(const std::string& name);
     void delObj(const std::string& name);
+    const std::map<std::string, Object3D*>& getObjs() const { return _objs; }
     private:
     std::map<std::string, Object3D*> _objs;
 };

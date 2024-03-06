@@ -51,11 +51,14 @@ Object3D* WorldSceneObjectGenerator::getWorldObject() {
 }
 
 void WorldSceneObjectGenerator::createWorldObject(const WorldMeshGenerator *sb) {
+    SOMGR.delObj("WorldParent");
+    Object3D *worldParent = SOMGR.addObj("WorldParent");
+    DGRPMGR.deleteGroup("WorldDrawables");
+    DGRPMGR.deleteGroup("WorldTransDrawables");
+    DGRPMGR.deleteGroup("WorldDebugDrawables");
     auto worldDrawables = DGRPMGR.addGroup("WorldDrawables");
     auto worldTransDrawables = DGRPMGR.addGroup("WorldTransDrawables");
     auto worldDebugDrawables = DGRPMGR.addGroup("WorldDebugDrawables");
-    SOMGR.delObj("WorldParent");
-    Object3D *worldParent = SOMGR.addObj("WorldParent");
     worldParent->setParent(SOMGR.getObj("Scene"));
 
 #ifndef MAGNUM_TARGET_GLES2

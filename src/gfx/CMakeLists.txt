@@ -8,6 +8,8 @@ set(GFX_SOURCES
     DrawableGroupManager.cpp
     SceneObjectManager.cpp
     DrawMode.cpp
+    DrawModeManager.cpp
+    MagnumSceneRenderer.cpp
 )
 
 add_library(bzgfx STATIC ${GFX_SOURCES})
