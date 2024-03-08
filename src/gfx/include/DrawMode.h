@@ -9,6 +9,7 @@
 #include <Magnum/Shaders/PhongGL.h>
 
 #include "BasicTexturedShader.h"
+#include "DepthMapShader.h"
 
 class DrawMode {
     public:
@@ -42,6 +43,18 @@ class BasicTexturedShaderDrawMode : public DrawMode {
         Magnum::GL::Mesh& mesh) override;
     private:
     BasicTexturedShader *_shader;
+};
+
+class DepthMapDrawMode : public DrawMode {
+    public:
+    DepthMapDrawMode();
+    void draw(
+        const Magnum::Matrix4& transformationMatrix,
+        Magnum::SceneGraph::Camera3D& camera,
+        const MagnumBZMaterial* mat,
+        Magnum::GL::Mesh& mesh) override;
+    private:
+    DepthMapShader *_shader;
 };
 
 #endif

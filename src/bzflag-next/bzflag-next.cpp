@@ -112,9 +112,12 @@
 #include "DrawableGroupBrowser.h"
 #include "SceneObjectBrowser.h"
 
+#include "MagnumSceneRenderer.h"
+
 #include <ctime>
 #include <cassert>
 #include <imgui.h>
+#include <Magnum/ImGuiIntegration/Widgets.h>
 #include <sstream>
 #include <cstring>
 #include <functional>
@@ -368,8 +371,9 @@ class BZFlagNew: public Platform::Sdl2Application {
         Containers::Array<Containers::Optional<GL::Texture2D>> _textures;
 
         Scene3D _scene;
-        Object3D _manipulator, _cameraObject;
+        Object3D _manipulator, _cameraObject, _lightCameraObject;
         SceneGraph::Camera3D* _camera;
+        SceneGraph::Camera3D* _lightCamera;
         SceneGraph::DrawableGroup3D _drawables;
         Vector3 _previousPosition;
 
@@ -392,6 +396,8 @@ class BZFlagNew: public Platform::Sdl2Application {
         PhyDrvBrowser phyDrvBrowser;
         DrawableGroupBrowser dgrpBrowser;
         SceneObjectBrowser soBrowser;
+
+        MagnumSceneRenderer sceneRenderer;
 
         std::map<int, Object3D*> remoteTanks;
 
@@ -427,6 +433,7 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
     _cameraObject
         .setParent(&_scene)
         .translate(Vector3::zAxis(10.0f));
+
         
     
     (*(_camera = new SceneGraph::Camera3D{_cameraObject}))
@@ -440,6 +447,14 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
     scene->setParent(&_manipulator);
 
     scene->scale({0.05f, 0.05f, 0.05f});
+
+    _lightCameraObject
+        .setParent(scene)
+        .transform(Matrix4::lookAt({500.0f, 500.0f, 500.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}));
+    (*(_lightCamera = new SceneGraph::Camera3D{_lightCameraObject}));
+
+    sceneRenderer.setLightObj(&_lightCameraObject);
+    
 
     SOMGR.addObj("TanksParent")->setParent(scene);
 
@@ -676,6 +691,11 @@ void BZFlagNew::drawEvent() {
     showMainMenuBar();
     drawWindows();
 
+    ImGui::Begin("DepthMap", NULL, ImGuiWindowFlags_AlwaysAutoResize);
+    TextureData tex = sceneRenderer.getPipelineTextures()["DepthMapPreviewTex"];
+    ImGuiIntegration::image(*tex.texture, {(float)tex.width, (float)tex.height});
+    ImGui::End();
+
     /* Update application cursor */
     _imgui.updateApplicationCursor(*this);
 
@@ -699,7 +719,7 @@ void BZFlagNew::drawEvent() {
         tank->translate({pos[0], pos[1], pos[2]});
     }
 
-    if (showGrid)
+    /*if (showGrid)
         if (auto* dg = DGRPMGR.getGroup("WorldDebugDrawables"))
             _camera->draw(*dg);
     if (auto* dg = DGRPMGR.getGroup("WorldDrawables"))
@@ -708,7 +728,11 @@ void BZFlagNew::drawEvent() {
     if (auto* dg = DGRPMGR.getGroup("TankDrawables"))
         _camera->draw(*dg);
     if (auto* dg = DGRPMGR.getGroup("WorldTransDrawables"))
-        _camera->draw(*dg);
+        _camera->draw(*dg);*/
+
+    sceneRenderer.renderScene(_camera);
+    sceneRenderer.renderLightDepthMap(_lightCamera);
+    sceneRenderer.renderLightDepthMapPreview();
 
         /* Set appropriate states. If you only draw ImGui, it is sufficient to
        just enable blending and scissor test in the constructor. */

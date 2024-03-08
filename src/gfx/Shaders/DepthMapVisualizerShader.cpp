@@ -1,4 +1,4 @@
-#include "DepthMapShader.h"
+#include "DepthMapVisualizerShader.h"
 
 #include <Magnum/GL/Version.h>
 #include <Magnum/GL/Context.h>
@@ -8,7 +8,7 @@
 
 using namespace Magnum;
 
-DepthMapShader::DepthMapShader() {
+DepthMapVisualizerShader::DepthMapVisualizerShader() {
     MAGNUM_ASSERT_GL_VERSION_SUPPORTED(GL::Version::GL330);
 
     const Utility::Resource rs{"Shader-data"};
@@ -16,8 +16,8 @@ DepthMapShader::DepthMapShader() {
     GL::Shader vert{GL::Version::GL330, GL::Shader::Type::Vertex};
     GL::Shader frag{GL::Version::GL330, GL::Shader::Type::Fragment};
 
-    vert.addSource(rs.getString("DepthMapShader.vert"));
-    frag.addSource(rs.getString("DepthMapShader.frag"));
+    vert.addSource(rs.getString("DepthMapVisualizerShader.vert"));
+    frag.addSource(rs.getString("DepthMapVisualizerShader.frag"));
 
     CORRADE_INTERNAL_ASSERT_OUTPUT(vert.compile() && frag.compile());
 
@@ -25,6 +25,5 @@ DepthMapShader::DepthMapShader() {
 
     CORRADE_INTERNAL_ASSERT_OUTPUT(link());
 
-    _transformationMatUniform = uniformLocation("transformationMatrix");
-    _projectionMatUniform = uniformLocation("projectionMatrix");
+    setUniform(uniformLocation("depthMap"), TextureUnit);
 }

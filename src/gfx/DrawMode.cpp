@@ -16,6 +16,8 @@
 #include "DynamicColor.h"
 #include "TextureMatrix.h"
 
+#include "MagnumSceneRenderer.h"
+
 using namespace Magnum;
 
 #define MAGNUMROWCOL(r, c) (r+c*3)
@@ -81,6 +83,7 @@ void BZMaterialDrawMode::draw(const Matrix4& transformationMatrix, SceneGraph::C
                 tmd[MAGNUMROWCOL(1, 2)] = tmid[INTROWCOL(1, 3)];
                 
             }
+            auto translation = MagnumSceneRenderer::_lightObj->transformationMatrix().translation();
             (*_shader).bindDiffuseTexture(*t.texture)
                 .bindAmbientTexture(*t.texture)
                 .setDiffuseColor(Color4{toMagnumColor(mat->getDiffuse()), 0.0f})
@@ -92,8 +95,11 @@ void BZMaterialDrawMode::draw(const Matrix4& transformationMatrix, SceneGraph::C
                 .setTransformationMatrix(transformationMatrix)
                 .setProjectionMatrix(camera.projectionMatrix())
                 .setLightPositions({
-                    {camera.cameraMatrix().transformPoint({0.0f, 0.0f, 1000.0f}), 0.0f}
+                    {translation, 0.0f}
                 })
+                //.setLightPositions({
+                //    {{10.0f, 0.0f, 1.0f, 0.0f}}
+                //})
                 .setTextureMatrix(texmat)
                 .draw(mesh);
         } else {
@@ -146,5 +152,26 @@ void BasicTexturedShaderDrawMode::draw(const Matrix4& transformationMatrix, Scen
                 .setColor(Color3{toMagnumColor(mat->getDiffuse())})
                 .draw(mesh);
         }
+    }
+}
+
+DepthMapDrawMode::DepthMapDrawMode() {
+    _shader = new DepthMapShader();
+}
+
+void DepthMapDrawMode::draw(const Matrix4& transformationMatrix, SceneGraph::Camera3D& camera, const MagnumBZMaterial* mat, GL::Mesh& mesh)  {
+    // NULL material just skips render
+    // Perhaps exclude transparent materials here to simplify shadow rendering...
+    if (mat) {
+
+        if (mat->getNoCulling())
+            GL::Renderer::disable(GL::Renderer::Feature::FaceCulling);
+        else
+            GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
+
+        (*_shader)
+            .setTransformationMatrix(transformationMatrix)
+            .setProjectionMatrix(camera.projectionMatrix())
+            .draw(mesh);
     }
 }

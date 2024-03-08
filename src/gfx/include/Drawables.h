@@ -27,7 +27,7 @@ class BZMaterialDrawable : public Magnum::SceneGraph::Drawable3D {
     private:
         void draw(const Magnum::Matrix4& transformationMatrix, Magnum::SceneGraph::Camera3D& camera) override;
 
-        static BZMaterialDrawMode* _mode;
+        //static BZMaterialDrawMode* _mode;
         Magnum::GL::Mesh& _mesh;
         const MagnumBZMaterial *_matPtr;
 };

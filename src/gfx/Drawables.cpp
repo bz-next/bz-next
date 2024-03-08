@@ -6,14 +6,13 @@
 #include <Magnum/GL/TextureFormat.h>
 #include <Magnum/GL/Mesh.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
+#include "DrawModeManager.h"
 
 using namespace Magnum;
 
-BZMaterialDrawMode* BZMaterialDrawable::_mode = NULL;
-
 void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::Camera3D& camera) {
-    if (_mode == NULL) _mode = new BZMaterialDrawMode();
-    _mode->draw(transformationMatrix, camera, _matPtr, _mesh);
+    //if (_mode == NULL) _mode = new BZMaterialDrawMode();
+    DRAWMODEMGR.getDrawMode()->draw(transformationMatrix, camera, _matPtr, _mesh);
 }
 
 #ifndef MAGNUM_TARGET_GLES2
