@@ -47,19 +47,19 @@ void WorldSceneObjectGenerator::clearExcludeSet() {
 }
 
 Object3D* WorldSceneObjectGenerator::getWorldObject() {
-    return SOMGR.getObj("WorldParent");
+    return SOMGR.getObj("MapParent");
 }
 
 void WorldSceneObjectGenerator::createWorldObject(const WorldMeshGenerator *sb) {
-    SOMGR.delObj("WorldParent");
-    Object3D *worldParent = SOMGR.addObj("WorldParent");
-    DGRPMGR.deleteGroup("WorldDrawables");
-    DGRPMGR.deleteGroup("WorldTransDrawables");
-    DGRPMGR.deleteGroup("WorldDebugDrawables");
+    SOMGR.delObj("MapParent");
+    Object3D *worldParent = SOMGR.addObj("MapParent");
+    //DGRPMGR.deleteGroup("WorldDrawables");
+    //DGRPMGR.deleteGroup("WorldTransDrawables");
+    //DGRPMGR.deleteGroup("WorldDebugDrawables");
     auto worldDrawables = DGRPMGR.addGroup("WorldDrawables");
     auto worldTransDrawables = DGRPMGR.addGroup("WorldTransDrawables");
     auto worldDebugDrawables = DGRPMGR.addGroup("WorldDebugDrawables");
-    worldParent->setParent(SOMGR.getObj("Scene"));
+    worldParent->setParent(SOMGR.getObj("World"));
 
 #ifndef MAGNUM_TARGET_GLES2
     {
@@ -134,6 +134,6 @@ void WorldSceneObjectGenerator::createWorldObject(const WorldMeshGenerator *sb) 
 }
 
 void WorldSceneObjectGenerator::destroyWorldObject() {
-    SOMGR.delObj("WorldParent");
+    SOMGR.delObj("MapParent");
     worldMeshes.clear();
 }

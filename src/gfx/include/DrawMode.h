@@ -11,6 +11,8 @@
 #include "BasicTexturedShader.h"
 #include "DepthMapShader.h"
 
+#include "MagnumDefs.h"
+
 class DrawMode {
     public:
     virtual void draw(
@@ -28,9 +30,11 @@ class BZMaterialDrawMode : public DrawMode {
         Magnum::SceneGraph::Camera3D& camera,
         const MagnumBZMaterial* mat,
         Magnum::GL::Mesh& mesh) override;
+    void setLightObj(Object3D* obj) { _lightObj = obj; }
     private:
     Magnum::Shaders::PhongGL *_shader;
     Magnum::Shaders::PhongGL *_shaderUntex;
+    Object3D* _lightObj;
 };
 
 class BasicTexturedShaderDrawMode : public DrawMode {

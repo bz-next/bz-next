@@ -17,6 +17,7 @@
 #include "TextureMatrix.h"
 
 #include "MagnumSceneRenderer.h"
+#include "SceneObjectManager.h"
 
 using namespace Magnum;
 
@@ -42,6 +43,9 @@ void BZMaterialDrawMode::draw(const Matrix4& transformationMatrix, SceneGraph::C
 
     // NULL material just skips render
     if (mat) {
+        Math::Vector3<float> abstranslation = {0.0f, 0.0f, -10.0f};   // Default light position behind camera if sun does not exist
+        if (_lightObj)
+            abstranslation = camera.cameraMatrix().transformPoint(_lightObj->absoluteTransformationMatrix().translation());
 
         Color3 dyncol;
         if (mat->getDynamicColor() != -1) {
@@ -83,7 +87,7 @@ void BZMaterialDrawMode::draw(const Matrix4& transformationMatrix, SceneGraph::C
                 tmd[MAGNUMROWCOL(1, 2)] = tmid[INTROWCOL(1, 3)];
                 
             }
-            auto translation = MagnumSceneRenderer::_lightObj->transformationMatrix().translation();
+            
             (*_shader).bindDiffuseTexture(*t.texture)
                 .bindAmbientTexture(*t.texture)
                 .setDiffuseColor(Color4{toMagnumColor(mat->getDiffuse()), 0.0f})
@@ -95,11 +99,8 @@ void BZMaterialDrawMode::draw(const Matrix4& transformationMatrix, SceneGraph::C
                 .setTransformationMatrix(transformationMatrix)
                 .setProjectionMatrix(camera.projectionMatrix())
                 .setLightPositions({
-                    {translation, 0.0f}
+                    {abstranslation, 0.0f}
                 })
-                //.setLightPositions({
-                //    {{10.0f, 0.0f, 1.0f, 0.0f}}
-                //})
                 .setTextureMatrix(texmat)
                 .draw(mesh);
         } else {
@@ -112,7 +113,7 @@ void BZMaterialDrawMode::draw(const Matrix4& transformationMatrix, SceneGraph::C
                 .setTransformationMatrix(transformationMatrix)
                 .setProjectionMatrix(camera.projectionMatrix())
                 .setLightPositions({
-                    {camera.cameraMatrix().transformPoint({0.0f, 0.0f, 1000.0f}), 0.0f}
+                    {abstranslation, 0.0f}
                 })
                 .draw(mesh);
         }

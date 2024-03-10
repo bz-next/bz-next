@@ -114,6 +114,8 @@
 
 #include "MagnumSceneRenderer.h"
 
+#include "MagnumSceneManager.h"
+
 #include <ctime>
 #include <cassert>
 #include <imgui.h>
@@ -365,16 +367,9 @@ class BZFlagNew: public Platform::Sdl2Application {
 
         World *world = NULL;
 
-        Shaders::PhongGL _coloredShader;
-        Shaders::PhongGL _texturedShader{Shaders::PhongGL::Configuration().setFlags(Shaders::PhongGL::Flag::DiffuseTexture)};
-        Containers::Array<Containers::Optional<GL::Mesh>> _meshes;
-        Containers::Array<Containers::Optional<GL::Texture2D>> _textures;
-
-        Scene3D _scene;
-        Object3D _manipulator, _cameraObject, _lightCameraObject;
+        Object3D *_scene;
+        Object3D *_manipulator, *_cameraObject;
         SceneGraph::Camera3D* _camera;
-        SceneGraph::Camera3D* _lightCamera;
-        SceneGraph::DrawableGroup3D _drawables;
         Vector3 _previousPosition;
 
         WorldSceneObjectGenerator worldSceneObjGen;
@@ -430,57 +425,38 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
         .setGlobalHelp("Displays a 3D scene file provided on command line.")
         .parse(arguments.argc, arguments.argv);
     
-    _cameraObject
-        .setParent(&_scene)
-        .translate(Vector3::zAxis(10.0f));
+    MagnumSceneManager::initScene();
+    sceneRenderer.init();
+
+    _scene = SOMGR.getObj("Scene");
+
+    _cameraObject = new Object3D{};
+
+    (*_cameraObject)
+        .setParent(SOMGR.getObj("World"))
+        .transform(Matrix4::lookAt({100.0f, 500.0f, 100.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}));
+        //.translate(Vector3::zAxis(10.0f));
 
         
     
-    (*(_camera = new SceneGraph::Camera3D{_cameraObject}))
+    (*(_camera = new SceneGraph::Camera3D{*_cameraObject}))
         .setAspectRatioPolicy(SceneGraph::AspectRatioPolicy::Extend)
         .setProjectionMatrix(Matrix4::perspectiveProjection(35.0_degf, 1.0f, 1.0f, 1000.0f))
         .setViewport(GL::defaultFramebuffer.viewport().size());
     
-    _manipulator.setParent(&_scene);
+    _manipulator = SOMGR.getObj("Sun");
 
-    Object3D* scene = SOMGR.addObj("Scene");
-    scene->setParent(&_manipulator);
-
-    scene->scale({0.05f, 0.05f, 0.05f});
-
-    _lightCameraObject
+    /*_lightCameraObject
         .setParent(scene)
         .transform(Matrix4::lookAt({500.0f, 500.0f, 500.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}));
-    (*(_lightCamera = new SceneGraph::Camera3D{_lightCameraObject}));
+    (*(_lightCamera = new SceneGraph::Camera3D{_lightCameraObject}));*/
 
-    sceneRenderer.setLightObj(&_lightCameraObject);
+    //sceneRenderer.setLightObj(&_lightCameraObject);
     
-
-    SOMGR.addObj("TanksParent")->setParent(scene);
-
-    DGRPMGR.addGroup("TankDrawables");
 
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
     GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
     GL::Renderer::enable(GL::Renderer::Feature::Blending);
-
-    _coloredShader
-        .setAmbientColor(0x111111_rgbf)
-        .setSpecularColor(0xffffff_rgbf)
-        .setShininess(80.0f);
-    _texturedShader
-        .setAmbientColor(0x111111_rgbf)
-        .setSpecularColor(0x111111_rgbf)
-        .setShininess(80.0f);
-
-    PluginManager::Manager<Trade::AbstractImporter> manager;
-    Containers::Pointer<Trade::AbstractImporter> importer = manager.loadAndInstantiate(args.value("importer"));
-
-    _textures = Containers::Array<Containers::Optional<GL::Texture2D>>{};
-
-    Containers::Array<Containers::Optional<Trade::PhongMaterialData>> materials{};
-
-    _meshes = Containers::Array<Containers::Optional<GL::Mesh>>{1};
 
     //worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
 
@@ -731,7 +707,7 @@ void BZFlagNew::drawEvent() {
         _camera->draw(*dg);*/
 
     sceneRenderer.renderScene(_camera);
-    sceneRenderer.renderLightDepthMap(_lightCamera);
+    sceneRenderer.renderLightDepthMap();
     sceneRenderer.renderLightDepthMapPreview();
 
         /* Set appropriate states. If you only draw ImGui, it is sufficient to
@@ -1441,8 +1417,8 @@ void BZFlagNew::mouseScrollEvent(MouseScrollEvent& e) {
         return;
     }
     if (!e.offset().y()) return;
-    const Float distance = _cameraObject.transformation().translation().z();
-    _cameraObject.translate(Vector3::zAxis(distance*(1.0f - (e.offset().y() > 0 ? 1/0.85f : 0.85f))));
+    const Float distance = _cameraObject->transformation().translation().z();
+    _cameraObject->translate(Vector3::zAxis(distance*(1.0f - (e.offset().y() > 0 ? 1/0.85f : 0.85f))));
     redraw();
 }
 
@@ -1455,7 +1431,7 @@ void BZFlagNew::mouseMoveEvent(MouseMoveEvent &e) {
 
     if (_previousPosition.length() < 0.001f || axis.length() < 0.001f) return;
 
-    _manipulator.rotate(Math::angle(_previousPosition, currentPosition), axis.normalized());
+    _manipulator->rotate(Math::angle(_previousPosition, currentPosition), axis.normalized());
     _previousPosition = currentPosition;
 
     redraw();

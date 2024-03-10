@@ -19,16 +19,21 @@
 #include <Magnum/MeshTools/Interleave.h>
 #include <Magnum/Trade/MeshData.h>
 
+#include <Magnum/SceneGraph/Camera.h>
+
 #include <string>
 
 #include "DrawModeManager.h"
 #include "MagnumTextureManager.h"
+#include "SceneObjectManager.h"
 
 using namespace Magnum;
 
 Object3D* MagnumSceneRenderer::_lightObj = NULL;
 
-MagnumSceneRenderer::MagnumSceneRenderer() {
+MagnumSceneRenderer::MagnumSceneRenderer() {}
+
+void MagnumSceneRenderer::init() {
     // Add depth map texture
     {
         GL::Texture2D *tex = new GL::Texture2D{};
@@ -89,6 +94,13 @@ MagnumSceneRenderer::MagnumSceneRenderer() {
     }, static_cast<UnsignedInt>(dataview.size())};
 
     _quadMesh = MeshTools::compile(mdata);
+
+    Object3D* lightobj = SOMGR.getObj("Sun");
+    lightobj->resetTransformation();
+    lightobj->transform(Matrix4::lookAt({500.0f, 500.0f, 500.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}));
+
+    _lightCamera = new SceneGraph::Camera3D{*lightobj};
+    _bzmatMode.setLightObj(lightobj);
 }
 
 TextureData MagnumSceneRenderer::getPipelineTex(const std::string& name) {
@@ -120,12 +132,13 @@ void MagnumSceneRenderer::renderScene(SceneGraph::Camera3D* camera) {
    
 }
 
-void MagnumSceneRenderer::renderLightDepthMap(SceneGraph::Camera3D* lightCamera) {
+void MagnumSceneRenderer::renderLightDepthMap() {
     TextureData depthTexData = getPipelineTex("DepthMapTex");
+    // Much of this should only be done when the sun moves.
     // Set up camera
-    (*lightCamera)
+    (*_lightCamera)
         .setAspectRatioPolicy(SceneGraph::AspectRatioPolicy::Extend)
-        .setProjectionMatrix(Matrix4::orthographicProjection({(float)_depthMapSize[0], (float)_depthMapSize[1]}, 100.0f, 2000.0f))
+        .setProjectionMatrix(Matrix4::orthographicProjection({2048.0f, 2048.0f}, 10.0f, 2000.0f))
         .setViewport({(int)depthTexData.width, (int)depthTexData.height});
     // Set up renderbuffer / framebuffer
     GL::Framebuffer depthFB{{{}, {(int)depthTexData.width, (int)depthTexData.height}}};
@@ -137,12 +150,13 @@ void MagnumSceneRenderer::renderLightDepthMap(SceneGraph::Camera3D* lightCamera)
 
     // Now render to texture
     if (auto* dg = DGRPMGR.getGroup("WorldDrawables"))
-        lightCamera->draw(*dg);
+        _lightCamera->draw(*dg);
 
     GL::defaultFramebuffer.bind();
 }
 
 // Render the 16-bit depth buffer to a regular rgba texture for presentation
+// Not really necessary, but a good demo on how to do something like this.
 void MagnumSceneRenderer::renderLightDepthMapPreview() {
     TextureData depthTexData = getPipelineTex("DepthMapTex");
     TextureData depthPreviewTexData = getPipelineTex("DepthMapPreviewTex");
