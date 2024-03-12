@@ -8,8 +8,15 @@
 
 using namespace Magnum;
 
+static void importShaderResources() {
+    CORRADE_RESOURCE_INITIALIZE(SHADER_RESOURCES)
+}
+
 DepthMapVisualizerShader::DepthMapVisualizerShader() {
     MAGNUM_ASSERT_GL_VERSION_SUPPORTED(GL::Version::GL330);
+
+    if(!Utility::Resource::hasGroup("Shader-data"))
+        importShaderResources();
 
     const Utility::Resource rs{"Shader-data"};
 

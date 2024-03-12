@@ -13,7 +13,9 @@ set(GFX_SOURCES
     MagnumSceneManager.cpp
 )
 
-add_library(bzgfx STATIC ${GFX_SOURCES})
+corrade_add_resource(SHADER_RESOURCES "${PROJECT_SOURCE_DIR}/src/gfx/Shaders/resources/resources.conf")
+
+add_library(bzgfx STATIC ${GFX_SOURCES} ${SHADER_RESOURCES})
 target_include_directories(bzgfx PUBLIC include/)
 
 add_subdirectory(SceneObjects)

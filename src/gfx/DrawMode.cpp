@@ -19,19 +19,21 @@
 #include "MagnumSceneRenderer.h"
 #include "SceneObjectManager.h"
 
+#include "EnhancedPhongGL.h"
+
 using namespace Magnum;
 
 #define MAGNUMROWCOL(r, c) (r+c*3)
 #define INTROWCOL(r, c) (r+c*4)
 
 BZMaterialDrawMode::BZMaterialDrawMode() {
-    _shader = new Magnum::Shaders::PhongGL{Magnum::Shaders::PhongGL::Configuration{}
+    _shader = new EnhancedPhongGL{EnhancedPhongGL::Configuration{}
         .setFlags(
-            Magnum::Shaders::PhongGL::Flag::DiffuseTexture |
-            Magnum::Shaders::PhongGL::Flag::AmbientTexture |
-            Magnum::Shaders::PhongGL::Flag::AlphaMask |
-            Magnum::Shaders::PhongGL::Flag::TextureTransformation)};
-    _shaderUntex = new Magnum::Shaders::PhongGL{Magnum::Shaders::PhongGL::Configuration{}};
+            EnhancedPhongGL::Flag::DiffuseTexture |
+            EnhancedPhongGL::Flag::AmbientTexture |
+            EnhancedPhongGL::Flag::AlphaMask |
+            EnhancedPhongGL::Flag::TextureTransformation)};
+    _shaderUntex = new EnhancedPhongGL{EnhancedPhongGL::Configuration{}};
 }
 
 void BZMaterialDrawMode::draw(const Matrix4& transformationMatrix, SceneGraph::Camera3D& camera, const MagnumBZMaterial* mat, GL::Mesh& mesh)  {

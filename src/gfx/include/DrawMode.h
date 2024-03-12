@@ -13,6 +13,8 @@
 
 #include "MagnumDefs.h"
 
+#include "EnhancedPhongGL.h"
+
 class DrawMode {
     public:
     virtual void draw(
@@ -32,8 +34,8 @@ class BZMaterialDrawMode : public DrawMode {
         Magnum::GL::Mesh& mesh) override;
     void setLightObj(Object3D* obj) { _lightObj = obj; }
     private:
-    Magnum::Shaders::PhongGL *_shader;
-    Magnum::Shaders::PhongGL *_shaderUntex;
+    EnhancedPhongGL *_shader;
+    EnhancedPhongGL *_shaderUntex;
     Object3D* _lightObj;
 };
 

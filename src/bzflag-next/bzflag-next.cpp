@@ -116,6 +116,8 @@
 
 #include "MagnumSceneManager.h"
 
+#include "EnhancedPhongGL.h"
+
 #include <ctime>
 #include <cassert>
 #include <imgui.h>
