@@ -27,6 +27,8 @@
 #include "MagnumTextureManager.h"
 #include "SceneObjectManager.h"
 
+#include "BZDBCache.h"
+
 using namespace Magnum;
 
 Object3D* MagnumSceneRenderer::_lightObj = NULL;
@@ -106,6 +108,52 @@ void MagnumSceneRenderer::init() {
     _bzmatMode.setLightCamera(_lightCamera);
 }
 
+float MagnumSceneRenderer::getSunNearPlane() const {
+    Object3D* lightobj = SOMGR.getObj("Sun");
+    float worldHeight = 1000.0f;    // Just assume this for now
+    float worldSize = BZDBCache::worldSize;
+    Math::Vector3<float> coords[4] = {
+        {-worldSize/2.0f, -worldSize/2.0f, worldHeight},
+        {-worldSize/2.0f, worldSize/2.0f, worldHeight},
+        {worldSize/2.0f, -worldSize/2.0f, worldHeight},
+        {worldSize/2.0f, worldSize/2.0f, worldHeight}
+    };
+
+    float minDist = 1e9;
+
+    for (int i = 0; i < 4; ++i) {
+        float dist = (coords[i]-lightobj->transformation().translation()).length();
+        if (dist < minDist) {
+            minDist = dist;
+        }
+    }
+
+    return minDist;
+}
+
+float MagnumSceneRenderer::getSunFarPlane() const {
+    Object3D* lightobj = SOMGR.getObj("Sun");
+    float worldHeight = 1000.0f;    // Just assume this for now
+    float worldSize = BZDBCache::worldSize;
+    Math::Vector3<float> coords[4] = {
+        {-worldSize/2.0f, -worldSize/2.0f, 0.0f},
+        {-worldSize/2.0f, worldSize/2.0f, 0.0f},
+        {worldSize/2.0f, -worldSize/2.0f, 0.0f},
+        {worldSize/2.0f, worldSize/2.0f, 0.0f}
+    };
+
+    float maxDist = 0.0f;
+
+    for (int i = 0; i < 4; ++i) {
+        float dist = (coords[i]-lightobj->transformation().translation()).length();
+        if (dist > maxDist) {
+            maxDist = dist;
+        }
+    }
+
+    return maxDist;
+}
+
 TextureData MagnumSceneRenderer::getPipelineTex(const std::string& name) {
     auto it = _pipelineTexMap.find(name);
     if (it != _pipelineTexMap.end()) {
@@ -129,8 +177,8 @@ void MagnumSceneRenderer::renderScene(SceneGraph::Camera3D* camera) {
     if (auto* dg = DGRPMGR.getGroup("WorldDrawables"))
         camera->draw(*dg);
     GL::Renderer::enable(GL::Renderer::Feature::Blending);
-    //if (auto* dg = DGRPMGR.getGroup("TankDrawables"))
-    //    _camera->draw(*dg);
+    if (auto* dg = DGRPMGR.getGroup("TankDrawables"))
+        camera->draw(*dg);
     if (auto* dg = DGRPMGR.getGroup("WorldTransDrawables"))
         camera->draw(*dg);
    
@@ -139,11 +187,13 @@ void MagnumSceneRenderer::renderScene(SceneGraph::Camera3D* camera) {
 void MagnumSceneRenderer::renderLightDepthMap() {
     TextureData depthTexData = getPipelineTex("DepthMapTex");
     // Much of this should only be done when the sun moves.
+    float worldDiag = 1.414f*BZDBCache::worldSize;
     // Set up camera
     (*_lightCamera)
         .setAspectRatioPolicy(SceneGraph::AspectRatioPolicy::Extend)
-        .setProjectionMatrix(Matrix4::orthographicProjection({1024.0f, 1024.0f}, 9000.0f, 10000.0f))
+        .setProjectionMatrix(Matrix4::orthographicProjection({-worldDiag/2.0f, worldDiag/2.0f}, getSunNearPlane(), getSunFarPlane()))
         .setViewport({(int)depthTexData.width, (int)depthTexData.height});
+    
     // Set up renderbuffer / framebuffer
     GL::Framebuffer depthFB{{{}, {(int)depthTexData.width, (int)depthTexData.height}}};
     depthFB.attachTexture(GL::Framebuffer::BufferAttachment::Depth, *depthTexData.texture, 0);
@@ -151,9 +201,16 @@ void MagnumSceneRenderer::renderLightDepthMap() {
     DRAWMODEMGR.setDrawMode(&_depthMode);
 
     depthFB.clear(GL::FramebufferClear::Depth).bind();
+
+    GL::Renderer::setFaceCullingMode(GL::Renderer::PolygonFacing::Front);
     // Now render to texture
     if (auto* dg = DGRPMGR.getGroup("WorldDrawables"))
         _lightCamera->draw(*dg);
+    if (auto* dg = DGRPMGR.getGroup("TankDrawables"))
+        _lightCamera->draw(*dg);
+    if (auto* dg = DGRPMGR.getGroup("WorldTransDrawables"))
+        _lightCamera->draw(*dg);
+    GL::Renderer::setFaceCullingMode(GL::Renderer::PolygonFacing::Back);
 
     GL::defaultFramebuffer.bind();
 }

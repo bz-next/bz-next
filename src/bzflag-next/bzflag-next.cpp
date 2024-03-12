@@ -710,7 +710,7 @@ void BZFlagNew::drawEvent() {
 
     
     sceneRenderer.renderLightDepthMap();
-    sceneRenderer.renderLightDepthMapPreview();
+    //sceneRenderer.renderLightDepthMapPreview();
     sceneRenderer.renderScene(_camera);
 
         /* Set appropriate states. If you only draw ImGui, it is sufficient to
@@ -974,6 +974,7 @@ void BZFlagNew::loadCachedWorld() {
     const bool updateDownloads =  BZDB.isTrue("updateDownloads");
     Downloads::startDownloads(doDownloads, updateDownloads, false);
     downloadingInitialTexture  = true;
+    MagnumTextureManager::instance().enableAutomaticLoading();
 }
 
 void BZFlagNew::addMessage(const Player *_player, const std::string& msg, int mode, bool highlight, const char* oldColor) {

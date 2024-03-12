@@ -186,6 +186,10 @@ void MagnumTextureManager::disableAutomaticLoading() {
     autoLoad = false;
 }
 
+void MagnumTextureManager::enableAutomaticLoading() {
+    autoLoad = true;
+}
+
 
 bool MagnumTextureManager::reloadTextureImage(const std::string& name)
 {

@@ -70,6 +70,7 @@ public:
     void clear();
 
     void disableAutomaticLoading();
+    void enableAutomaticLoading();
 
     std::vector<std::string> getTextureNames();
 

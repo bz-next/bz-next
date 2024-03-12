@@ -46,10 +46,16 @@ class MagnumSceneRenderer {
     // For ImGUI integration
     std::map<std::string, TextureData>& getPipelineTextures() { return _pipelineTexMap; }
     private:
+
+    // For depth map render projection matrix
+    // Compute based on world extents
+    float getSunNearPlane() const;
+    float getSunFarPlane() const;
+
     Magnum::SceneGraph::Camera3D* _lightCamera;
     Object3D _cameraObject;
 
-    const Magnum::Math::Vector2<int> _depthMapSize{2048, 2048};
+    const Magnum::Math::Vector2<int> _depthMapSize{4096, 4096};
     Magnum::GL::Texture2D _depthMapTex;
 
 
