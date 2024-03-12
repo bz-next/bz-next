@@ -49,11 +49,9 @@
 #include "Magnum/GL/TextureArray.h"
 #endif
 
-#ifdef MAGNUM_BUILD_STATIC
 static void importShaderResources() {
-    CORRADE_RESOURCE_INITIALIZE(MagnumShaders_RESOURCES_GL)
+    CORRADE_RESOURCE_INITIALIZE(SHADER_RESOURCES)
 }
-#endif
 
 using namespace Magnum;
 using namespace Magnum::Shaders;
@@ -171,12 +169,10 @@ EnhancedPhongGL::CompileState EnhancedPhongGL::compile(const Configuration& conf
         MAGNUM_ASSERT_GL_EXTENSION_SUPPORTED(GL::Extensions::EXT::texture_array);
     #endif
 
-    #ifdef MAGNUM_BUILD_STATIC
     /* Import resources on static build, if not already */
-    if(!Utility::Resource::hasGroup("MagnumShadersGL"_s))
+    if(!Utility::Resource::hasGroup("Shader-data"_s))
         importShaderResources();
-    #endif
-    Utility::Resource rs("MagnumShadersGL"_s);
+    Utility::Resource rs("Shader-data"_s);
 
     const GL::Context& context = GL::Context::current();
 
@@ -334,7 +330,7 @@ EnhancedPhongGL::CompileState EnhancedPhongGL::compile(const Configuration& conf
     }
     #endif
     vert.addSource(rs.getString("generic.glsl"_s))
-        .addSource(rs.getString("Phong.vert"_s))
+        .addSource(rs.getString("EnhancedPhong.vert"_s))
         .submitCompile();
 
     GL::Shader frag{version, GL::Shader::Type::Fragment};
@@ -410,7 +406,7 @@ EnhancedPhongGL::CompileState EnhancedPhongGL::compile(const Configuration& conf
         frag.addSource(Utility::move(lightInitializer));
     #endif
     frag.addSource(rs.getString("generic.glsl"_s))
-        .addSource(rs.getString("Phong.frag"_s))
+        .addSource(rs.getString("EnhancedPhong.frag"_s))
         .submitCompile();
 
     out.attachShaders({vert, frag});
