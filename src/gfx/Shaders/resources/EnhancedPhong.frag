@@ -390,6 +390,8 @@ layout(location = OBJECT_ID_OUTPUT_ATTRIBUTE_LOCATION)
 out highp uint fragmentObjectId;
 #endif
 
+#define gamma 2.2
+
 float ShadowCalculation(vec4 fragPosLightSpace)
 {
     // perform perspective divide
@@ -455,9 +457,24 @@ void main() {
     #endif
     #endif
 
+    #ifdef AMBIENT_TEXTURE
+        lowp vec4 ambtexcorr = texture(ambientTexture, interpolatedTextureCoordinates);
+        ambtexcorr.rgb = pow(ambtexcorr.rgb, vec3(gamma));
+    #endif
+
+    #ifdef DIFFUSE_TEXTURE
+        lowp vec4 difftexcorr = texture(diffuseTexture, interpolatedTextureCoordinates);
+        difftexcorr.rgb = pow(difftexcorr.rgb, vec3(gamma));
+    #endif
+
+    #ifdef SPECULAR_TEXTURE
+        lowp vec4 spectexcorr = texture(specularTexture, interpolatedTextureCoordinates);
+        spectexcorr.rgb = pow(spectexcorr.rgb, vec3(gamma));
+    #endif
+
     lowp const vec4 finalAmbientColor =
         #ifdef AMBIENT_TEXTURE
-        texture(ambientTexture, interpolatedTextureCoordinates)*
+        ambtexcorr*
         #endif
         #ifdef VERTEX_COLOR
         interpolatedVertexColor*
@@ -466,7 +483,7 @@ void main() {
     #if PER_DRAW_LIGHT_COUNT
     lowp const vec4 finalDiffuseColor =
         #ifdef DIFFUSE_TEXTURE
-        texture(diffuseTexture, interpolatedTextureCoordinates)*
+        difftexcorr*
         #endif
         #ifdef VERTEX_COLOR
         interpolatedVertexColor*
@@ -475,7 +492,7 @@ void main() {
     #ifndef NO_SPECULAR
     lowp const vec4 finalSpecularColor =
         #ifdef SPECULAR_TEXTURE
-        texture(specularTexture, interpolatedTextureCoordinates)*
+        spectexcorr*
         #endif
         specularColor;
     #endif
@@ -607,6 +624,8 @@ void main() {
        anyway. */
     if(fragmentColor.a <= alphaMask) discard;
     #endif
+
+    fragmentColor.rgb = pow(fragmentColor.rgb, vec3(1.0/gamma));
 
     #ifdef OBJECT_ID
     fragmentObjectId =
