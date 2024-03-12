@@ -53,8 +53,6 @@ void BZMaterialDrawMode::draw(const Matrix4& transformationMatrix, SceneGraph::C
             abstranslation = camera.cameraMatrix().transformPoint(_lightObj->absoluteTransformationMatrix().translation());
 
         auto lightSpaceMat = _lightCamera->projectionMatrix() * _lightCamera->cameraMatrix() * camera.cameraMatrix().inverted();
-        Warning{} << lightSpaceMat;
-        Warning{} << transformationMatrix;
         Color3 dyncol;
         if (mat->getDynamicColor() != -1) {
             auto * dc = DYNCOLORMGR.getColor(mat->getDynamicColor());

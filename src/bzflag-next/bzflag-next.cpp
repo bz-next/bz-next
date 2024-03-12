@@ -670,7 +670,7 @@ void BZFlagNew::drawEvent() {
     drawWindows();
 
     ImGui::Begin("DepthMap", NULL, ImGuiWindowFlags_AlwaysAutoResize);
-    TextureData tex = sceneRenderer.getPipelineTextures()["DepthMapPreviewTex"];
+    TextureData tex = sceneRenderer.getPipelineTextures()["DepthMapTex"];
     ImGuiIntegration::image(*tex.texture, {(float)tex.width, (float)tex.height});
     ImGui::End();
 

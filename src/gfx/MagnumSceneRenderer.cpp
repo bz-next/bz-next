@@ -38,10 +38,12 @@ void MagnumSceneRenderer::init() {
     {
         GL::Texture2D *tex = new GL::Texture2D{};
         (*tex)
-            .setWrapping(GL::SamplerWrapping::Repeat)
-            .setMagnificationFilter(GL::SamplerFilter::Nearest)
-            .setMinificationFilter(GL::SamplerFilter::Nearest)
+            .setWrapping(GL::SamplerWrapping::ClampToBorder)
+            .setMagnificationFilter(GL::SamplerFilter::Linear)
+            .setMinificationFilter(GL::SamplerFilter::Linear)
+            .setBorderColor(Math::Color4{1.0f, 1.0f, 1.0f, 1.0f})
             .setStorage(1, GL::TextureFormat::DepthComponent16, _depthMapSize);
+            
         addPipelineTex("DepthMapTex", {tex, (unsigned)_depthMapSize[0], (unsigned)_depthMapSize[1], false});
     }
     // Add depth map preview texture
@@ -50,9 +52,9 @@ void MagnumSceneRenderer::init() {
     {
         GL::Texture2D *tex = new GL::Texture2D{};
         (*tex)
-            .setWrapping(GL::SamplerWrapping::Repeat)
-            .setMagnificationFilter(GL::SamplerFilter::Nearest)
-            .setMinificationFilter(GL::SamplerFilter::Nearest)
+            .setWrapping(GL::SamplerWrapping::ClampToBorder)
+            .setMagnificationFilter(GL::SamplerFilter::Linear)
+            .setMinificationFilter(GL::SamplerFilter::Linear)
             .setStorage(1, GL::TextureFormat::RGBA8, _depthMapSize);
         addPipelineTex("DepthMapPreviewTex", {tex, (unsigned)_depthMapSize[0], (unsigned)_depthMapSize[1], false});
     }
@@ -97,7 +99,7 @@ void MagnumSceneRenderer::init() {
 
     Object3D* lightobj = SOMGR.getObj("Sun");
     lightobj->resetTransformation();
-    lightobj->transform(Matrix4::lookAt({500.0f, 100.0f, 800.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}));
+    lightobj->transform(Matrix4::lookAt({5000.0f, 1000.0f, 8000.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}));
 
     _lightCamera = new SceneGraph::Camera3D{*lightobj};
     _bzmatMode.setLightObj(lightobj);
@@ -140,7 +142,7 @@ void MagnumSceneRenderer::renderLightDepthMap() {
     // Set up camera
     (*_lightCamera)
         .setAspectRatioPolicy(SceneGraph::AspectRatioPolicy::Extend)
-        .setProjectionMatrix(Matrix4::orthographicProjection({1024.0f, 1024.0f}, 10.0f, 2000.0f))
+        .setProjectionMatrix(Matrix4::orthographicProjection({1024.0f, 1024.0f}, 9000.0f, 10000.0f))
         .setViewport({(int)depthTexData.width, (int)depthTexData.height});
     // Set up renderbuffer / framebuffer
     GL::Framebuffer depthFB{{{}, {(int)depthTexData.width, (int)depthTexData.height}}};
@@ -149,7 +151,6 @@ void MagnumSceneRenderer::renderLightDepthMap() {
     DRAWMODEMGR.setDrawMode(&_depthMode);
 
     depthFB.clear(GL::FramebufferClear::Depth).bind();
-
     // Now render to texture
     if (auto* dg = DGRPMGR.getGroup("WorldDrawables"))
         _lightCamera->draw(*dg);
