@@ -41,6 +41,35 @@
 #include "Magnum/Shaders/visibility.h"
 #include "Magnum/Types.h"
 
+struct EnhancedPhongAttribs {
+    enum: Magnum::UnsignedInt {
+        ColorOutput = 0,
+        #ifndef MAGNUM_TARGET_GLES2
+        ObjectIdOutput = 1
+        #endif
+    };
+    typedef Magnum::GL::Attribute<0, Magnum::Vector3> Position;
+    typedef Magnum::GL::Attribute<1, Magnum::Vector2> TextureCoordinates;
+    typedef Magnum::GL::Attribute<2, Magnum::Color3> Color3;
+    typedef Magnum::GL::Attribute<2, Magnum::Color4> Color4;
+    typedef Magnum::GL::Attribute<3, Magnum::Vector3> Tangent;
+    typedef Magnum::GL::Attribute<3, Magnum::Vector4> Tangent4;
+    #ifndef MAGNUM_TARGET_GLES2
+    typedef Magnum::GL::Attribute<4, Magnum::UnsignedInt> ObjectId;
+    #endif
+    typedef Magnum::GL::Attribute<4, Magnum::Vector3> Bitangent; /* also ObjectId */
+    typedef Magnum::GL::Attribute<5, Magnum::Vector3> Normal;
+
+    typedef Magnum::GL::Attribute<8, Magnum::Matrix4> TransformationMatrix;
+
+    typedef Magnum::GL::Attribute<12, Magnum::Matrix3x3> NormalMatrix;
+
+    typedef Magnum::GL::Attribute<15, Magnum::Vector2> TextureOffset;
+    #ifndef MAGNUM_TARGET_GLES2
+    typedef Magnum::GL::Attribute<15, Magnum::Vector3> TextureOffsetLayer;
+    #endif
+};
+
 /**
 @brief Phong OpenGL shader
 @m_since_latest
@@ -358,7 +387,7 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderPr
          * @ref shaders-generic "Generic attribute",
          * @relativeref{Magnum,Vector3}.
          */
-        typedef Magnum::Shaders::GenericGL3D::Position Position;
+        typedef EnhancedPhongAttribs::Position Position;
 
         /**
          * @brief Normal direction
@@ -367,7 +396,7 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderPr
          * @relativeref{Magnum,Vector3}. Used only if @ref perDrawLightCount()
          * isn't @cpp 0 @ce.
          */
-        typedef Magnum::Shaders::GenericGL3D::Normal Normal;
+        typedef EnhancedPhongAttribs::Normal Normal;
 
         /**
          * @brief Tangent direction
@@ -382,7 +411,7 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderPr
          * @ref perDrawLightCount() isn't @cpp 0 @ce.
          * @see @ref Shaders-PhongGL-normal-mapping
          */
-        typedef Magnum::Shaders::GenericGL3D::Tangent Tangent;
+        typedef EnhancedPhongAttribs::Tangent Tangent;
 
         /**
          * @brief Tangent direction with a bitangent sign
@@ -396,7 +425,7 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderPr
          * @ref perDrawLightCount() isn't @cpp 0 @ce.
          * @see @ref Shaders-PhongGL-normal-mapping
          */
-        typedef Magnum::Shaders::GenericGL3D::Tangent4 Tangent4;
+        typedef EnhancedPhongAttribs::Tangent4 Tangent4;
 
         /**
          * @brief Bitangent direction
@@ -409,7 +438,7 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderPr
          * @cpp 0 @ce.
          * @see @ref Shaders-PhongGL-normal-mapping
          */
-        typedef Magnum::Shaders::GenericGL3D::Bitangent Bitangent;
+        typedef EnhancedPhongAttribs::Bitangent Bitangent;
 
         /**
          * @brief 2D texture coordinates
@@ -419,7 +448,7 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderPr
          * @ref Flag::AmbientTexture, @ref Flag::DiffuseTexture and
          * @ref Flag::SpecularTexture is set.
          */
-        typedef Magnum::Shaders::GenericGL3D::TextureCoordinates TextureCoordinates;
+        typedef EnhancedPhongAttribs::TextureCoordinates TextureCoordinates;
 
         /**
          * @brief Three-component vertex color
@@ -429,7 +458,7 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderPr
          * either this or the @ref Color4 attribute. Used only if
          * @ref Flag::VertexColor is set.
          */
-        typedef Magnum::Shaders::GenericGL3D::Color3 Color3;
+        typedef EnhancedPhongAttribs::Color3 Color3;
 
         /**
          * @brief Four-component vertex color
@@ -439,69 +468,7 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderPr
          * either this or the @ref Color3 attribute. Used only if
          * @ref Flag::VertexColor is set.
          */
-        typedef Magnum::Shaders::GenericGL3D::Color4 Color4;
-
-        #ifndef MAGNUM_TARGET_GLES2
-        /**
-         * @brief Joint ids
-         * @m_since_latest
-         *
-         * @ref shaders-generic "Generic attribute",
-         * @relativeref{Magnum,Vector4ui}. Used only if
-         * @ref perVertexJointCount() isn't @cpp 0 @ce.
-         * @requires_gl30 Extension @gl_extension{EXT,gpu_shader4}
-         * @requires_gles30 Skinning requires integer support in shaders, which
-         *      is not available in OpenGL ES 2.0.
-         * @requires_webgl20 Skinning requires integer support in shaders,
-         *      which is not available in WebGL 1.0.
-         */
-        typedef Magnum::Shaders::GenericGL3D::JointIds JointIds;
-
-        /**
-         * @brief Weights
-         * @m_since_latest
-         *
-         * @ref shaders-generic "Generic attribute",
-         * @relativeref{Magnum,Vector4}. Used only if
-         * @ref perVertexJointCount() isn't @cpp 0 @ce.
-         * @requires_gl30 Extension @gl_extension{EXT,gpu_shader4}
-         * @requires_gles30 Skinning requires integer support in shaders, which
-         *      is not available in OpenGL ES 2.0.
-         * @requires_webgl20 Skinning requires integer support in shaders,
-         *      which is not available in WebGL 1.0.
-         */
-        typedef Magnum::Shaders::GenericGL3D::Weights Weights;
-
-        /**
-         * @brief Secondary joint ids
-         * @m_since_latest
-         *
-         * @ref shaders-generic "Generic attribute",
-         * @relativeref{Magnum,Vector4ui}. Used only if
-         * @ref secondaryPerVertexJointCount() isn't @cpp 0 @ce.
-         * @requires_gl30 Extension @gl_extension{EXT,gpu_shader4}
-         * @requires_gles30 Skinning requires integer support in shaders, which
-         *      is not available in OpenGL ES 2.0.
-         * @requires_webgl20 Skinning requires integer support in shaders,
-         *      which is not available in WebGL 1.0.
-         */
-        typedef Magnum::Shaders::GenericGL3D::SecondaryJointIds SecondaryJointIds;
-
-        /**
-         * @brief Secondary weights
-         * @m_since_latest
-         *
-         * @ref shaders-generic "Generic attribute",
-         * @relativeref{Magnum,Vector4}. Used only if
-         * @ref secondaryPerVertexJointCount() isn't @cpp 0 @ce.
-         * @requires_gl30 Extension @gl_extension{EXT,gpu_shader4}
-         * @requires_gles30 Skinning requires integer support in shaders, which
-         *      is not available in OpenGL ES 2.0.
-         * @requires_webgl20 Skinning requires integer support in shaders,
-         *      which is not available in WebGL 1.0.
-         */
-        typedef Magnum::Shaders::GenericGL3D::SecondaryWeights SecondaryWeights;
-        #endif
+        typedef EnhancedPhongAttribs::Color4 Color4;
 
         #ifndef MAGNUM_TARGET_GLES2
         /**
@@ -517,7 +484,7 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderPr
          * @requires_webgl20 Object ID output requires integer support in
          *      shaders, which is not available in WebGL 1.0.
          */
-        typedef Magnum::Shaders::GenericGL3D::ObjectId ObjectId;
+        typedef EnhancedPhongAttribs::ObjectId ObjectId;
         #endif
 
         /**
@@ -534,7 +501,7 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderPr
          * @requires_webgl20 Extension @webgl_extension{ANGLE,instanced_arrays}
          *      in WebGL 1.0.
          */
-        typedef Magnum::Shaders::GenericGL3D::TransformationMatrix TransformationMatrix;
+        typedef EnhancedPhongAttribs::TransformationMatrix TransformationMatrix;
 
         /**
          * @brief (Instanced) normal matrix
@@ -550,7 +517,7 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderPr
          * @requires_webgl20 Extension @webgl_extension{ANGLE,instanced_arrays}
          *      in WebGL 1.0.
          */
-        typedef Magnum::Shaders::GenericGL3D::NormalMatrix NormalMatrix;
+        typedef EnhancedPhongAttribs::NormalMatrix NormalMatrix;
 
         /**
          * @brief (Instanced) texture offset
@@ -566,7 +533,7 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderPr
          * @requires_webgl20 Extension @webgl_extension{ANGLE,instanced_arrays}
          *      in WebGL 1.0.
          */
-        typedef typename Magnum::Shaders::GenericGL3D::TextureOffset TextureOffset;
+        typedef typename EnhancedPhongAttribs::TextureOffset TextureOffset;
 
         #ifndef MAGNUM_TARGET_GLES2
         /**
@@ -583,7 +550,7 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderPr
          * @requires_gles30 Texture arrays are not available in OpenGL ES 2.0.
          * @requires_webgl20 Texture arrays are not available in WebGL 1.0.
          */
-        typedef typename Magnum::Shaders::GenericGL3D::TextureOffsetLayer TextureOffsetLayer;
+        typedef typename EnhancedPhongAttribs::TextureOffsetLayer TextureOffsetLayer;
         #endif
 
         enum: Magnum::UnsignedInt {
@@ -593,7 +560,7 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderPr
              * or normalized buffer attachment.
              * @m_since{2019,10}
              */
-            ColorOutput = Magnum::Shaders::GenericGL3D::ColorOutput,
+            ColorOutput = EnhancedPhongAttribs::ColorOutput,
 
             #ifndef MAGNUM_TARGET_GLES2
             /**
@@ -610,7 +577,7 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderPr
              *      shaders, which is not available in WebGL 1.0.
              * @m_since{2019,10}
              */
-            ObjectIdOutput = Magnum::Shaders::GenericGL3D::ObjectIdOutput
+            ObjectIdOutput = EnhancedPhongAttribs::ObjectIdOutput
             #endif
         };
 
@@ -1087,48 +1054,6 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderPr
 
         #ifndef MAGNUM_TARGET_GLES2
         /**
-         * @brief Joint count
-         * @m_since_latest
-         *
-         * If @ref Flag::UniformBuffers is not set, this is the number of joint
-         * matrices accepted by @ref setJointMatrices() / @ref setJointMatrix().
-         * If @ref Flag::UniformBuffers is set, this is the statically defined
-         * size of the @ref TransformationUniform3D uniform buffer bound with
-         * @ref bindJointBuffer(). Has no use if @ref Flag::ShaderStorageBuffers
-         * is set.
-         * @see @ref Configuration::setJointCount()
-         * @requires_gles30 Not defined on OpenGL ES 2.0 builds.
-         * @requires_webgl20 Not defined on WebGL 1.0 builds.
-         */
-        Magnum::UnsignedInt jointCount() const { return _jointCount; }
-
-        /**
-         * @brief Per-vertex joint count
-         * @m_since_latest
-         *
-         * Returns the value set with @ref Configuration::setJointCount(). If
-         * @ref Flag::DynamicPerVertexJointCount is set, the count can be
-         * additionally modified per-draw using @ref setPerVertexJointCount().
-         * @requires_gles30 Not defined on OpenGL ES 2.0 builds.
-         * @requires_webgl20 Not defined on WebGL 1.0 builds.
-         */
-        Magnum::UnsignedInt perVertexJointCount() const { return _perVertexJointCount; }
-
-        /**
-         * @brief Secondary per-vertex joint count
-         * @m_since_latest
-         *
-         * Returns the value set with @ref Configuration::setJointCount(). If
-         * @ref Flag::DynamicPerVertexJointCount is set, the count can be
-         * additionally modified per-draw using @ref setPerVertexJointCount().
-         * @requires_gles30 Not defined on OpenGL ES 2.0 builds.
-         * @requires_webgl20 Not defined on WebGL 1.0 builds.
-         */
-        Magnum::UnsignedInt secondaryPerVertexJointCount() const { return _secondaryPerVertexJointCount; }
-        #endif
-
-        #ifndef MAGNUM_TARGET_GLES2
-        /**
          * @brief Material count
          * @m_since_latest
          *
@@ -1157,34 +1082,6 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderPr
          * @requires_webgl20 Not defined on WebGL 1.0 builds.
          */
         Magnum::UnsignedInt drawCount() const { return _drawCount; }
-        #endif
-
-        #ifndef MAGNUM_TARGET_GLES2
-        /**
-         * @brief Set dynamic per-vertex skinning joint count
-         * @return Reference to self (for method chaining)
-         * @m_since_latest
-         *
-         * Allows reducing the count of iterated joints for a particular draw
-         * call, making it possible to use a single shader with meshes that
-         * contain different count of per-vertex joints. See
-         * @ref Flag::DynamicPerVertexJointCount for more information. As the
-         * joint count is tied to the mesh layout, this is a per-draw-call
-         * setting even in case of @ref Flag::UniformBuffers instead of being
-         * a value in @ref PhongDrawUniform. Initial value is the same as
-         * @ref perVertexJointCount() and @ref secondaryPerVertexJointCount().
-         *
-         * Expects that @ref Flag::DynamicPerVertexJointCount is set,
-         * @p count is not larger than @ref perVertexJointCount() and
-         * @p secondaryCount not larger than @ref secondaryPerVertexJointCount().
-         * @see @ref Configuration::setJointCount()
-         * @requires_gl30 Extension @gl_extension{EXT,gpu_shader4}
-         * @requires_gles30 Skinning requires integer support in shaders, which
-         *      is not available in OpenGL ES 2.0.
-         * @requires_webgl20 Skinning requires integer support in shaders, which
-         *      is not available in WebGL 1.0.
-         */
-        EnhancedPhongGL& setPerVertexJointCount(Magnum::UnsignedInt count, Magnum::UnsignedInt secondaryCount = 0);
         #endif
 
         /** @{
@@ -1652,76 +1549,6 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderPr
          */
         EnhancedPhongGL& setLightRange(Magnum::UnsignedInt id, Magnum::Float range);
 
-        #ifndef MAGNUM_TARGET_GLES2
-        /**
-         * @brief Set joint matrices
-         * @return Reference to self (for method chaining)
-         * @m_since_latest
-         *
-         * Initial values are identity transformations. Expects that the size
-         * of the @p matrices array is the same as @ref jointCount().
-         *
-         * Expects that @ref Flag::UniformBuffers is not set, in that case fill
-         * @ref TransformationUniform3D::transformationMatrix and call
-         * @ref bindJointBuffer() instead.
-         * @see @ref setJointMatrix(UnsignedInt, const Matrix4&)
-         * @requires_gl30 Extension @gl_extension{EXT,gpu_shader4}
-         * @requires_gles30 Skinning requires integer support in shaders, which
-         *      is not available in OpenGL ES 2.0.
-         * @requires_webgl20 Skinning requires integer support in shaders,
-         *      which is not available in WebGL 1.0.
-         */
-        EnhancedPhongGL& setJointMatrices(Magnum::Containers::ArrayView<const Magnum::Matrix4> matrices);
-
-        /**
-         * @overload
-         * @m_since_latest
-         */
-        EnhancedPhongGL& setJointMatrices(std::initializer_list<Magnum::Matrix4> matrices);
-
-        /**
-         * @brief Set joint matrix for given joint
-         * @return Reference to self (for method chaining)
-         * @m_since_latest
-         *
-         * Unlike @ref setJointMatrices() updates just a single joint matrix.
-         * Expects that @p id is less than @ref jointCount().
-         *
-         * Expects that @ref Flag::UniformBuffers is not set, in that case fill
-         * @ref TransformationUniform3D::transformationMatrix and call
-         * @ref bindJointBuffer() instead.
-         * @requires_gl30 Extension @gl_extension{EXT,gpu_shader4}
-         * @requires_gles30 Skinning requires integer support in shaders, which
-         *      is not available in OpenGL ES 2.0.
-         * @requires_webgl20 Skinning requires integer support in shaders,
-         *      which is not available in WebGL 1.0.
-         */
-        EnhancedPhongGL& setJointMatrix(Magnum::UnsignedInt id, const Magnum::Matrix4& matrix);
-
-        /**
-         * @brief Set per-instance joint count
-         * @return Reference to self (for method chaining)
-         * @m_since_latest
-         *
-         * Offset added to joint IDs in the @ref JointIds and
-         * @ref SecondaryJointIds in instanced draws. Should be less than
-         * @ref jointCount(). Initial value is @cpp 0 @ce, meaning every
-         * instance will use the same joint matrices, setting it to a non-zero
-         * value causes the joint IDs to be interpreted as
-         * @glsl gl_InstanceID*count + jointId @ce.
-         *
-         * Expects that @ref Flag::UniformBuffers is not set, in that case fill
-         * @ref PhongDrawUniform::perInstanceJointCount and call
-         * @ref bindDrawBuffer() instead.
-         * @requires_gl30 Extension @gl_extension{EXT,gpu_shader4}
-         * @requires_gles30 Skinning requires integer support in shaders, which
-         *      is not available in OpenGL ES 2.0.
-         * @requires_webgl20 Skinning requires integer support in shaders,
-         *      which is not available in WebGL 1.0.
-         */
-        EnhancedPhongGL& setPerInstanceJointCount(Magnum::UnsignedInt count);
-        #endif
-
         /**
          * @}
          */
@@ -1879,25 +1706,6 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderPr
          * @m_since_latest
          */
         EnhancedPhongGL& bindLightBuffer(Magnum::GL::Buffer& buffer, GLintptr offset, GLsizeiptr size);
-
-        /**
-         * @brief Bind a joint matrix uniform / shader storage buffer
-         * @return Reference to self (for method chaining)
-         * @m_since_latest
-         *
-         * Expects that @ref Flag::UniformBuffers is set. The buffer is
-         * expected to contain @ref jointCount() instances of
-         * @ref TransformationUniform3D.
-         * @requires_gl31 Extension @gl_extension{ARB,uniform_buffer_object}
-         * @requires_gles30 Uniform buffers are not available in OpenGL ES 2.0.
-         * @requires_webgl20 Uniform buffers are not available in WebGL 1.0.
-         */
-        EnhancedPhongGL& bindJointBuffer(Magnum::GL::Buffer& buffer);
-        /**
-         * @overload
-         * @m_since_latest
-         */
-        EnhancedPhongGL& bindJointBuffer(Magnum::GL::Buffer& buffer, GLintptr offset, GLsizeiptr size);
 
         /**
          * @}
@@ -2125,9 +1933,7 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderPr
         Magnum::UnsignedInt _lightCount{},
             _perDrawLightCount{};
         #ifndef MAGNUM_TARGET_GLES2
-        Magnum::UnsignedInt _jointCount{},
-            _perVertexJointCount{},
-            _secondaryPerVertexJointCount{},
+        Magnum::UnsignedInt
             _materialCount{},
             _drawCount{};
         #endif
@@ -2152,13 +1958,9 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderPr
             _lightSpecularColorsUniform, /* 12 + 2*lightCount */
             _lightRangesUniform; /* 12 + 3*lightCount */
         #ifndef MAGNUM_TARGET_GLES2
-        Magnum::Int _jointMatricesUniform, /* 12 + 4*lightCount */
-            _perInstanceJointCountUniform, /* 12 + 4*lightCount + jointCount */
-            /* Used instead of all other uniforms when Flag::UniformBuffers is
-               set, so it can alias them */
-            _drawOffsetUniform{0},
-            /* 13 + 4*lightCount + jointCount, or 1 with UBOs */
-            _perVertexJointCountUniform;
+        Magnum::Int 
+            _drawOffsetUniform{0};
+
         #endif
 };
 
@@ -2240,69 +2042,6 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL::Configuration {
 
         #ifndef MAGNUM_TARGET_GLES2
         /**
-         * @brief Joint count
-         *
-         * @requires_gles30 Not defined on OpenGL ES 2.0 builds.
-         * @requires_webgl20 Not defined on WebGL 1.0 builds.
-         */
-        Magnum::UnsignedInt jointCount() const { return _jointCount; }
-
-        /**
-         * @brief Per-vertex joint count
-         *
-         * @requires_gles30 Not defined on OpenGL ES 2.0 builds.
-         * @requires_webgl20 Not defined on WebGL 1.0 builds.
-         */
-        Magnum::UnsignedInt perVertexJointCount() const { return _perVertexJointCount; }
-
-        /**
-         *@brief Secondary per-vertex joint count
-         *
-         * @requires_gles30 Not defined on OpenGL ES 2.0 builds.
-         * @requires_webgl20 Not defined on WebGL 1.0 builds.
-         */
-        Magnum::UnsignedInt secondaryPerVertexJointCount() const { return _secondaryPerVertexJointCount; }
-
-        /**
-         * @brief Set joint count
-         *
-         * If @ref Flag::UniformBuffers isn't set, @p count describes an upper
-         * bound on how many joint matrices get supplied to each draw with
-         * @ref setJointMatrices() / @ref setJointMatrix().
-         *
-         * If @ref Flag::UniformBuffers is set, @p count describes size of a
-         * @ref TransformationUniform3D buffer bound with
-         * @ref bindJointBuffer(). Uniform buffers have a statically defined
-         * size and @cpp count*sizeof(TransformationUniform3D) @ce has to be
-         * within @ref GL::AbstractShaderProgram::maxUniformBlockSize(), if
-         * @ref Flag::ShaderStorageBuffers is set as well, the buffer is
-         * unbounded and @p count is ignored. The per-vertex joints index into
-         * the array offset by @ref PhongDrawUniform::jointOffset.
-         *
-         * The @p perVertexCount and @p secondaryPerVertexCount parameters
-         * describe how many components are taken from @ref JointIds /
-         * @ref Weights and @ref SecondaryJointIds / @ref SecondaryWeights
-         * attributes. Both values are expected to not be larger than
-         * @cpp 4 @ce, setting either of these to @cpp 0 @ce means given
-         * attribute is not used at all. If both @p perVertexCount and
-         * @p secondaryPerVertexCount are set to @cpp 0 @ce, skinning is not
-         * performed. Unless @ref Flag::ShaderStorageBuffers is set, if either
-         * of them is non-zero, @p count is expected to be non-zero as well.
-         *
-         * Default value for all three is @cpp 0 @ce.
-         * @see @ref PhongGL::jointCount(), @ref PhongGL::perVertexJointCount(),
-         *      @ref PhongGL::secondaryPerVertexJointCount(),
-         *      @ref Flag::DynamicPerVertexJointCount,
-         *      @ref PhongGL::setPerVertexJointCount()
-         * @requires_gl30 Extension @gl_extension{EXT,gpu_shader4}
-         * @requires_gles30 Skinning requires integer support in shaders, which
-         *      is not available in OpenGL ES 2.0.
-         * @requires_webgl20 Skinning requires integer support in shaders,
-         *      which is not available in WebGL 1.0.
-         */
-        Configuration& setJointCount(Magnum::UnsignedInt count, Magnum::UnsignedInt perVertexCount, Magnum::UnsignedInt secondaryPerVertexCount = 0);
-
-        /**
          * @brief Material count
          *
          * @requires_gles30 Not defined on OpenGL ES 2.0 builds.
@@ -2379,9 +2118,6 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL::Configuration {
             _perDrawLightCount = 1;
         #ifndef MAGNUM_TARGET_GLES2
         Magnum::UnsignedInt
-            _jointCount = 0,
-            _perVertexJointCount = 0,
-            _secondaryPerVertexJointCount = 0,
             _materialCount = 1,
             _drawCount = 1;
         #endif

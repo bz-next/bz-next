@@ -109,8 +109,6 @@ EnhancedPhongGL::CompileState EnhancedPhongGL::compile(const Configuration& conf
         CORRADE_ASSERT(configuration.perDrawLightCount() <= configuration.lightCount(),
             "Shaders::EnhancedPhongGL: per-draw light count expected to not be larger than total count of" << configuration.lightCount() << Debug::nospace << ", got" << configuration.perDrawLightCount(), CompileState{NoCreate});
         #ifndef MAGNUM_TARGET_GLES2
-        CORRADE_ASSERT(!configuration.jointCount() == (!configuration.perVertexJointCount() && !configuration.secondaryPerVertexJointCount()),
-            "Shaders::EnhancedPhongGL: joint count can't be zero if per-vertex joint count is non-zero", CompileState{NoCreate});
         CORRADE_ASSERT(!(configuration.flags() >= Flag::UniformBuffers) || configuration.materialCount(),
             "Shaders::EnhancedPhongGL: material count can't be zero", CompileState{NoCreate});
         CORRADE_ASSERT(!(configuration.flags() >= Flag::UniformBuffers) || configuration.drawCount(),
@@ -130,13 +128,6 @@ EnhancedPhongGL::CompileState EnhancedPhongGL::compile(const Configuration& conf
 
     CORRADE_ASSERT(!(configuration.flags() & Flag::SpecularTexture) || !(configuration.flags() & (Flag::NoSpecular)),
         "Shaders::EnhancedPhongGL: specular texture requires the shader to not have specular disabled", CompileState{NoCreate});
-
-    #ifndef MAGNUM_TARGET_GLES2
-    CORRADE_ASSERT(!(configuration.flags() & Flag::DynamicPerVertexJointCount) || (configuration.perVertexJointCount() || configuration.secondaryPerVertexJointCount()),
-        "Shaders::EnhancedPhongGL: dynamic per-vertex joint count enabled for zero joints", CompileState{NoCreate});
-    CORRADE_ASSERT(!(configuration.flags() & Flag::InstancedTransformation) || !configuration.secondaryPerVertexJointCount(),
-        "Shaders::EnhancedPhongGL: TransformationMatrix attribute binding conflicts with the SecondaryJointIds / SecondaryWeights attributes, use a non-instanced rendering with secondary weights instead", CompileState{NoCreate});
-    #endif
 
     #ifndef MAGNUM_TARGET_GLES
     if(configuration.flags() >= Flag::ObjectId)
@@ -191,21 +182,12 @@ EnhancedPhongGL::CompileState EnhancedPhongGL::compile(const Configuration& conf
     out._lightCount = configuration.lightCount();
     out._perDrawLightCount = configuration.perDrawLightCount();
     #ifndef MAGNUM_TARGET_GLES2
-    out._jointCount = configuration.jointCount();
-    out._perVertexJointCount = configuration.perVertexJointCount();
-    out._secondaryPerVertexJointCount = configuration.secondaryPerVertexJointCount();
     out._materialCount = configuration.materialCount();
     out._drawCount = configuration.drawCount();
     #endif
     out._lightColorsUniform = out._lightPositionsUniform + Int(configuration.lightCount());
     out._lightSpecularColorsUniform = out._lightColorsUniform + Int(configuration.lightCount());
     out._lightRangesUniform = out._lightSpecularColorsUniform + Int(configuration.lightCount());
-    #ifndef MAGNUM_TARGET_GLES2
-    out._jointMatricesUniform = out._lightRangesUniform + Int(configuration.lightCount());
-    out._perInstanceJointCountUniform = out._jointMatricesUniform + configuration.jointCount();
-    out._perVertexJointCountUniform = configuration.flags() >= Flag::UniformBuffers ?
-        1 : out._perInstanceJointCountUniform + 1;
-    #endif
 
     #ifndef MAGNUM_TARGET_GLES
     /* Initializer for the light color / position / range arrays -- we need a
@@ -243,73 +225,6 @@ EnhancedPhongGL::CompileState EnhancedPhongGL::compile(const Configuration& conf
         .addSource(configuration.flags() & Flag::InstancedTransformation ? "#define INSTANCED_TRANSFORMATION\n"_s : ""_s)
         .addSource(configuration.flags() >= Flag::InstancedTextureOffset ? "#define INSTANCED_TEXTURE_OFFSET\n"_s : ""_s);
     #ifndef MAGNUM_TARGET_GLES2
-    if(configuration.perVertexJointCount() || configuration.secondaryPerVertexJointCount()) {
-        #ifndef MAGNUM_TARGET_WEBGL
-        /* The _LOCATION are needed only in the non-UBO case if explicit
-           uniform location (desktop / ES3.1) is supported, and _INITIALIZER is
-           desktop-only, so don't even have this branch on WebGL. OTOH,
-           branching on explicit uniform location support and adding just the
-           _INITIALIZER if not wouldn't really save much (have to format()
-           anyway), so passing them always. */
-        if(!(configuration.flags() >= Flag::UniformBuffers)) {
-            vert.addSource(Utility::format(
-                "#define JOINT_COUNT {}\n"
-                "#define PER_VERTEX_JOINT_COUNT {}u\n"
-                "#define SECONDARY_PER_VERTEX_JOINT_COUNT {}u\n"
-                "#define JOINT_MATRICES_LOCATION {}\n"
-                #ifndef MAGNUM_TARGET_GLES
-                "#define JOINT_MATRIX_INITIALIZER {}\n"
-                #endif
-                "#define PER_INSTANCE_JOINT_COUNT_LOCATION {}\n",
-                configuration.jointCount(),
-                configuration.perVertexJointCount(),
-                configuration.secondaryPerVertexJointCount(),
-                out._jointMatricesUniform,
-                #ifndef MAGNUM_TARGET_GLES
-                ("mat4(1.0), "_s*configuration.jointCount()).exceptSuffix(2),
-                #endif
-                out._perInstanceJointCountUniform));
-        } else
-        #endif
-        {
-            vert.addSource(Utility::format(
-                /* SSBOs have an unbounded joints array */
-                #ifndef MAGNUM_TARGET_WEBGL
-                configuration.flags() >= Flag::ShaderStorageBuffers ?
-                    "#define PER_VERTEX_JOINT_COUNT {1}u\n"
-                    "#define SECONDARY_PER_VERTEX_JOINT_COUNT {2}u\n" :
-                #endif
-                    "#define JOINT_COUNT {}\n"
-                    "#define PER_VERTEX_JOINT_COUNT {1}u\n"
-                    "#define SECONDARY_PER_VERTEX_JOINT_COUNT {2}u\n",
-                configuration.jointCount(),
-                configuration.perVertexJointCount(),
-                configuration.secondaryPerVertexJointCount()));
-        }
-    }
-    if(configuration.flags() >= Flag::DynamicPerVertexJointCount) {
-        #ifndef MAGNUM_TARGET_WEBGL
-        /* The _LOCATION is needed only if explicit uniform location (desktop /
-           ES3.1) is supported, a plain string can be added otherwise. This is
-           an immediate uniform also in the UBO / SSBO case. */
-        #ifndef MAGNUM_TARGET_GLES
-        if(context.isExtensionSupported<GL::Extensions::ARB::explicit_uniform_location>(version))
-        #else
-        if(version >= GL::Version::GLES310)
-        #endif
-        {
-            vert.addSource(Utility::format(
-                "#define DYNAMIC_PER_VERTEX_JOINT_COUNT\n"
-                "#define PER_VERTEX_JOINT_COUNT_LOCATION {}\n",
-                out._perVertexJointCountUniform));
-        } else
-        #endif
-        {
-            vert.addSource("#define DYNAMIC_PER_VERTEX_JOINT_COUNT\n"_s);
-        }
-    }
-    #endif
-    #ifndef MAGNUM_TARGET_GLES2
     if(configuration.flags() >= Flag::UniformBuffers) {
         #ifndef MAGNUM_TARGET_WEBGL
         /* SSBOs have unbounded per-draw arrays so just a plain string can be
@@ -329,7 +244,7 @@ EnhancedPhongGL::CompileState EnhancedPhongGL::compile(const Configuration& conf
         vert.addSource(configuration.flags() >= Flag::MultiDraw ? "#define MULTI_DRAW\n"_s : ""_s);
     }
     #endif
-    vert.addSource(rs.getString("generic.glsl"_s))
+    vert.addSource(rs.getString("EnhancedPhongAttribs.glsl"_s))
         .addSource(rs.getString("EnhancedPhong.vert"_s))
         .submitCompile();
 
@@ -405,7 +320,7 @@ EnhancedPhongGL::CompileState EnhancedPhongGL::compile(const Configuration& conf
     if(!(configuration.flags() >= Flag::UniformBuffers) && configuration.lightCount())
         frag.addSource(Utility::move(lightInitializer));
     #endif
-    frag.addSource(rs.getString("generic.glsl"_s))
+    frag.addSource(rs.getString("EnhancedPhongAttribs.glsl"_s))
         .addSource(rs.getString("EnhancedPhong.frag"_s))
         .submitCompile();
 
@@ -449,19 +364,6 @@ EnhancedPhongGL::CompileState EnhancedPhongGL::compile(const Configuration& conf
         }
         if(configuration.flags() >= Flag::InstancedTextureOffset)
             out.bindAttributeLocation(TextureOffset::Location, "instancedTextureOffset"_s);
-        #ifndef MAGNUM_TARGET_GLES2
-        /* Configuration::setJointCount() checks that jointCount and
-           perVertexJointCount / secondaryPerVertexJointCount are either all
-           zero or non-zero so we don't need to check for jointCount() here */
-        if(configuration.perVertexJointCount()) {
-            out.bindAttributeLocation(Weights::Location, "weights"_s);
-            out.bindAttributeLocation(JointIds::Location, "jointIds"_s);
-        }
-        if(configuration.secondaryPerVertexJointCount()) {
-            out.bindAttributeLocation(SecondaryWeights::Location, "secondaryWeights"_s);
-            out.bindAttributeLocation(SecondaryJointIds::Location, "secondaryJointIds"_s);
-        }
-        #endif
     }
     #endif
 
@@ -513,8 +415,6 @@ EnhancedPhongGL::EnhancedPhongGL(CompileState&& state): EnhancedPhongGL{static_c
     #endif
     {
         #ifndef MAGNUM_TARGET_GLES2
-        if(_flags >= Flag::DynamicPerVertexJointCount)
-            _perVertexJointCountUniform = uniformLocation("perVertexJointCount"_s);
         if(_flags >= Flag::UniformBuffers) {
             if(_drawCount > 1
                 #ifndef MAGNUM_TARGET_WEBGL
@@ -552,12 +452,6 @@ EnhancedPhongGL::EnhancedPhongGL(CompileState&& state): EnhancedPhongGL{static_c
             #ifndef MAGNUM_TARGET_GLES2
             if(_flags & Flag::ObjectId) _objectIdUniform = uniformLocation("objectId"_s);
             #endif
-            #ifndef MAGNUM_TARGET_GLES2
-            if(_jointCount) {
-                _jointMatricesUniform = uniformLocation("jointMatrices"_s);
-                _perInstanceJointCountUniform = uniformLocation("perInstanceJointCount"_s);
-            }
-            #endif
         }
     }
 
@@ -589,8 +483,6 @@ EnhancedPhongGL::EnhancedPhongGL(CompileState&& state): EnhancedPhongGL{static_c
                 setUniformBlockBinding(uniformBlockIndex("TextureTransformation"_s), TextureTransformationBufferBinding);
             if(_lightCount)
                 setUniformBlockBinding(uniformBlockIndex("Light"_s), LightBufferBinding);
-            if(_jointCount)
-                setUniformBlockBinding(uniformBlockIndex("Joint"_s), JointBufferBinding);
         }
         #endif
     }
@@ -660,19 +552,6 @@ EnhancedPhongGL::EnhancedPhongGL(const Flags flags, const UnsignedInt lightCount
     .setMaterialCount(materialCount)
     .setDrawCount(drawCount))} {}
 #endif
-#endif
-
-#ifndef MAGNUM_TARGET_GLES2
-EnhancedPhongGL& EnhancedPhongGL::setPerVertexJointCount(const UnsignedInt count, const UnsignedInt secondaryCount) {
-    CORRADE_ASSERT(_flags >= Flag::DynamicPerVertexJointCount,
-        "Shaders::EnhancedPhongGL::setPerVertexJointCount(): the shader was not created with dynamic per-vertex joint count enabled", *this);
-    CORRADE_ASSERT(count <= _perVertexJointCount,
-        "Shaders::EnhancedPhongGL::setPerVertexJointCount(): expected at most" << _perVertexJointCount << "per-vertex joints, got" << count, *this);
-    CORRADE_ASSERT(secondaryCount <= _secondaryPerVertexJointCount,
-        "Shaders::EnhancedPhongGL::setPerVertexJointCount(): expected at most" << _secondaryPerVertexJointCount << "secondary per-vertex joints, got" << secondaryCount, *this);
-    setUniform(_perVertexJointCountUniform, Vector2ui{count, secondaryCount});
-    return *this;
-}
 #endif
 
 EnhancedPhongGL& EnhancedPhongGL::setAmbientColor(const Magnum::Color4& color) {
@@ -962,37 +841,6 @@ EnhancedPhongGL& EnhancedPhongGL::setLightRange(const UnsignedInt id, const Floa
 }
 
 #ifndef MAGNUM_TARGET_GLES2
-EnhancedPhongGL& EnhancedPhongGL::setJointMatrices(const Containers::ArrayView<const Matrix4> matrices) {
-    CORRADE_ASSERT(!(_flags >= Flag::UniformBuffers),
-        "Shaders::EnhancedPhongGL::setJointMatrices(): the shader was created with uniform buffers enabled", *this);
-    CORRADE_ASSERT(matrices.size() <= _jointCount,
-        "Shaders::EnhancedPhongGL::setJointMatrices(): expected at most" << _jointCount << "items but got" << matrices.size(), *this);
-    if(_jointCount) setUniform(_jointMatricesUniform, matrices);
-    return *this;
-}
-
-EnhancedPhongGL& EnhancedPhongGL::setJointMatrices(const std::initializer_list<Matrix4> matrices) {
-    return setJointMatrices(Containers::arrayView(matrices));
-}
-
-EnhancedPhongGL& EnhancedPhongGL::setJointMatrix(const UnsignedInt id, const Matrix4& matrix) {
-    CORRADE_ASSERT(!(_flags >= Flag::UniformBuffers),
-        "Shaders::EnhancedPhongGL::setJointMatrix(): the shader was created with uniform buffers enabled", *this);
-    CORRADE_ASSERT(id < _jointCount,
-        "Shaders::EnhancedPhongGL::setJointMatrix(): joint ID" << id << "is out of range for" << _jointCount << "joints", *this);
-    setUniform(_jointMatricesUniform + id, matrix);
-    return *this;
-}
-
-EnhancedPhongGL& EnhancedPhongGL::setPerInstanceJointCount(const UnsignedInt count) {
-    CORRADE_ASSERT(!(_flags >= Flag::UniformBuffers),
-        "Shaders::EnhancedPhongGL::setPerInstanceJointCount(): the shader was created with uniform buffers enabled", *this);
-    setUniform(_perInstanceJointCountUniform, count);
-    return *this;
-}
-#endif
-
-#ifndef MAGNUM_TARGET_GLES2
 EnhancedPhongGL& EnhancedPhongGL::setDrawOffset(const UnsignedInt offset) {
     CORRADE_ASSERT(_flags >= Flag::UniformBuffers,
         "Shaders::EnhancedPhongGL::setDrawOffset(): the shader was not created with uniform buffers enabled", *this);
@@ -1146,28 +994,6 @@ EnhancedPhongGL& EnhancedPhongGL::bindLightBuffer(GL::Buffer& buffer, const GLin
         GL::Buffer::Target::Uniform, LightBufferBinding, offset, size);
     return *this;
 }
-
-EnhancedPhongGL& EnhancedPhongGL::bindJointBuffer(GL::Buffer& buffer) {
-    CORRADE_ASSERT(_flags >= Flag::UniformBuffers,
-        "Shaders::EnhancedPhongGL::bindJointBuffer(): the shader was not created with uniform buffers enabled", *this);
-    buffer.bind(
-        #ifndef MAGNUM_TARGET_WEBGL
-        _flags >= Flag::ShaderStorageBuffers ? GL::Buffer::Target::ShaderStorage :
-        #endif
-        GL::Buffer::Target::Uniform, JointBufferBinding);
-    return *this;
-}
-
-EnhancedPhongGL& EnhancedPhongGL::bindJointBuffer(GL::Buffer& buffer, const GLintptr offset, const GLsizeiptr size) {
-    CORRADE_ASSERT(_flags >= Flag::UniformBuffers,
-        "Shaders::EnhancedPhongGL::bindJointBuffer(): the shader was not created with uniform buffers enabled", *this);
-    buffer.bind(
-        #ifndef MAGNUM_TARGET_WEBGL
-        _flags >= Flag::ShaderStorageBuffers ? GL::Buffer::Target::ShaderStorage :
-        #endif
-        GL::Buffer::Target::Uniform, JointBufferBinding, offset, size);
-    return *this;
-}
 #endif
 
 EnhancedPhongGL& EnhancedPhongGL::bindAmbientTexture(GL::Texture2D& texture) {
@@ -1298,21 +1124,6 @@ EnhancedPhongGL::Configuration& EnhancedPhongGL::Configuration::setLightCount(co
     _perDrawLightCount = perDrawCount;
     return *this;
 }
-
-#ifndef MAGNUM_TARGET_GLES2
-EnhancedPhongGL::Configuration& EnhancedPhongGL::Configuration::setJointCount(UnsignedInt count, UnsignedInt perVertexCount, UnsignedInt secondaryPerVertexCount) {
-    CORRADE_ASSERT(perVertexCount <= 4,
-        "Shaders::EnhancedPhongGL::Configuration::setJointCount(): expected at most 4 per-vertex joints, got" << perVertexCount, *this);
-    CORRADE_ASSERT(secondaryPerVertexCount <= 4,
-        "Shaders::EnhancedPhongGL::Configuration::setJointCount(): expected at most 4 secondary per-vertex joints, got" << secondaryPerVertexCount, *this);
-    CORRADE_ASSERT(perVertexCount || secondaryPerVertexCount || !count,
-        "Shaders::EnhancedPhongGL::Configuration::setJointCount(): count has to be zero if per-vertex joint count is zero", *this);
-    _jointCount = count;
-    _perVertexJointCount = perVertexCount;
-    _secondaryPerVertexJointCount = secondaryPerVertexCount;
-    return *this;
-}
-#endif
 
 Debug& operator<<(Debug& debug, const EnhancedPhongGL::Flag value) {
     #ifndef MAGNUM_TARGET_GLES2

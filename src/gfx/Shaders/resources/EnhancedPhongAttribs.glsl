@@ -24,8 +24,6 @@
     DEALINGS IN THE SOFTWARE.
 */
 
-/* Kept consistent with GenericGL.h (tested in ShadersGenericGL_Test) */
-
 #define POSITION_ATTRIBUTE_LOCATION 0
 #define TEXTURECOORDINATES_ATTRIBUTE_LOCATION 1 /* also LineAnnotation */
 #define LINE_ANNOTATION_ATTRIBUTE_LOCATION 1 /* also LineAnnotation */
@@ -36,12 +34,12 @@
 #define OBJECT_ID_ATTRIBUTE_LOCATION 4 /* also Bitangent */
 #define NORMAL_ATTRIBUTE_LOCATION 5 /* also LineNextPosition */
 #define LINE_NEXT_POSITION_ATTRIBUTE_LOCATION 5 /* also Normal */
-#define JOINTIDS_ATTRIBUTE_LOCATION 6
-#define WEIGHTS_ATTRIBUTE_LOCATION 7
+//#define JOINTIDS_ATTRIBUTE_LOCATION 6
+//#define WEIGHTS_ATTRIBUTE_LOCATION 7
 
 #define TRANSFORMATION_MATRIX_ATTRIBUTE_LOCATION 8
-#define SECONDARY_JOINTIDS_ATTRIBUTE_LOCATION 10 /* also TransformationMatrix[2] */
-#define SECONDARY_WEIGHTS_ATTRIBUTE_LOCATION 11 /* also TransformationMatrix[3] */
+//#define SECONDARY_JOINTIDS_ATTRIBUTE_LOCATION 10 /* also TransformationMatrix[2] */
+//#define SECONDARY_WEIGHTS_ATTRIBUTE_LOCATION 11 /* also TransformationMatrix[3] */
 #define NORMAL_MATRIX_ATTRIBUTE_LOCATION 12
 #define TEXTURE_OFFSET_ATTRIBUTE_LOCATION 15 /* + layer in the 3rd component */
 
