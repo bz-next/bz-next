@@ -21,6 +21,8 @@
 
 #include <Magnum/SceneGraph/Camera.h>
 
+#include <Magnum/ImGuiIntegration/Widgets.h>
+
 #include <string>
 
 #include "DrawModeManager.h"
@@ -30,8 +32,6 @@
 #include "BZDBCache.h"
 
 using namespace Magnum;
-
-Object3D* MagnumSceneRenderer::_lightObj = NULL;
 
 MagnumSceneRenderer::MagnumSceneRenderer() {}
 
@@ -51,7 +51,7 @@ void MagnumSceneRenderer::init() {
     // Add depth map preview texture
     // This is just the 16-bit depth map rendered to a regular rgba texture
     // for previewing
-    {
+    /*{
         GL::Texture2D *tex = new GL::Texture2D{};
         (*tex)
             .setWrapping(GL::SamplerWrapping::ClampToBorder)
@@ -59,7 +59,7 @@ void MagnumSceneRenderer::init() {
             .setMinificationFilter(GL::SamplerFilter::Linear)
             .setStorage(1, GL::TextureFormat::RGBA8, _depthMapSize);
         addPipelineTex("DepthMapPreviewTex", {tex, (unsigned)_depthMapSize[0], (unsigned)_depthMapSize[1], false});
-    }
+    }*/
 
     // Create a generic quad mesh for previewing
     const Vector3 vertices[]{
@@ -191,7 +191,7 @@ void MagnumSceneRenderer::renderLightDepthMap() {
     // Set up camera
     (*_lightCamera)
         .setAspectRatioPolicy(SceneGraph::AspectRatioPolicy::Extend)
-        .setProjectionMatrix(Matrix4::orthographicProjection({-worldDiag/2.0f, worldDiag/2.0f}, getSunNearPlane(), getSunFarPlane()))
+        .setProjectionMatrix(Matrix4::orthographicProjection({-worldDiag, worldDiag}, getSunNearPlane(), getSunFarPlane()))
         .setViewport({(int)depthTexData.width, (int)depthTexData.height});
     
     // Set up renderbuffer / framebuffer
@@ -217,7 +217,7 @@ void MagnumSceneRenderer::renderLightDepthMap() {
 
 // Render the 16-bit depth buffer to a regular rgba texture for presentation
 // Not really necessary, but a good demo on how to do something like this.
-void MagnumSceneRenderer::renderLightDepthMapPreview() {
+/*void MagnumSceneRenderer::renderLightDepthMapPreview() {
     TextureData depthTexData = getPipelineTex("DepthMapTex");
     TextureData depthPreviewTexData = getPipelineTex("DepthMapPreviewTex");
 
@@ -236,4 +236,29 @@ void MagnumSceneRenderer::renderLightDepthMapPreview() {
         .draw(_quadMesh);
 
     GL::defaultFramebuffer.bind();
+}*/
+
+void MagnumSceneRenderer::drawPipelineTexBrowser(const char *title, bool *p_open) {
+    std::string names_cc;
+    std::vector<std::string> names;
+    for (const auto& e: _pipelineTexMap) {
+        names_cc += e.first + std::string("\0", 1);
+        names.push_back(e.first);
+    }
+    ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
+    ImGui::Begin(title, p_open, ImGuiWindowFlags_NoScrollbar);
+    static int itemCurrent = 0;
+    if (names_cc.size() >= 0) {
+        ImGui::Combo("Pipeline Texture Name", &itemCurrent, names_cc.c_str(), names_cc.size());
+    } else {
+        ImGui::Text("No Pipeline Textures");
+    }
+    if (names_cc.size() >= 0 && itemCurrent < names.size()) {
+        TextureData tex = _pipelineTexMap[names[itemCurrent]];
+        ImVec2 ws = ImGui::GetContentRegionAvail();
+        float width = fmin((float)ws.x, (float)tex.width);
+        float height = fmin((float)tex.height, width/(float)tex.width*(float)tex.height);
+        ImGuiIntegration::image(*tex.texture, {width, height});
+    }
+    ImGui::End();
 }

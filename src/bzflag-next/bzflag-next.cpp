@@ -265,6 +265,7 @@ class BZFlagNew: public Platform::Sdl2Application {
         bool showMeshTransformBrowser = false;
         bool showDrawableGroupBrowser = false;
         bool showSceneObjectBrowser = false;
+        bool showPipelineTexBrowser = false;
         
         Vector3 positionOnSphere(const Vector2i& position) const;
 
@@ -536,6 +537,8 @@ void BZFlagNew::showMenuDebug() {
     if (ImGui::MenuItem("Force Load Material Textures")) {
         MAGNUMMATERIALMGR.forceLoadTextures();
     }
+    ImGui::Separator();
+    if (ImGui::MenuItem("Pipeline Texture Browser", NULL, &showPipelineTexBrowser)) {}
 }
 
 void BZFlagNew::drawWindows() {
@@ -627,6 +630,10 @@ void BZFlagNew::drawWindows() {
     if (showSceneObjectBrowser) {
         soBrowser.draw("Scene Object Browser", &showSceneObjectBrowser);
     }
+
+    if (showPipelineTexBrowser) {
+        sceneRenderer.drawPipelineTexBrowser("Pipeline Texture Browser", &showPipelineTexBrowser);
+    }
 }
 
 void BZFlagNew::onConsoleText(const char* msg) {
@@ -668,11 +675,6 @@ void BZFlagNew::drawEvent() {
 
     showMainMenuBar();
     drawWindows();
-
-    ImGui::Begin("DepthMap", NULL, ImGuiWindowFlags_AlwaysAutoResize);
-    TextureData tex = sceneRenderer.getPipelineTextures()["DepthMapTex"];
-    ImGuiIntegration::image(*tex.texture, {(float)tex.width, (float)tex.height});
-    ImGui::End();
 
     /* Update application cursor */
     _imgui.updateApplicationCursor(*this);

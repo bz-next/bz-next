@@ -30,7 +30,7 @@ class MagnumSceneRenderer {
     void init();
     void renderScene(Magnum::SceneGraph::Camera3D* camera);
     void renderLightDepthMap();
-    void renderLightDepthMapPreview();
+    //void renderLightDepthMapPreview();
 
     // We store render pipeline textures in a map
     // that way, we can access them from anywhere by name
@@ -41,11 +41,12 @@ class MagnumSceneRenderer {
 
     void setLightObj(Object3D *obj) { _lightObj = obj; }
 
-    static Object3D *_lightObj;
-
     // For ImGUI integration
     std::map<std::string, TextureData>& getPipelineTextures() { return _pipelineTexMap; }
+    void drawPipelineTexBrowser(const char *title, bool *p_open);
     private:
+
+    Object3D *_lightObj = NULL;
 
     // For depth map render projection matrix
     // Compute based on world extents

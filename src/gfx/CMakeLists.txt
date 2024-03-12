@@ -30,6 +30,7 @@ target_link_libraries(bzgfx
     Magnum::Primitives
     Magnum::MeshTools
     Magnum::SceneGraph
+    MagnumIntegration::ImGui
     ${ZLIB_LIBRARIES}
     Threads::Threads
 )
