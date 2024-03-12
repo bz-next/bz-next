@@ -266,6 +266,7 @@ class BZFlagNew: public Platform::Sdl2Application {
         bool showDrawableGroupBrowser = false;
         bool showSceneObjectBrowser = false;
         bool showPipelineTexBrowser = false;
+        bool showAdjustSun = false;
         
         Vector3 positionOnSphere(const Vector2i& position) const;
 
@@ -491,6 +492,10 @@ void BZFlagNew::showMainMenuBar() {
             showMenuView();
             ImGui::EndMenu();
         }
+        if (ImGui::BeginMenu("Scene")) {
+            if (ImGui::MenuItem("Adjust Sun", NULL, &showAdjustSun)) {}
+            ImGui::EndMenu();
+        }
         if (ImGui::BeginMenu("Debug")) {
             showMenuDebug();
             ImGui::EndMenu();
@@ -633,6 +638,18 @@ void BZFlagNew::drawWindows() {
 
     if (showPipelineTexBrowser) {
         sceneRenderer.drawPipelineTexBrowser("Pipeline Texture Browser", &showPipelineTexBrowser);
+    }
+
+    if (showAdjustSun) {
+        ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
+        ImGui::Begin("Adjust Sun", &showAdjustSun);
+        auto pos = sceneRenderer.getSunPosition();
+        static float x = pos.x(), y = pos.y(), z = pos.z();
+        ImGui::DragFloat("Sun X", &x, 10.0f, -10000.0f, 10000.0f, "%.2f");
+        ImGui::DragFloat("Sun Y", &y, 10.0f, -10000.0f, 10000.0f, "%.2f");
+        ImGui::DragFloat("Sun Z", &z, 10.0f, 1000.0f, 10000.0f, "%.2f");
+        sceneRenderer.setSunPosition({x, y, z});
+        ImGui::End();
     }
 }
 

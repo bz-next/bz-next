@@ -5,6 +5,7 @@
 #include "Magnum/GL/Framebuffer.h"
 #include "Magnum/GL/GL.h"
 #include "Magnum/GL/Sampler.h"
+#include "Magnum/Math/Vector3.h"
 #include "Magnum/SceneGraph/Camera.h"
 
 #include <Magnum/GL/Renderer.h>
@@ -106,6 +107,17 @@ void MagnumSceneRenderer::init() {
     _lightCamera = new SceneGraph::Camera3D{*lightobj};
     _bzmatMode.setLightObj(lightobj);
     _bzmatMode.setLightCamera(_lightCamera);
+}
+
+void MagnumSceneRenderer::setSunPosition(Math::Vector3<float> position) {
+    Object3D* lightobj = SOMGR.getObj("Sun");
+    lightobj->resetTransformation();
+    lightobj->transform(Matrix4::lookAt(position, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}));
+}
+
+Math::Vector3<float> MagnumSceneRenderer::getSunPosition() const {
+    Object3D* lightobj = SOMGR.getObj("Sun");
+    return lightobj->transformation().translation();
 }
 
 float MagnumSceneRenderer::getSunNearPlane() const {

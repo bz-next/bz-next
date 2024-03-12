@@ -3,6 +3,7 @@
 
 #include "BasicTexturedShader.h"
 #include "DepthMapVisualizerShader.h"
+#include "Magnum/Math/Vector3.h"
 #include "Magnum/SceneGraph/SceneGraph.h"
 #include <Magnum/SceneGraph/Camera.h>
 #include <Magnum/GL/Texture.h>
@@ -40,6 +41,9 @@ class MagnumSceneRenderer {
     void addPipelineTex(const std::string& name, TextureData data);
 
     void setLightObj(Object3D *obj) { _lightObj = obj; }
+
+    void setSunPosition(Magnum::Math::Vector3<float> position);
+    Magnum::Math::Vector3<float> getSunPosition() const;
 
     // For ImGUI integration
     std::map<std::string, TextureData>& getPipelineTextures() { return _pipelineTexMap; }
