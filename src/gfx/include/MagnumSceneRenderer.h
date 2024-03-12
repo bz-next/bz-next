@@ -32,6 +32,7 @@ class MagnumSceneRenderer {
     void renderScene(Magnum::SceneGraph::Camera3D* camera);
     void renderLightDepthMap();
     //void renderLightDepthMapPreview();
+    void renderSceneToHDR(Magnum::SceneGraph::Camera3D* camera);
 
     // We store render pipeline textures in a map
     // that way, we can access them from anywhere by name
@@ -44,6 +45,8 @@ class MagnumSceneRenderer {
 
     void setSunPosition(Magnum::Math::Vector3<float> position);
     Magnum::Math::Vector3<float> getSunPosition() const;
+
+    void resizeViewport(unsigned int w, unsigned int h);
 
     // For ImGUI integration
     std::map<std::string, TextureData>& getPipelineTextures() { return _pipelineTexMap; }
@@ -61,8 +64,8 @@ class MagnumSceneRenderer {
     Object3D _cameraObject;
 
     const Magnum::Math::Vector2<int> _depthMapSize{4096, 4096};
-    Magnum::GL::Texture2D _depthMapTex;
 
+    Magnum::Math::Vector2<int> _viewportSize{512, 512};
 
     std::map<std::string, TextureData> _pipelineTexMap;
 

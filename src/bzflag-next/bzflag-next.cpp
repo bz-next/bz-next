@@ -731,6 +731,7 @@ void BZFlagNew::drawEvent() {
     sceneRenderer.renderLightDepthMap();
     //sceneRenderer.renderLightDepthMapPreview();
     sceneRenderer.renderScene(_camera);
+    sceneRenderer.renderSceneToHDR(_camera);
 
         /* Set appropriate states. If you only draw ImGui, it is sufficient to
        just enable blending and scissor test in the constructor. */
@@ -1411,6 +1412,7 @@ void BZFlagNew::viewportEvent(ViewportEvent& e) {
     _imgui.relayout(Vector2{e.windowSize()}/e.dpiScaling(),
         e.windowSize(), e.framebufferSize());
     _camera->setViewport(e.windowSize());
+    sceneRenderer.resizeViewport(e.windowSize().x(), e.windowSize().y());
 }
 
 void BZFlagNew::keyPressEvent(KeyEvent& event) {

@@ -62,6 +62,18 @@ void MagnumSceneRenderer::init() {
         addPipelineTex("DepthMapPreviewTex", {tex, (unsigned)_depthMapSize[0], (unsigned)_depthMapSize[1], false});
     }*/
 
+    // Add depth map texture
+    {
+        GL::Texture2D *tex = new GL::Texture2D{};
+        (*tex)
+            .setWrapping(GL::SamplerWrapping::Repeat)
+            .setMagnificationFilter(GL::SamplerFilter::Linear)
+            .setMinificationFilter(GL::SamplerFilter::Linear)
+            .setStorage(1, GL::TextureFormat::RGB16F, _viewportSize);
+            
+        addPipelineTex("HDRTargetTex", {tex, (unsigned)_viewportSize[0], (unsigned)_viewportSize[1], false});
+    }
+
     // Create a generic quad mesh for previewing
     const Vector3 vertices[]{
         {{ 1.0f, -1.0f, 0.0f}}, /* Bottom right */
@@ -107,6 +119,23 @@ void MagnumSceneRenderer::init() {
     _lightCamera = new SceneGraph::Camera3D{*lightobj};
     _bzmatMode.setLightObj(lightobj);
     _bzmatMode.setLightCamera(_lightCamera);
+}
+
+void MagnumSceneRenderer::resizeViewport(unsigned int w, unsigned int h) {
+    auto it = _pipelineTexMap.find("HDRTargetTex");
+    delete it->second.texture;
+    _pipelineTexMap.erase(it);
+    _viewportSize = {(int)w, (int)h};
+    {
+        GL::Texture2D *tex = new GL::Texture2D{};
+        (*tex)
+            .setWrapping(GL::SamplerWrapping::Repeat)
+            .setMagnificationFilter(GL::SamplerFilter::Linear)
+            .setMinificationFilter(GL::SamplerFilter::Linear)
+            .setStorage(1, GL::TextureFormat::RGB16F, _viewportSize);
+            
+        addPipelineTex("HDRTargetTex", {tex, (unsigned)_viewportSize[0], (unsigned)_viewportSize[1], false});
+    }
 }
 
 void MagnumSceneRenderer::setSunPosition(Math::Vector3<float> position) {
@@ -194,6 +223,37 @@ void MagnumSceneRenderer::renderScene(SceneGraph::Camera3D* camera) {
     if (auto* dg = DGRPMGR.getGroup("WorldTransDrawables"))
         camera->draw(*dg);
    
+}
+
+// Render scene from POV of camera using current drawmode and framebuffer
+void MagnumSceneRenderer::renderSceneToHDR(SceneGraph::Camera3D* camera) {
+    _bzmatMode.bindShadowMap(*getPipelineTex("DepthMapTex").texture);
+    DRAWMODEMGR.setDrawMode(&_bzmatMode);
+
+    TextureData hdrTexData = getPipelineTex("HDRTargetTex");
+
+    GL::Renderbuffer depth;
+    depth.setStorage(GL::RenderbufferFormat::DepthComponent16, {(int)hdrTexData.width, (int)hdrTexData.height});
+    GL::Framebuffer framebuffer{ {{}, {(int)hdrTexData.width, (int)hdrTexData.height}} };
+    framebuffer.attachTexture(GL::Framebuffer::ColorAttachment{ 0 }, *hdrTexData.texture, 0);
+
+    framebuffer.attachRenderbuffer(
+    GL::Framebuffer::BufferAttachment::Depth, depth);
+
+    framebuffer.clear(GL::FramebufferClear::Color|GL::FramebufferClear::Depth).bind();
+
+    GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
+    GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
+    GL::Renderer::disable(GL::Renderer::Feature::ScissorTest);
+    GL::Renderer::disable(GL::Renderer::Feature::Blending);
+    if (auto* dg = DGRPMGR.getGroup("WorldDrawables"))
+        camera->draw(*dg);
+    GL::Renderer::enable(GL::Renderer::Feature::Blending);
+    if (auto* dg = DGRPMGR.getGroup("TankDrawables"))
+        camera->draw(*dg);
+    if (auto* dg = DGRPMGR.getGroup("WorldTransDrawables"))
+        camera->draw(*dg);
+    GL::defaultFramebuffer.bind();
 }
 
 void MagnumSceneRenderer::renderLightDepthMap() {
