@@ -62,7 +62,7 @@ void MagnumSceneRenderer::init() {
         addPipelineTex("DepthMapPreviewTex", {tex, (unsigned)_depthMapSize[0], (unsigned)_depthMapSize[1], false});
     }*/
 
-    // Add depth map texture
+    // Add HDR target texture
     {
         GL::Texture2D *tex = new GL::Texture2D{};
         (*tex)
@@ -72,6 +72,18 @@ void MagnumSceneRenderer::init() {
             .setStorage(1, GL::TextureFormat::RGB16F, _viewportSize);
             
         addPipelineTex("HDRTargetTex", {tex, (unsigned)_viewportSize[0], (unsigned)_viewportSize[1], false});
+    }
+
+    // Add Cloud test texture
+    {
+        GL::Texture2D *tex = new GL::Texture2D{};
+        (*tex)
+            .setWrapping(GL::SamplerWrapping::Repeat)
+            .setMagnificationFilter(GL::SamplerFilter::Linear)
+            .setMinificationFilter(GL::SamplerFilter::Linear)
+            .setStorage(1, GL::TextureFormat::RGBA8, _viewportSize);
+            
+        addPipelineTex("CloudTex", {tex, (unsigned)_viewportSize[0], (unsigned)_viewportSize[1], false});
     }
 
     // Create a generic quad mesh for previewing
@@ -119,12 +131,17 @@ void MagnumSceneRenderer::init() {
     _lightCamera = new SceneGraph::Camera3D{*lightobj};
     _bzmatMode.setLightObj(lightobj);
     _bzmatMode.setLightCamera(_lightCamera);
+
+    _cloudShader.init();
+    _cloudShader.setTime(0.0f);
 }
 
 void MagnumSceneRenderer::resizeViewport(unsigned int w, unsigned int h) {
-    auto it = _pipelineTexMap.find("HDRTargetTex");
-    delete it->second.texture;
-    _pipelineTexMap.erase(it);
+    {
+        auto it = _pipelineTexMap.find("HDRTargetTex");
+        delete it->second.texture;
+        _pipelineTexMap.erase(it);
+    }
     _viewportSize = {(int)w, (int)h};
     {
         GL::Texture2D *tex = new GL::Texture2D{};
@@ -136,6 +153,22 @@ void MagnumSceneRenderer::resizeViewport(unsigned int w, unsigned int h) {
             
         addPipelineTex("HDRTargetTex", {tex, (unsigned)_viewportSize[0], (unsigned)_viewportSize[1], false});
     }
+    {
+        auto it = _pipelineTexMap.find("CloudTex");
+        delete it->second.texture;
+        _pipelineTexMap.erase(it);
+    }
+    {
+        GL::Texture2D *tex = new GL::Texture2D{};
+        (*tex)
+            .setWrapping(GL::SamplerWrapping::Repeat)
+            .setMagnificationFilter(GL::SamplerFilter::Linear)
+            .setMinificationFilter(GL::SamplerFilter::Linear)
+            .setStorage(1, GL::TextureFormat::RGBA8, _viewportSize);
+            
+        addPipelineTex("CloudTex", {tex, (unsigned)_viewportSize[0], (unsigned)_viewportSize[1], false});
+    }
+    _cloudShader.setRes((float)w, (float)h);
 }
 
 void MagnumSceneRenderer::setSunPosition(Math::Vector3<float> position) {
@@ -333,4 +366,28 @@ void MagnumSceneRenderer::drawPipelineTexBrowser(const char *title, bool *p_open
         ImGuiIntegration::image(*tex.texture, {width, height});
     }
     ImGui::End();
+}
+
+// Render the 16-bit depth buffer to a regular rgba texture for presentation
+// Not really necessary, but a good demo on how to do something like this.
+void MagnumSceneRenderer::renderClouds() {
+    TextureData cloudTexData = getPipelineTex("CloudTex");
+
+    GL::Renderbuffer depth;
+    depth.setStorage(GL::RenderbufferFormat::DepthComponent16, {(int)cloudTexData.width, (int)cloudTexData.height});
+    GL::Framebuffer framebuffer{ {{}, {(int)cloudTexData.width, (int)cloudTexData.height}} };
+    framebuffer.attachTexture(GL::Framebuffer::ColorAttachment{ 0 }, *cloudTexData.texture, 0);
+
+    framebuffer.attachRenderbuffer(
+    GL::Framebuffer::BufferAttachment::Depth, depth);
+
+    framebuffer.clear(GL::FramebufferClear::Color|GL::FramebufferClear::Depth).bind();
+
+    _cloudShader
+        .setRes(_viewportSize.x(), _viewportSize.y())
+        .setTime(0.0f)
+        .bindNoise()
+        .draw(_quadMesh);
+
+    GL::defaultFramebuffer.bind();
 }

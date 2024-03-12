@@ -732,6 +732,7 @@ void BZFlagNew::drawEvent() {
     //sceneRenderer.renderLightDepthMapPreview();
     sceneRenderer.renderScene(_camera);
     sceneRenderer.renderSceneToHDR(_camera);
+    sceneRenderer.renderClouds();
 
         /* Set appropriate states. If you only draw ImGui, it is sufficient to
        just enable blending and scissor test in the constructor. */

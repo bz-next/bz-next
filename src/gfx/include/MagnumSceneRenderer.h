@@ -15,6 +15,8 @@
 // For TextureData
 #include "MagnumTextureManager.h"
 
+#include "RaymarchedCloudsShader.h"
+
 #include <map>
 
 // This class handles rendering the scene
@@ -32,6 +34,7 @@ class MagnumSceneRenderer {
     void renderScene(Magnum::SceneGraph::Camera3D* camera);
     void renderLightDepthMap();
     //void renderLightDepthMapPreview();
+    void renderClouds();
     void renderSceneToHDR(Magnum::SceneGraph::Camera3D* camera);
 
     // We store render pipeline textures in a map
@@ -74,6 +77,8 @@ class MagnumSceneRenderer {
 
     DepthMapVisualizerShader _depthVisShader;
     BasicTexturedShader _basicTexturedShader;
+
+    RaymarchedCloudsShader _cloudShader;
 
     Magnum::GL::Mesh _quadMesh;
 };

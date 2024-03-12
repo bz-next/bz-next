@@ -3,6 +3,7 @@ set(SHADER_SOURCES
     DepthMapShader.cpp
     DepthMapVisualizerShader.cpp
     EnhancedPhongGL.cpp
+    RaymarchedCloudsShader.cpp
 )
 
 target_sources(bzgfx PRIVATE ${SHADER_SOURCES})
