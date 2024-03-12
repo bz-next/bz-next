@@ -435,18 +435,18 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
     _cameraObject = new Object3D{};
 
     (*_cameraObject)
-        .setParent(SOMGR.getObj("World"))
-        .transform(Matrix4::lookAt({100.0f, 500.0f, 100.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}));
-        //.translate(Vector3::zAxis(10.0f));
+        .setParent(SOMGR.getObj("Scene"))
+        //.transform(Matrix4::lookAt({40.0f, 40.0f, 10.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}));
+        .translate(Vector3::zAxis(10.0f));
 
         
     
     (*(_camera = new SceneGraph::Camera3D{*_cameraObject}))
         .setAspectRatioPolicy(SceneGraph::AspectRatioPolicy::Extend)
-        .setProjectionMatrix(Matrix4::perspectiveProjection(35.0_degf, 1.0f, 1.0f, 1000.0f))
+        .setProjectionMatrix(Matrix4::perspectiveProjection(35.0_degf, 1.0f, 1.0f, 10000.0f))
         .setViewport(GL::defaultFramebuffer.viewport().size());
     
-    _manipulator = SOMGR.getObj("Sun");
+    _manipulator = SOMGR.getObj("World");
 
     /*_lightCameraObject
         .setParent(scene)
@@ -708,9 +708,10 @@ void BZFlagNew::drawEvent() {
     if (auto* dg = DGRPMGR.getGroup("WorldTransDrawables"))
         _camera->draw(*dg);*/
 
-    sceneRenderer.renderScene(_camera);
+    
     sceneRenderer.renderLightDepthMap();
     sceneRenderer.renderLightDepthMapPreview();
+    sceneRenderer.renderScene(_camera);
 
         /* Set appropriate states. If you only draw ImGui, it is sufficient to
        just enable blending and scissor test in the constructor. */

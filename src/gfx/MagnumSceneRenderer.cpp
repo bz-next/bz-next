@@ -97,10 +97,11 @@ void MagnumSceneRenderer::init() {
 
     Object3D* lightobj = SOMGR.getObj("Sun");
     lightobj->resetTransformation();
-    lightobj->transform(Matrix4::lookAt({500.0f, 500.0f, 500.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}));
+    lightobj->transform(Matrix4::lookAt({500.0f, 100.0f, 800.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}));
 
     _lightCamera = new SceneGraph::Camera3D{*lightobj};
     _bzmatMode.setLightObj(lightobj);
+    _bzmatMode.setLightCamera(_lightCamera);
 }
 
 TextureData MagnumSceneRenderer::getPipelineTex(const std::string& name) {
@@ -117,6 +118,7 @@ void MagnumSceneRenderer::addPipelineTex(const std::string& name, TextureData da
 
 // Render scene from POV of camera using current drawmode and framebuffer
 void MagnumSceneRenderer::renderScene(SceneGraph::Camera3D* camera) {
+    _bzmatMode.bindShadowMap(*getPipelineTex("DepthMapTex").texture);
     DRAWMODEMGR.setDrawMode(&_bzmatMode);
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
     GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
@@ -138,7 +140,7 @@ void MagnumSceneRenderer::renderLightDepthMap() {
     // Set up camera
     (*_lightCamera)
         .setAspectRatioPolicy(SceneGraph::AspectRatioPolicy::Extend)
-        .setProjectionMatrix(Matrix4::orthographicProjection({2048.0f, 2048.0f}, 10.0f, 2000.0f))
+        .setProjectionMatrix(Matrix4::orthographicProjection({1024.0f, 1024.0f}, 10.0f, 2000.0f))
         .setViewport({(int)depthTexData.width, (int)depthTexData.height});
     // Set up renderbuffer / framebuffer
     GL::Framebuffer depthFB{{{}, {(int)depthTexData.width, (int)depthTexData.height}}};

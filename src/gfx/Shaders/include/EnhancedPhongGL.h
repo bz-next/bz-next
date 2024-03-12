@@ -36,6 +36,7 @@
 #include <Corrade/Utility/Move.h>
 
 #include "Magnum/GL/AbstractShaderProgram.h"
+#include "Magnum/GL/Attribute.h"
 #include "Magnum/Shaders/GenericGL.h"
 #include "Magnum/Shaders/glShaderWrapper.h"
 #include "Magnum/Shaders/visibility.h"
@@ -60,9 +61,9 @@ struct EnhancedPhongAttribs {
     typedef Magnum::GL::Attribute<4, Magnum::Vector3> Bitangent; /* also ObjectId */
     typedef Magnum::GL::Attribute<5, Magnum::Vector3> Normal;
 
-    typedef Magnum::GL::Attribute<8, Magnum::Matrix4> TransformationMatrix;
+    typedef Magnum::GL::Attribute<6, Magnum::Matrix4> TransformationMatrix;
 
-    typedef Magnum::GL::Attribute<12, Magnum::Matrix3x3> NormalMatrix;
+    typedef Magnum::GL::Attribute<9, Magnum::Matrix3x3> NormalMatrix;
 
     typedef Magnum::GL::Attribute<15, Magnum::Vector2> TextureOffset;
     #ifndef MAGNUM_TARGET_GLES2
@@ -897,6 +898,7 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderPr
              */
             DynamicPerVertexJointCount = 1 << 18,
             #endif
+            ShadowMap = 1 << 21
         };
 
         /**
@@ -1262,6 +1264,10 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderPr
          * @see @ref Math::Matrix4::normalMatrix()
          */
         EnhancedPhongGL& setNormalMatrix(const Magnum::Matrix3x3& matrix);
+
+        EnhancedPhongGL& setLightSpaceMatrix(const Magnum::Matrix4& matrix);
+
+        EnhancedPhongGL& setModelMatrix(const Magnum::Matrix4& matrix);
 
         /**
          * @brief Set projection matrix
@@ -1761,6 +1767,8 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderPr
          */
         EnhancedPhongGL& bindDiffuseTexture(Magnum::GL::Texture2D& texture);
 
+        EnhancedPhongGL& bindShadowMapTexture(Magnum::GL::Texture2D& texture);
+
         #ifndef MAGNUM_TARGET_GLES2
         /**
          * @brief Bind a diffuse array texture
@@ -1953,10 +1961,12 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderPr
         #ifndef MAGNUM_TARGET_GLES2
         Magnum::Int _objectIdUniform{11};
         #endif
-        Magnum::Int _lightPositionsUniform{12},
-            _lightColorsUniform, /* 12 + lightCount, set in the constructor */
-            _lightSpecularColorsUniform, /* 12 + 2*lightCount */
-            _lightRangesUniform; /* 12 + 3*lightCount */
+        Magnum::Int _lightSpaceMatrixUniform{12};
+        Magnum::Int _modelMatrixUniform{13};
+        Magnum::Int _lightPositionsUniform{14},
+            _lightColorsUniform, /* 14 + lightCount, set in the constructor */
+            _lightSpecularColorsUniform, /* 14 + 2*lightCount */
+            _lightRangesUniform; /* 14 + 3*lightCount */
         #ifndef MAGNUM_TARGET_GLES2
         Magnum::Int 
             _drawOffsetUniform{0};

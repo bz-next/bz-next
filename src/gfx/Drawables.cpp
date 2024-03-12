@@ -12,7 +12,7 @@ using namespace Magnum;
 
 void BZMaterialDrawable::draw(const Matrix4& transformationMatrix, SceneGraph::Camera3D& camera) {
     //if (_mode == NULL) _mode = new BZMaterialDrawMode();
-    DRAWMODEMGR.getDrawMode()->draw(transformationMatrix, camera, _matPtr, _mesh);
+    DRAWMODEMGR.getDrawMode()->draw(transformationMatrix, camera, _matPtr, _mesh, (Object3D*)&object());
 }
 
 #ifndef MAGNUM_TARGET_GLES2

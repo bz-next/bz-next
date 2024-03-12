@@ -49,7 +49,7 @@ class MagnumSceneRenderer {
     Magnum::SceneGraph::Camera3D* _lightCamera;
     Object3D _cameraObject;
 
-    const Magnum::Math::Vector2<int> _depthMapSize{512, 512};
+    const Magnum::Math::Vector2<int> _depthMapSize{2048, 2048};
     Magnum::GL::Texture2D _depthMapTex;
 
 

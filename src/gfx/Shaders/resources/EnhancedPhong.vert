@@ -116,6 +116,25 @@ layout(location = 4)
 uniform highp uint textureLayer; /* defaults to zero */
 #endif
 
+#ifdef SHADOW_MAP
+#ifdef EXPLICIT_UNIFORM_LOCATION
+layout(location = 12)
+#endif
+uniform highp mat4 lightSpaceMatrix
+    #ifndef GL_ES
+    = mat4(1.0)
+    #endif
+    ;
+#ifdef EXPLICIT_UNIFORM_LOCATION
+layout(location = 13)
+#endif
+uniform highp mat4 modelMatrix
+    #ifndef GL_ES
+    = mat4(1.0)
+    #endif
+    ;
+#endif
+
 #ifdef JOINT_COUNT
 #ifdef EXPLICIT_UNIFORM_LOCATION
 layout(location = JOINT_MATRICES_LOCATION)
@@ -382,6 +401,10 @@ out mediump vec3 transformedBitangent;
 out highp vec3 transformedPosition;
 #endif
 
+#ifdef SHADOW_MAP
+out highp vec4 fragPositionLightSpace;
+#endif
+
 #ifdef MULTI_DRAW
 flat out highp uint drawId;
 #endif
@@ -484,6 +507,10 @@ void main() {
 
     /* Transform the position */
     gl_Position = projectionMatrix*transformedPosition4;
+    //gl_Position = lightSpaceMatrix * transformationMatrix * position;
+    #ifdef SHADOW_MAP
+    fragPositionLightSpace = lightSpaceMatrix * transformationMatrix * position;
+    #endif
 
     #ifdef TEXTURED
     /* Texture coordinates, if needed */

@@ -64,7 +64,8 @@ namespace {
         SpecularTextureUnit = 2,
         NormalTextureUnit = 3,
         /* 4 taken by MeshVisualizer colormap */
-        ObjectIdTextureUnit = 5 /* shared with Flat and MeshVisualizer */
+        ObjectIdTextureUnit = 5, /* shared with Flat and MeshVisualizer */
+        ShadowMapTextureUnit = 6
     };
 
     #ifndef MAGNUM_TARGET_GLES2
@@ -78,7 +79,6 @@ namespace {
         TextureTransformationBufferBinding = 3,
         MaterialBufferBinding = 4,
         LightBufferBinding = 5,
-        JointBufferBinding = 6,
     };
     #endif
 }
@@ -223,7 +223,8 @@ EnhancedPhongGL::CompileState EnhancedPhongGL::compile(const Configuration& conf
         .addSource(configuration.flags() >= Flag::InstancedObjectId ? "#define INSTANCED_OBJECT_ID\n"_s : ""_s)
         #endif
         .addSource(configuration.flags() & Flag::InstancedTransformation ? "#define INSTANCED_TRANSFORMATION\n"_s : ""_s)
-        .addSource(configuration.flags() >= Flag::InstancedTextureOffset ? "#define INSTANCED_TEXTURE_OFFSET\n"_s : ""_s);
+        .addSource(configuration.flags() & Flag::InstancedTextureOffset ? "#define INSTANCED_TEXTURE_OFFSET\n"_s : ""_s)
+        .addSource(configuration.flags() & Flag::ShadowMap ? "#define SHADOW_MAP\n"_s : ""_s);
     #ifndef MAGNUM_TARGET_GLES2
     if(configuration.flags() >= Flag::UniformBuffers) {
         #ifndef MAGNUM_TARGET_WEBGL
@@ -267,6 +268,7 @@ EnhancedPhongGL::CompileState EnhancedPhongGL::compile(const Configuration& conf
         .addSource(configuration.flags() >= Flag::ObjectIdTexture ? "#define OBJECT_ID_TEXTURE\n"_s : ""_s)
         #endif
         .addSource(configuration.flags() & Flag::NoSpecular ? "#define NO_SPECULAR\n"_s : ""_s)
+        .addSource(configuration.flags() & Flag::ShadowMap ? "#define SHADOW_MAP\n"_s : ""_s)
         ;
     #ifndef MAGNUM_TARGET_GLES2
     if(configuration.flags() >= Flag::UniformBuffers) {
@@ -452,6 +454,10 @@ EnhancedPhongGL::EnhancedPhongGL(CompileState&& state): EnhancedPhongGL{static_c
             #ifndef MAGNUM_TARGET_GLES2
             if(_flags & Flag::ObjectId) _objectIdUniform = uniformLocation("objectId"_s);
             #endif
+            if (_flags & Flag::ShadowMap) {
+                _lightSpaceMatrixUniform = uniformLocation("lightSpaceMatrix");
+                _modelMatrixUniform = uniformLocation("modelMatrix");
+            }
         }
     }
 
@@ -642,6 +648,24 @@ EnhancedPhongGL& EnhancedPhongGL::setNormalMatrix(const Matrix3x3& matrix) {
         "Shaders::EnhancedPhongGL::setNormalMatrix(): the shader was created with uniform buffers enabled", *this);
     #endif
     if(_perDrawLightCount) setUniform(_normalMatrixUniform, matrix);
+    return *this;
+}
+
+EnhancedPhongGL& EnhancedPhongGL::setLightSpaceMatrix(const Matrix4& matrix) {
+    #ifndef MAGNUM_TARGET_GLES2
+    CORRADE_ASSERT(!(_flags >= Flag::UniformBuffers),
+        "Shaders::EnhancedPhongGL::setLightSpaceMatrix(): the shader was created with uniform buffers enabled", *this);
+    #endif
+    setUniform(_lightSpaceMatrixUniform, matrix);
+    return *this;
+}
+
+EnhancedPhongGL& EnhancedPhongGL::setModelMatrix(const Matrix4& matrix) {
+    #ifndef MAGNUM_TARGET_GLES2
+    CORRADE_ASSERT(!(_flags >= Flag::UniformBuffers),
+        "Shaders::EnhancedPhongGL::setLightSpaceMatrix(): the shader was created with uniform buffers enabled", *this);
+    #endif
+    setUniform(_modelMatrixUniform, matrix);
     return *this;
 }
 
@@ -1029,6 +1053,13 @@ EnhancedPhongGL& EnhancedPhongGL::bindDiffuseTexture(GL::Texture2D& texture) {
     return *this;
 }
 
+EnhancedPhongGL& EnhancedPhongGL::bindShadowMapTexture(GL::Texture2D& texture) {
+    CORRADE_ASSERT(_flags & Flag::ShadowMap,
+        "Shaders::EnhancedPhongGL::bindDiffuseTexture(): the shader was not created with shadow map enabled", *this);
+    texture.bind(ShadowMapTextureUnit);
+    return *this;
+}
+
 #ifndef MAGNUM_TARGET_GLES2
 EnhancedPhongGL& EnhancedPhongGL::bindDiffuseTexture(GL::Texture2DArray& texture) {
     CORRADE_ASSERT(_flags & Flag::DiffuseTexture,
@@ -1220,5 +1251,6 @@ Debug& operator<<(Debug& debug, const EnhancedPhongGL::Flags value) {
         #ifndef MAGNUM_TARGET_GLES2
         EnhancedPhongGL::Flag::DynamicPerVertexJointCount,
         #endif
+        EnhancedPhongGL::Flag::ShadowMap
     });
 }

@@ -121,7 +121,7 @@ uniform highp uint objectId; /* defaults to zero */
 #if LIGHT_COUNT
 /* Needs to be last because it uses locations 12 to 12 + LIGHT_COUNT - 1 */
 #ifdef EXPLICIT_UNIFORM_LOCATION
-layout(location = 12)
+layout(location = 14)
 #endif
 uniform highp vec4 lightPositions[LIGHT_COUNT]
     #ifndef GL_ES
@@ -326,6 +326,13 @@ uniform lowp
     objectIdTextureData;
 #endif
 
+#ifdef SHADOW_MAP
+#ifdef EXPLICIT_BINDING
+layout(binding = 6)
+#endif
+uniform lowp sampler2D shadowMap;
+#endif
+
 /* Inputs */
 
 #if PER_DRAW_LIGHT_COUNT
@@ -359,6 +366,10 @@ in lowp vec4 interpolatedVertexColor;
 flat in highp uint interpolatedInstanceObjectId;
 #endif
 
+#ifdef SHADOW_MAP
+in highp vec4 fragPositionLightSpace;
+#endif
+
 #ifdef MULTI_DRAW
 flat in highp uint drawId;
 #endif
@@ -378,6 +389,22 @@ layout(location = OBJECT_ID_OUTPUT_ATTRIBUTE_LOCATION)
 /* mediump is just 2^10, which might not be enough, this is 2^16 */
 out highp uint fragmentObjectId;
 #endif
+
+float ShadowCalculation(vec4 fragPosLightSpace)
+{
+    // perform perspective divide
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    // transform to [0,1] range
+    projCoords = projCoords * 0.5 + 0.5;
+    // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
+    float closestDepth = texture(shadowMap, projCoords.xy).r; 
+    // get depth of current fragment from light's perspective
+    float currentDepth = projCoords.z;
+    // check whether current frag pos is in shadow
+    float bias = 0.005;
+    float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
+    return shadow;
+}
 
 void main() {
     #ifdef UNIFORM_BUFFERS
@@ -538,7 +565,10 @@ void main() {
 
         highp vec3 normalizedLightDirection = lightDirection.xyz/len;
         lowp float intensity = max(0.0, dot(normalizedTransformedNormal, normalizedLightDirection))*attenuation;
-        fragmentColor.rgb += finalDiffuseColor.rgb*lightColor*intensity;
+        
+        float shadow = ShadowCalculation(fragPositionLightSpace);
+        
+        fragmentColor.rgb += finalDiffuseColor.rgb*(1.0-shadow)*lightColor*intensity;
 
         #ifndef NO_SPECULAR
         /* Add specular color, if needed */

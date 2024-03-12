@@ -32,11 +32,14 @@ BZMaterialDrawMode::BZMaterialDrawMode() {
             EnhancedPhongGL::Flag::DiffuseTexture |
             EnhancedPhongGL::Flag::AmbientTexture |
             EnhancedPhongGL::Flag::AlphaMask |
-            EnhancedPhongGL::Flag::TextureTransformation)};
-    _shaderUntex = new EnhancedPhongGL{EnhancedPhongGL::Configuration{}};
+            EnhancedPhongGL::Flag::TextureTransformation |
+            EnhancedPhongGL::Flag::ShadowMap)};
+    _shaderUntex = new EnhancedPhongGL{EnhancedPhongGL::Configuration{}
+        .setFlags(
+            EnhancedPhongGL::Flag::ShadowMap)};
 }
 
-void BZMaterialDrawMode::draw(const Matrix4& transformationMatrix, SceneGraph::Camera3D& camera, const MagnumBZMaterial* mat, GL::Mesh& mesh)  {
+void BZMaterialDrawMode::draw(const Matrix4& transformationMatrix, SceneGraph::Camera3D& camera, const MagnumBZMaterial* mat, GL::Mesh& mesh, Object3D* obj)  {
     MagnumTextureManager &tm = MagnumTextureManager::instance();
 
     auto toMagnumColor = [](const float *cp) {
@@ -49,6 +52,9 @@ void BZMaterialDrawMode::draw(const Matrix4& transformationMatrix, SceneGraph::C
         if (_lightObj)
             abstranslation = camera.cameraMatrix().transformPoint(_lightObj->absoluteTransformationMatrix().translation());
 
+        auto lightSpaceMat = _lightCamera->projectionMatrix() * _lightCamera->cameraMatrix() * camera.cameraMatrix().inverted();
+        Warning{} << lightSpaceMat;
+        Warning{} << transformationMatrix;
         Color3 dyncol;
         if (mat->getDynamicColor() != -1) {
             auto * dc = DYNCOLORMGR.getColor(mat->getDynamicColor());
@@ -104,6 +110,8 @@ void BZMaterialDrawMode::draw(const Matrix4& transformationMatrix, SceneGraph::C
                     {abstranslation, 0.0f}
                 })
                 .setTextureMatrix(texmat)
+                .setLightSpaceMatrix(lightSpaceMat)
+                .setModelMatrix(obj->transformationMatrix())
                 .draw(mesh);
         } else {
             (*_shaderUntex)
@@ -117,6 +125,8 @@ void BZMaterialDrawMode::draw(const Matrix4& transformationMatrix, SceneGraph::C
                 .setLightPositions({
                     {abstranslation, 0.0f}
                 })
+                .setLightSpaceMatrix(lightSpaceMat)
+                .setModelMatrix(obj->transformationMatrix())
                 .draw(mesh);
         }
     }
@@ -126,7 +136,7 @@ BasicTexturedShaderDrawMode::BasicTexturedShaderDrawMode() {
     _shader = new BasicTexturedShader();
 }
 
-void BasicTexturedShaderDrawMode::draw(const Matrix4& transformationMatrix, SceneGraph::Camera3D& camera, const MagnumBZMaterial* mat, GL::Mesh& mesh)  {
+void BasicTexturedShaderDrawMode::draw(const Matrix4& transformationMatrix, SceneGraph::Camera3D& camera, const MagnumBZMaterial* mat, GL::Mesh& mesh, Object3D* obj)  {
     MagnumTextureManager &tm = MagnumTextureManager::instance();
 
     auto toMagnumColor = [](const float *cp) {
@@ -162,7 +172,7 @@ DepthMapDrawMode::DepthMapDrawMode() {
     _shader = new DepthMapShader();
 }
 
-void DepthMapDrawMode::draw(const Matrix4& transformationMatrix, SceneGraph::Camera3D& camera, const MagnumBZMaterial* mat, GL::Mesh& mesh)  {
+void DepthMapDrawMode::draw(const Matrix4& transformationMatrix, SceneGraph::Camera3D& camera, const MagnumBZMaterial* mat, GL::Mesh& mesh, Object3D* obj)  {
     // NULL material just skips render
     // Perhaps exclude transparent materials here to simplify shadow rendering...
     if (mat) {
