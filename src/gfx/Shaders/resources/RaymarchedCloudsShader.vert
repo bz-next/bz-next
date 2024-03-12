@@ -6,5 +6,5 @@ out vec2 interpolatedTextureCoordinates;
 void main() {
     interpolatedTextureCoordinates = textureCoordinates;
 
-    gl_Position = position;
+    gl_Position = position.xyww;
 }

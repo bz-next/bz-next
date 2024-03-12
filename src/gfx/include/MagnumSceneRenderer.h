@@ -34,7 +34,7 @@ class MagnumSceneRenderer {
     void renderScene(Magnum::SceneGraph::Camera3D* camera);
     void renderLightDepthMap();
     //void renderLightDepthMapPreview();
-    void renderClouds();
+    void renderClouds(Magnum::SceneGraph::Camera3D* camera);
     void renderSceneToHDR(Magnum::SceneGraph::Camera3D* camera);
 
     // We store render pipeline textures in a map

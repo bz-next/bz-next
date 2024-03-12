@@ -462,6 +462,8 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
     GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
     GL::Renderer::enable(GL::Renderer::Feature::Blending);
 
+    GL::Renderer::setDepthFunction(GL::Renderer::DepthFunction::LessOrEqual);
+
     //worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
 
     _imgui = ImGuiIntegration::Context(Vector2{windowSize()}/dpiScaling(), windowSize(), framebufferSize());
@@ -729,10 +731,11 @@ void BZFlagNew::drawEvent() {
 
     
     sceneRenderer.renderLightDepthMap();
+    sceneRenderer.renderClouds(_camera);
     //sceneRenderer.renderLightDepthMapPreview();
     sceneRenderer.renderScene(_camera);
     sceneRenderer.renderSceneToHDR(_camera);
-    sceneRenderer.renderClouds();
+    //sceneRenderer.renderClouds();
 
         /* Set appropriate states. If you only draw ImGui, it is sufficient to
        just enable blending and scissor test in the constructor. */

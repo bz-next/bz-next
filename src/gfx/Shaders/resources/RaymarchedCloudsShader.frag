@@ -7,6 +7,8 @@ uniform sampler2D iChannel0;
 
 uniform float u_time;
 uniform vec2 u_res;
+uniform vec3 u_dir;
+uniform vec3 u_eye;
 
 /**** TWEAK *****************************************************************/
 #define COVERAGE		.50
@@ -632,18 +634,18 @@ vec4 render_clouds(
 
 void main() {
 	vec2 aspect_ratio = vec2(u_res.x / u_res.y, 1);
-	float fov = tan(radians(45.0));
+	float fov = tan(radians(35.0));
 	vec2 point_ndc = interpolatedTextureCoordinates.xy;
 
-	vec3 point_cam = vec3((2.0 * point_ndc - 1.0) * aspect_ratio * fov, -1.0);
+	vec3 point_cam = vec3((2.0 * point_ndc - 1.0) * aspect_ratio * fov, 0.0);
 
 	vec3 col = vec3(0, 0, 0);
 
 	//mat3 rot = rotate_around_x(abs(sin(u_time / 2.)) * 45.);
 	//sun_dir = mul(rot, sun_dir);
 
-	vec3 eye = vec3(0, 1., 0);
-	vec3 look_at = vec3(0, 1.6, -1);
+	vec3 eye = u_eye;
+	vec3 look_at = u_dir;
 	ray_t eye_ray = get_primary_ray(point_cam, eye, look_at);
 
 	//eye_ray.direction.yz = mul(rotate_2d(+u_mouse.y * .13), eye_ray.direction.yz);

@@ -47,6 +47,8 @@ RaymarchedCloudsShader::RaymarchedCloudsShader() {
     setUniform(uniformLocation("iChannel0"), TextureUnit);
     _timeUniform = uniformLocation("u_time");
     _resUniform = uniformLocation("u_res");
+    _dirUniform = uniformLocation("u_dir");
+    _eyeUniform = uniformLocation("u_eye");
 }
 
 void RaymarchedCloudsShader::init() {
@@ -56,11 +58,11 @@ void RaymarchedCloudsShader::init() {
     }
     auto image = Trade::ImageData2D{PixelFormat::RGBA8Unorm, _noiseTexSize, std::move(rgbaData)};
     _noiseTex = new GL::Texture2D{};
-    _noiseTex->setWrapping(GL::SamplerWrapping::Repeat)
+    _noiseTex->setWrapping(GL::SamplerWrapping::MirroredRepeat)
         .setMagnificationFilter(GL::SamplerFilter::Linear)
         .setMinificationFilter(GL::SamplerFilter::Linear, GL::SamplerMipmap::Linear)
         .setMaxAnisotropy(GL::Sampler::maxMaxAnisotropy())
-        .setStorage(4, GL::textureFormat(image.format()), image.size())
+        .setStorage(8, GL::textureFormat(image.format()), image.size())
         .setSubImage(0, {}, image)
         .generateMipmap();
 }
@@ -71,5 +73,13 @@ RaymarchedCloudsShader& RaymarchedCloudsShader::setTime(float t) {
 }
 RaymarchedCloudsShader& RaymarchedCloudsShader::setRes(float w, float h) {
     setUniform(_resUniform, Math::Vector2<float>{w, h});
+    return *this;
+}
+RaymarchedCloudsShader& RaymarchedCloudsShader::setDir(Math::Vector3<float> dir) {
+    setUniform(_dirUniform, dir);
+    return *this;
+}
+RaymarchedCloudsShader& RaymarchedCloudsShader::setEye(Math::Vector3<float> eye) {
+    setUniform(_eyeUniform, eye);
     return *this;
 }
