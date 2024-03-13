@@ -53,12 +53,22 @@ RaymarchedCloudsShader::RaymarchedCloudsShader() {
 
 void RaymarchedCloudsShader::init() {
     Containers::Array<char> rgbaData{((unsigned)_noiseTexSize.x()*_noiseTexSize.y())*4};
-    for (int i = 0; i < rgbaData.size(); ++i) {
-        rgbaData[i] = (unsigned char)((double)0xFF*bzfrand());
+    for (int i = 0; i < rgbaData.size(); i+=4) {
+        rgbaData[i] = (unsigned int)((double)0xFF*bzfrand());
+        rgbaData[i+2] = (unsigned int)((double)0xFF*bzfrand());
+    }
+    for (int i = 0; i < rgbaData.size(); i+=4) {
+        int x = (i/4)%_noiseTexSize.x();
+        int y = (i/4)/_noiseTexSize.x();
+        int x2 = (x-37) &255;
+        int y2 = (y-17) &255;
+
+        rgbaData[4*(y*_noiseTexSize.x()+x)+1] = rgbaData[4*(y2*_noiseTexSize.x()+x2)];
+        rgbaData[4*(y*_noiseTexSize.x()+x)+3] = rgbaData[4*(y2*_noiseTexSize.x()+x2)+2];
     }
     auto image = Trade::ImageData2D{PixelFormat::RGBA8Unorm, _noiseTexSize, std::move(rgbaData)};
     _noiseTex = new GL::Texture2D{};
-    _noiseTex->setWrapping(GL::SamplerWrapping::MirroredRepeat)
+    _noiseTex->setWrapping(GL::SamplerWrapping::Repeat)
         .setMagnificationFilter(GL::SamplerFilter::Linear)
         .setMinificationFilter(GL::SamplerFilter::Linear, GL::SamplerMipmap::Linear)
         .setMaxAnisotropy(GL::Sampler::maxMaxAnisotropy())

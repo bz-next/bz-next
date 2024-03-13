@@ -23,7 +23,7 @@ class RaymarchedCloudsShader : public Magnum::GL::AbstractShaderProgram {
     void init();
     private:
     Magnum::GL::Texture2D *_noiseTex;
-    const Magnum::Math::Vector2<int> _noiseTexSize{1024, 1024};
+    const Magnum::Math::Vector2<int> _noiseTexSize{256, 256};
     enum: Magnum::Int { TextureUnit = 0 };
     Magnum::Int _timeUniform;
     Magnum::Int _resUniform;

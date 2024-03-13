@@ -395,11 +395,13 @@ void MagnumSceneRenderer::renderClouds(SceneGraph::Camera3D* camera) {
 
     auto camerapos = world->transformationMatrix().inverted().transformPoint(camera->object().transformationMatrix().translation());
     Warning{} << camerapos;
-    camerapos *= 0.01f;
+    camerapos.x() *= 0.1f;
+    camerapos.y() *= 0.1f;
+    camerapos.z() *= 0.01f;
 
     _cloudShader
         .setRes(_viewportSize.x(), _viewportSize.y())
-        .setTime(TimeKeeper::getTick().getSeconds())
+        .setTime(TimeKeeper::getTick().getSeconds()*0.1f)
         .setDir({0.0f, 0.0f, 0.0f})
         .setEye({camerapos.x(), camerapos.z(), camerapos.y()})
         .bindNoise()

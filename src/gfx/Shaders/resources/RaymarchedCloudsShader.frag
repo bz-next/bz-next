@@ -12,7 +12,7 @@ uniform vec3 u_eye;
 
 /**** TWEAK *****************************************************************/
 #define COVERAGE		.50
-#define THICKNESS		15.
+#define THICKNESS		25.
 #define ABSORPTION		1.030725
 #define WIND			vec3(0, 0, -u_time * .2)
 
@@ -23,7 +23,7 @@ uniform vec3 u_eye;
 
 //#define SIMULATE_LIGHT
 #define FAKE_LIGHT
-#define SUN_DIR			normalize(vec3(0, abs(sin(u_time * .3)), -1))
+#define SUN_DIR			normalize(vec3(0, abs(sin(5 * .3)), -1))
 
 #define STEPS			50
 /******************************************************************************/
