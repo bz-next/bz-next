@@ -18,6 +18,7 @@ class RaymarchedCloudsShader : public Magnum::GL::AbstractShaderProgram {
     RaymarchedCloudsShader& setRes(float w, float h);
     RaymarchedCloudsShader& setDir(Magnum::Math::Vector3<float> dir);
     RaymarchedCloudsShader& setEye(Magnum::Math::Vector3<float> eye);
+    RaymarchedCloudsShader& setUp(Magnum::Math::Vector3<float> up);
     RaymarchedCloudsShader& bindNoise() { _noiseTex->bind(TextureUnit); return *this; }
 
     void init();
@@ -29,6 +30,7 @@ class RaymarchedCloudsShader : public Magnum::GL::AbstractShaderProgram {
     Magnum::Int _resUniform;
     Magnum::Int _dirUniform;
     Magnum::Int _eyeUniform;
+    Magnum::Int _upUniform;
 };
 
 #endif

@@ -393,17 +393,23 @@ void MagnumSceneRenderer::renderClouds(SceneGraph::Camera3D* camera) {
     //camera->object().transformationMatrix().translation();
     //mats[0].transformVector({0.0f, 0.0f, 1.0f});
 
-    auto camerapos = world->transformationMatrix().inverted().transformPoint(camera->object().transformationMatrix().translation());
-    Warning{} << camerapos;
-    camerapos.x() *= 0.1f;
-    camerapos.y() *= 0.1f;
-    camerapos.z() *= 0.01f;
+    auto correctionmat = world->transformationMatrix().inverted();
+    //correctionmat = Matrix4::rotationX(Math::Deg<float>(-90.0f))*correctionmat;
+
+    auto camerapos = correctionmat.transformPoint(camera->object().transformationMatrix().translation());
+    auto cameraup = correctionmat.transformVector({0.0f, 1.0f, 0.0f});
+    Warning{} << camerapos << cameraup;
+    //camerapos.x() *= 0.1f;
+    //camerapos.y() *= 0.1f;
+    //camerapos.z() *= 0.01f;
 
     _cloudShader
         .setRes(_viewportSize.x(), _viewportSize.y())
         .setTime(TimeKeeper::getTick().getSeconds()*0.1f)
         .setDir({0.0f, 0.0f, 0.0f})
-        .setEye({camerapos.x(), camerapos.z(), camerapos.y()})
+        //.setEye({camerapos.x(), camerapos.z(), camerapos.y()})
+        .setEye(camerapos)
+        .setUp(cameraup.normalized())
         .bindNoise()
         .draw(_quadMesh);
     //Warning{} << world->transformationMatrix().transformVector({0.0f, 10.0f, 0.0f});

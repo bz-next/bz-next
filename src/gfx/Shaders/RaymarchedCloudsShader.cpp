@@ -49,6 +49,7 @@ RaymarchedCloudsShader::RaymarchedCloudsShader() {
     _resUniform = uniformLocation("u_res");
     _dirUniform = uniformLocation("u_dir");
     _eyeUniform = uniformLocation("u_eye");
+    _upUniform = uniformLocation("u_up");
 }
 
 void RaymarchedCloudsShader::init() {
@@ -91,5 +92,9 @@ RaymarchedCloudsShader& RaymarchedCloudsShader::setDir(Math::Vector3<float> dir)
 }
 RaymarchedCloudsShader& RaymarchedCloudsShader::setEye(Math::Vector3<float> eye) {
     setUniform(_eyeUniform, eye);
+    return *this;
+}
+RaymarchedCloudsShader& RaymarchedCloudsShader::setUp(Math::Vector3<float> up) {
+    setUniform(_upUniform, up);
     return *this;
 }

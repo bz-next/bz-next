@@ -9,6 +9,7 @@ uniform float u_time;
 uniform vec2 u_res;
 uniform vec3 u_dir;
 uniform vec3 u_eye;
+uniform vec3 u_up;
 
 /**** TWEAK *****************************************************************/
 #define COVERAGE		.50
@@ -81,9 +82,8 @@ ray_t get_primary_ray(
 	_inout(vec3) cam_look_at
 ){
 	vec3 fwd = normalize(cam_look_at - cam_origin);
-	vec3 up = vec3(0, 1, 0);
-	vec3 right = cross(up, fwd);
-	up = cross(fwd, right);
+	vec3 up = u_up;
+	vec3 right = cross(fwd, up);
 
 	ray_t r = _begin(ray_t)
 		cam_origin,
@@ -507,10 +507,6 @@ float fbm(
 	return t;
 }
 
-#ifdef HLSL
-Texture3D u_tex_noise : register(t1);
-SamplerState u_sampler0 : register(s0);
-#endif
 float get_noise(_in(vec3) x)
 {
 #if 0
@@ -523,13 +519,13 @@ float get_noise(_in(vec3) x)
 _constant(vec3) sun_color = vec3(1., .7, .55);
 
 _constant(sphere_t) atmosphere = _begin(sphere_t)
-	vec3(0, -450, 0), 500., 0
+	vec3(0, 0, -10000), 20000., 0
 _end;
 _constant(sphere_t) atmosphere_2 = _begin(sphere_t)
 	atmosphere.origin, atmosphere.radius + 50., 0
 _end;
 _constant(plane_t) ground = _begin(plane_t)
-	vec3(0., -1., 0.), 0., 1
+	vec3(0., 0.0, -1.0), 0., 1
 _end;
 
 vec3 render_sky_color(
@@ -538,7 +534,7 @@ vec3 render_sky_color(
 	vec3 rd = eye.direction;
 	float sun_amount = max(dot(rd, SUN_DIR), 0.0);
 
-	vec3  sky = mix(vec3(.0, .1, .4), vec3(.3, .6, .8), 1.0 - rd.y);
+	vec3  sky = mix(vec3(.0, .1, .4), vec3(.3, .6, .8), 1.0 - rd.z);
 	sky = sky + sun_color * min(pow(sun_amount, 1500.0) * 5.0, 1.0);
 	sky = sky + sun_color * min(pow(sun_amount, 10.0) * .6, 1.0);
 
@@ -599,9 +595,9 @@ vec4 render_clouds(
 	const int steps = STEPS; // +int(32. * r);
 	float march_step = thickness / float(steps);
 
-	vec3 dir_step = eye.direction / eye.direction.y * march_step;
+	vec3 dir_step = -eye.direction / eye.direction.z * march_step;
 	vec3 pos = //eye.origin + eye.direction * 100.; 
-		hit.origin;
+		hit.origin/20.;
 
 	float T = 1.; // transmitance
 	vec3 C = vec3(0, 0, 0); // color
@@ -635,9 +631,9 @@ vec4 render_clouds(
 void main() {
 	vec2 aspect_ratio = vec2(u_res.x / u_res.y, 1);
 	float fov = tan(radians(35.0));
-	vec2 point_ndc = interpolatedTextureCoordinates.xy;
+	vec2 point_ndc = (2.0*interpolatedTextureCoordinates.xy-1.0);
 
-	vec3 point_cam = vec3((2.0 * point_ndc - 1.0) * aspect_ratio * fov, 0.0);
+	vec3 point_cam = vec3(point_ndc * aspect_ratio * fov, 0.0);
 
 	vec3 col = vec3(0, 0, 0);
 
@@ -655,7 +651,7 @@ void main() {
 	intersect_plane(eye_ray, ground, hit);
 
 	if (hit.material_id == 1) {
-		float cb = checkboard_pattern(hit.origin.xz, .5);
+		float cb = checkboard_pattern(hit.origin.xy, 0.05);
 		col = mix(vec3(.6, .6, .6), vec3(.75, .75, .75), cb);
 	} else {
 #if 1

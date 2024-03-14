@@ -731,10 +731,12 @@ void BZFlagNew::drawEvent() {
 
     
     sceneRenderer.renderLightDepthMap();
-    sceneRenderer.renderClouds(_camera);
+    
     //sceneRenderer.renderLightDepthMapPreview();
+    sceneRenderer.renderClouds(_camera);
     sceneRenderer.renderScene(_camera);
     sceneRenderer.renderSceneToHDR(_camera);
+    
     //sceneRenderer.renderClouds();
 
         /* Set appropriate states. If you only draw ImGui, it is sufficient to
