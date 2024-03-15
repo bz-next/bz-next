@@ -448,6 +448,8 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
         .setProjectionMatrix(Matrix4::perspectiveProjection(35.0_degf, 1.0f, 1.0f, 10000.0f))
         .setViewport(GL::defaultFramebuffer.viewport().size());
     
+    sceneRenderer.resizeViewport(GL::defaultFramebuffer.viewport().size().x(), GL::defaultFramebuffer.viewport().size().y());
+    
     _manipulator = SOMGR.getObj("World");
 
     /*_lightCameraObject

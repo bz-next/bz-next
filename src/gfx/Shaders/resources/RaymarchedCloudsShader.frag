@@ -629,11 +629,16 @@ vec4 render_clouds(
 }
 
 void main() {
-	vec2 aspect_ratio = vec2(u_res.x / u_res.y, 1);
-	float fov = tan(radians(35.0));
+	//vec2 aspect_ratio = vec2(u_res.x / u_res.y, 1);
+    //vec2 aspect_ratio = vec2(1, u_res.y / u_res.x);
+    //vec2 aspect_ratio = vec2(1.0);
+    float aspect_ratio = u_res.x/u_res.y;
+    float fovyscale = tan(radians(35.0/2.));
 	vec2 point_ndc = (2.0*interpolatedTextureCoordinates.xy-1.0);
 
-	vec3 point_cam = vec3(point_ndc * aspect_ratio * fov, 0.0);
+	//vec3 point_cam = vec3(point_ndc * vec2(fovx, fovy), 0.0);
+    //vec3 point_cam = vec3(point_ndc.x*f/aspect_ratio, point_ndc.y*f, 0.0);
+    vec3 point_cam = vec3(point_ndc.x*fovyscale*aspect_ratio, point_ndc.y*fovyscale, 0.0);
 
 	vec3 col = vec3(0, 0, 0);
 
