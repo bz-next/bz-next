@@ -16,9 +16,11 @@ class RaymarchedCloudsShader : public Magnum::GL::AbstractShaderProgram {
 
     RaymarchedCloudsShader& setTime(float t);
     RaymarchedCloudsShader& setRes(float w, float h);
-    RaymarchedCloudsShader& setDir(Magnum::Math::Vector3<float> dir);
+    RaymarchedCloudsShader& setLookAt(Magnum::Math::Vector3<float> lookAt);
     RaymarchedCloudsShader& setEye(Magnum::Math::Vector3<float> eye);
     RaymarchedCloudsShader& setUp(Magnum::Math::Vector3<float> up);
+    RaymarchedCloudsShader& setSunDir(Magnum::Math::Vector3<float> sunDir);
+    RaymarchedCloudsShader& setEnableClouds(bool enableClouds);
     RaymarchedCloudsShader& bindNoise() { _noiseTex->bind(TextureUnit); return *this; }
 
     void init();
@@ -28,9 +30,11 @@ class RaymarchedCloudsShader : public Magnum::GL::AbstractShaderProgram {
     enum: Magnum::Int { TextureUnit = 0 };
     Magnum::Int _timeUniform;
     Magnum::Int _resUniform;
-    Magnum::Int _dirUniform;
+    Magnum::Int _lookAtUniform;
     Magnum::Int _eyeUniform;
     Magnum::Int _upUniform;
+    Magnum::Int _sunDirUniform;
+    Magnum::Int _enableCloudsUniform;
 };
 
 #endif

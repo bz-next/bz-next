@@ -51,9 +51,12 @@ class MagnumSceneRenderer {
 
     void resizeViewport(unsigned int w, unsigned int h);
 
+    void setShadowMapTexSize(unsigned int dim);
+
     // For ImGUI integration
     std::map<std::string, TextureData>& getPipelineTextures() { return _pipelineTexMap; }
     void drawPipelineTexBrowser(const char *title, bool *p_open);
+    void drawSettings(const char *title, bool *p_open);
     private:
 
     Object3D *_lightObj = NULL;
@@ -63,16 +66,20 @@ class MagnumSceneRenderer {
     float getSunNearPlane() const;
     float getSunFarPlane() const;
 
+    bool _enableShadowMapping = true;
+    bool _enableClouds = true;
+
     Magnum::SceneGraph::Camera3D* _lightCamera;
     Object3D _cameraObject;
 
-    const Magnum::Math::Vector2<int> _depthMapSize{4096, 4096};
+    Magnum::Math::Vector2<int> _depthMapSize{4096, 4096};
 
     Magnum::Math::Vector2<int> _viewportSize{512, 512};
 
     std::map<std::string, TextureData> _pipelineTexMap;
 
     BZMaterialDrawMode _bzmatMode;
+    BZMaterialShadowMappedDrawMode _bzmatShadowMode;
     DepthMapDrawMode _depthMode;
 
     DepthMapVisualizerShader _depthVisShader;

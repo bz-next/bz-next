@@ -47,9 +47,11 @@ RaymarchedCloudsShader::RaymarchedCloudsShader() {
     setUniform(uniformLocation("iChannel0"), TextureUnit);
     _timeUniform = uniformLocation("u_time");
     _resUniform = uniformLocation("u_res");
-    _dirUniform = uniformLocation("u_dir");
+    _lookAtUniform = uniformLocation("u_lookAt");
     _eyeUniform = uniformLocation("u_eye");
     _upUniform = uniformLocation("u_up");
+    _sunDirUniform = uniformLocation("u_sunDir");
+    _enableCloudsUniform = uniformLocation("u_enableClouds");
 }
 
 void RaymarchedCloudsShader::init() {
@@ -86,8 +88,8 @@ RaymarchedCloudsShader& RaymarchedCloudsShader::setRes(float w, float h) {
     setUniform(_resUniform, Math::Vector2<float>{w, h});
     return *this;
 }
-RaymarchedCloudsShader& RaymarchedCloudsShader::setDir(Math::Vector3<float> dir) {
-    setUniform(_dirUniform, dir);
+RaymarchedCloudsShader& RaymarchedCloudsShader::setLookAt(Math::Vector3<float> lookAt) {
+    setUniform(_lookAtUniform, lookAt);
     return *this;
 }
 RaymarchedCloudsShader& RaymarchedCloudsShader::setEye(Math::Vector3<float> eye) {
@@ -96,5 +98,13 @@ RaymarchedCloudsShader& RaymarchedCloudsShader::setEye(Math::Vector3<float> eye)
 }
 RaymarchedCloudsShader& RaymarchedCloudsShader::setUp(Math::Vector3<float> up) {
     setUniform(_upUniform, up);
+    return *this;
+}
+RaymarchedCloudsShader& RaymarchedCloudsShader::setSunDir(Math::Vector3<float> sunDir) {
+    setUniform(_sunDirUniform, sunDir);
+    return *this;
+}
+RaymarchedCloudsShader& RaymarchedCloudsShader::setEnableClouds(bool enableClouds) {
+    setUniform(_enableCloudsUniform, enableClouds);
     return *this;
 }

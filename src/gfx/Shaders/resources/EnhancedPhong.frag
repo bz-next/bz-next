@@ -392,6 +392,7 @@ out highp uint fragmentObjectId;
 
 #define gamma 2.2
 
+#ifdef SHADOW_MAP
 float ShadowCalculation(vec4 fragPosLightSpace)
 {
     // perform perspective divide
@@ -424,6 +425,7 @@ float ShadowCalculation(vec4 fragPosLightSpace)
 
     return shadow;
 }
+#endif
 
 void main() {
     #ifdef UNIFORM_BUFFERS
@@ -600,7 +602,11 @@ void main() {
         highp vec3 normalizedLightDirection = lightDirection.xyz/len;
         lowp float intensity = max(0.0, dot(normalizedTransformedNormal, normalizedLightDirection))*attenuation;
         
+        #ifdef SHADOW_MAP
         float shadow = ShadowCalculation(fragPositionLightSpace);
+        #else
+        float shadow = 0.0;
+        #endif
         
         fragmentColor.rgb += finalDiffuseColor.rgb*(1.0-0.75*shadow)*lightColor*intensity;
 

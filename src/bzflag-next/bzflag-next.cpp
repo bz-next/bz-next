@@ -249,7 +249,7 @@ class BZFlagNew: public Platform::Sdl2Application {
 
         bool showConsole = false;
         bool showProfiler = false;
-        bool showConnect = true;
+        bool showConnect = false;
         bool showScoreboard = false;
         bool showTMBrowser = false;
         bool showMATBrowser = false;
@@ -267,6 +267,7 @@ class BZFlagNew: public Platform::Sdl2Application {
         bool showSceneObjectBrowser = false;
         bool showPipelineTexBrowser = false;
         bool showAdjustSun = false;
+        bool showRendererSettings = false;
         
         Vector3 positionOnSphere(const Vector2i& position) const;
 
@@ -497,6 +498,7 @@ void BZFlagNew::showMainMenuBar() {
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Scene")) {
+            if (ImGui::MenuItem("Renderer Settings", NULL, &showRendererSettings)) {}
             if (ImGui::MenuItem("Adjust Sun", NULL, &showAdjustSun)) {}
             ImGui::EndMenu();
         }
@@ -655,6 +657,10 @@ void BZFlagNew::drawWindows() {
         sceneRenderer.setSunPosition({x, y, z});
         ImGui::End();
     }
+
+    if (showRendererSettings) {
+        sceneRenderer.drawSettings("Renderer Settings", &showRendererSettings);
+    }
 }
 
 void BZFlagNew::onConsoleText(const char* msg) {
@@ -735,9 +741,9 @@ void BZFlagNew::drawEvent() {
     sceneRenderer.renderLightDepthMap();
     
     //sceneRenderer.renderLightDepthMapPreview();
-    sceneRenderer.renderClouds(_camera);
+    //sceneRenderer.renderClouds(_camera);
     sceneRenderer.renderScene(_camera);
-    sceneRenderer.renderSceneToHDR(_camera);
+    //sceneRenderer.renderSceneToHDR(_camera);
     
     //sceneRenderer.renderClouds();
 

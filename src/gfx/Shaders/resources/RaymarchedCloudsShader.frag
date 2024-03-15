@@ -7,9 +7,11 @@ uniform sampler2D iChannel0;
 
 uniform float u_time;
 uniform vec2 u_res;
-uniform vec3 u_dir;
+uniform vec3 u_lookAt;
 uniform vec3 u_eye;
 uniform vec3 u_up;
+uniform vec3 u_sunDir;
+uniform bool u_enableClouds;
 
 /**** TWEAK *****************************************************************/
 #define COVERAGE		.50
@@ -24,9 +26,10 @@ uniform vec3 u_up;
 
 //#define SIMULATE_LIGHT
 #define FAKE_LIGHT
-#define SUN_DIR			normalize(vec3(0, abs(sin(5 * .3)), -1))
+//#define SUN_DIR			normalize(vec3(0, abs(sin(5 * .3)), -1))
+#define SUN_DIR u_sunDir
 
-#define STEPS			50
+#define STEPS			25
 /******************************************************************************/
 
 #define _in(T) const in T
@@ -646,7 +649,7 @@ void main() {
 	//sun_dir = mul(rot, sun_dir);
 
 	vec3 eye = u_eye;
-	vec3 look_at = u_dir;
+	vec3 look_at = u_lookAt;
 	ray_t eye_ray = get_primary_ray(point_cam, eye, look_at);
 
 	//eye_ray.direction.yz = mul(rotate_2d(+u_mouse.y * .13), eye_ray.direction.yz);
@@ -661,8 +664,12 @@ void main() {
 	} else {
 #if 1
 		vec3 sky = render_sky_color(eye_ray);
-		vec4 cld = render_clouds(eye_ray);
-		col = mix(sky, cld.rgb/(0.000001+cld.a), cld.a);
+        if (u_enableClouds) {
+            vec4 cld = render_clouds(eye_ray);
+            col = mix(sky, cld.rgb/(0.000001+cld.a), cld.a);
+        } else {
+            col = sky;
+        }
 #else
 		intersect_sphere(eye_ray, atmosphere, hit);
 		vec3 d = hit.normal;

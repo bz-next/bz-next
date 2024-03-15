@@ -24,6 +24,7 @@
 
 #include <Magnum/ImGuiIntegration/Widgets.h>
 
+#include <imgui.h>
 #include <string>
 
 #include "DrawModeManager.h"
@@ -66,7 +67,7 @@ void MagnumSceneRenderer::init() {
     }*/
 
     // Add HDR target texture
-    {
+    /*{
         GL::Texture2D *tex = new GL::Texture2D{};
         (*tex)
             .setWrapping(GL::SamplerWrapping::Repeat)
@@ -75,19 +76,7 @@ void MagnumSceneRenderer::init() {
             .setStorage(1, GL::TextureFormat::RGB16F, _viewportSize);
             
         addPipelineTex("HDRTargetTex", {tex, (unsigned)_viewportSize[0], (unsigned)_viewportSize[1], false});
-    }
-
-    // Add Cloud test texture
-    {
-        GL::Texture2D *tex = new GL::Texture2D{};
-        (*tex)
-            .setWrapping(GL::SamplerWrapping::Repeat)
-            .setMagnificationFilter(GL::SamplerFilter::Linear)
-            .setMinificationFilter(GL::SamplerFilter::Linear)
-            .setStorage(1, GL::TextureFormat::RGBA8, _viewportSize);
-            
-        addPipelineTex("CloudTex", {tex, (unsigned)_viewportSize[0], (unsigned)_viewportSize[1], false});
-    }
+    }*/
 
     // Create a generic quad mesh for previewing
     const Vector3 vertices[]{
@@ -132,21 +121,23 @@ void MagnumSceneRenderer::init() {
     lightobj->transform(Matrix4::lookAt({5000.0f, 1000.0f, 8000.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}));
 
     _lightCamera = new SceneGraph::Camera3D{*lightobj};
+    _bzmatShadowMode.setLightObj(lightobj);
+    _bzmatShadowMode.setLightCamera(_lightCamera);
+
     _bzmatMode.setLightObj(lightobj);
-    _bzmatMode.setLightCamera(_lightCamera);
 
     _cloudShader.init();
     _cloudShader.setTime(0.0f);
 }
 
 void MagnumSceneRenderer::resizeViewport(unsigned int w, unsigned int h) {
-    {
+    /*{
         auto it = _pipelineTexMap.find("HDRTargetTex");
         delete it->second.texture;
         _pipelineTexMap.erase(it);
-    }
+    }*/
     _viewportSize = {(int)w, (int)h};
-    {
+    /*{
         GL::Texture2D *tex = new GL::Texture2D{};
         (*tex)
             .setWrapping(GL::SamplerWrapping::Repeat)
@@ -155,23 +146,7 @@ void MagnumSceneRenderer::resizeViewport(unsigned int w, unsigned int h) {
             .setStorage(1, GL::TextureFormat::RGB16F, _viewportSize);
             
         addPipelineTex("HDRTargetTex", {tex, (unsigned)_viewportSize[0], (unsigned)_viewportSize[1], false});
-    }
-    {
-        auto it = _pipelineTexMap.find("CloudTex");
-        delete it->second.texture;
-        _pipelineTexMap.erase(it);
-    }
-    {
-        GL::Texture2D *tex = new GL::Texture2D{};
-        (*tex)
-            .setWrapping(GL::SamplerWrapping::Repeat)
-            .setMagnificationFilter(GL::SamplerFilter::Linear)
-            .setMinificationFilter(GL::SamplerFilter::Linear)
-            .setStorage(1, GL::TextureFormat::RGBA8, _viewportSize);
-            
-        addPipelineTex("CloudTex", {tex, (unsigned)_viewportSize[0], (unsigned)_viewportSize[1], false});
-    }
-    _cloudShader.setRes((float)w, (float)h);
+    }*/
 }
 
 void MagnumSceneRenderer::setSunPosition(Math::Vector3<float> position) {
@@ -245,8 +220,14 @@ void MagnumSceneRenderer::addPipelineTex(const std::string& name, TextureData da
 
 // Render scene from POV of camera using current drawmode and framebuffer
 void MagnumSceneRenderer::renderScene(SceneGraph::Camera3D* camera) {
-    _bzmatMode.bindShadowMap(*getPipelineTex("DepthMapTex").texture);
-    DRAWMODEMGR.setDrawMode(&_bzmatMode);
+    renderClouds(camera);
+    if (_enableShadowMapping) {
+        renderLightDepthMap();
+        _bzmatShadowMode.bindShadowMap(*getPipelineTex("DepthMapTex").texture);
+        DRAWMODEMGR.setDrawMode(&_bzmatShadowMode);
+    } else {
+        DRAWMODEMGR.setDrawMode(&_bzmatMode);
+    }
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
     GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
     GL::Renderer::disable(GL::Renderer::Feature::ScissorTest);
@@ -263,8 +244,12 @@ void MagnumSceneRenderer::renderScene(SceneGraph::Camera3D* camera) {
 
 // Render scene from POV of camera using current drawmode and framebuffer
 void MagnumSceneRenderer::renderSceneToHDR(SceneGraph::Camera3D* camera) {
-    _bzmatMode.bindShadowMap(*getPipelineTex("DepthMapTex").texture);
-    DRAWMODEMGR.setDrawMode(&_bzmatMode);
+    if (_enableShadowMapping) {
+        _bzmatShadowMode.bindShadowMap(*getPipelineTex("DepthMapTex").texture);
+        DRAWMODEMGR.setDrawMode(&_bzmatShadowMode);
+    } else {
+        DRAWMODEMGR.setDrawMode(&_bzmatMode);
+    }
 
     TextureData hdrTexData = getPipelineTex("HDRTargetTex");
 
@@ -371,10 +356,56 @@ void MagnumSceneRenderer::drawPipelineTexBrowser(const char *title, bool *p_open
     ImGui::End();
 }
 
+void MagnumSceneRenderer::setShadowMapTexSize(unsigned int dim) {
+    _depthMapSize[0] = _depthMapSize[1] = dim;
+    auto it = _pipelineTexMap.find("DepthMapTex");
+    if (it != _pipelineTexMap.end()) {
+        _pipelineTexMap.erase(it);
+    }
+    {
+        GL::Texture2D *tex = new GL::Texture2D{};
+        (*tex)
+            .setWrapping(GL::SamplerWrapping::ClampToBorder)
+            .setMagnificationFilter(GL::SamplerFilter::Linear)
+            .setMinificationFilter(GL::SamplerFilter::Linear)
+            .setBorderColor(Math::Color4{1.0f, 1.0f, 1.0f, 1.0f})
+            .setStorage(1, GL::TextureFormat::DepthComponent16, _depthMapSize);
+            
+        addPipelineTex("DepthMapTex", {tex, (unsigned)_depthMapSize[0], (unsigned)_depthMapSize[1], false});
+    }
+}
+
+void MagnumSceneRenderer::drawSettings(const char *title, bool *p_open) {
+    ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
+    ImGui::Begin(title, p_open, ImGuiWindowFlags_NoScrollbar);
+    ImGui::Checkbox("Shadow Mapping", &_enableShadowMapping);
+    std::vector<std::string> names = {
+        "512 x 512",
+        "1024 x 1024",
+        "2048 x 2048",
+        "4096 x 4096",
+        "8192 x 8192"
+    };
+    std::string names_cc;
+    for (const auto& e: names) {
+        names_cc += e + std::string("\0", 1);
+    }
+    static int itemCurrent = 3;
+    ImGui::Combo("Shadow Map Size", &itemCurrent, names_cc.c_str(), names_cc.size());
+    if (itemCurrent < names.size()) {
+        unsigned int sz = 512 << itemCurrent;
+        if (sz != _depthMapSize[0]) {
+            setShadowMapTexSize(sz);
+        }
+    }
+    ImGui::Separator();
+    ImGui::Checkbox("Enable Clouds", &_enableClouds);
+    ImGui::End();
+}
+
 // Render the 16-bit depth buffer to a regular rgba texture for presentation
 // Not really necessary, but a good demo on how to do something like this.
 void MagnumSceneRenderer::renderClouds(SceneGraph::Camera3D* camera) {
-    TextureData cloudTexData = getPipelineTex("CloudTex");
 
     /*GL::Renderbuffer depth;
     depth.setStorage(GL::RenderbufferFormat::DepthComponent16, {(int)cloudTexData.width, (int)cloudTexData.height});
@@ -398,19 +429,23 @@ void MagnumSceneRenderer::renderClouds(SceneGraph::Camera3D* camera) {
 
     auto camerapos = correctionmat.transformPoint(camera->object().transformationMatrix().translation());
     auto cameraup = correctionmat.transformVector({0.0f, 1.0f, 0.0f});
-    Warning{} << camerapos << cameraup;
     //camerapos.x() *= 0.1f;
     //camerapos.y() *= 0.1f;
     //camerapos.z() *= 0.01f;
 
+    Object3D* sun = SOMGR.getObj("Sun");
+    auto sunpos = sun->transformationMatrix().translation();
+
     _cloudShader
         .setRes(_viewportSize.x(), _viewportSize.y())
         .setTime(TimeKeeper::getTick().getSeconds()*0.1f)
-        .setDir({0.0f, 0.0f, 0.0f})
+        .setLookAt({0.0f, 0.0f, 0.0f})
         //.setEye({camerapos.x(), camerapos.z(), camerapos.y()})
         .setEye(camerapos)
         .setUp(cameraup.normalized())
+        .setSunDir(sunpos.normalized())
         .bindNoise()
+        .setEnableClouds(_enableClouds)
         .draw(_quadMesh);
     //Warning{} << world->transformationMatrix().transformVector({0.0f, 10.0f, 0.0f});
 
