@@ -220,6 +220,11 @@ void MagnumSceneRenderer::addPipelineTex(const std::string& name, TextureData da
 
 // Render scene from POV of camera using current drawmode and framebuffer
 void MagnumSceneRenderer::renderScene(SceneGraph::Camera3D* camera) {
+    GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
+    GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
+    GL::Renderer::disable(GL::Renderer::Feature::ScissorTest);
+    GL::Renderer::disable(GL::Renderer::Feature::Blending);
+    
     renderClouds(camera);
     if (_enableShadowMapping) {
         renderLightDepthMap();
@@ -228,10 +233,7 @@ void MagnumSceneRenderer::renderScene(SceneGraph::Camera3D* camera) {
     } else {
         DRAWMODEMGR.setDrawMode(&_bzmatMode);
     }
-    GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
-    GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
-    GL::Renderer::disable(GL::Renderer::Feature::ScissorTest);
-    GL::Renderer::disable(GL::Renderer::Feature::Blending);
+    
     if (auto* dg = DGRPMGR.getGroup("WorldDrawables"))
         camera->draw(*dg);
     GL::Renderer::enable(GL::Renderer::Feature::Blending);

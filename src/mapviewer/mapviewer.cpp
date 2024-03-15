@@ -20,6 +20,7 @@
 
 #include "MagnumBZMaterial.h"
 #include "MagnumDefs.h"
+#include "MagnumSceneManager.h"
 #include "MagnumTextureManager.h"
 #include "WorldSceneObjectGenerator.h"
 
@@ -41,6 +42,9 @@
 
 #include "SceneObjectManager.h"
 #include "DrawableGroupManager.h"
+
+#include "MagnumSceneManager.h"
+#include "MagnumSceneRenderer.h"
 
 #include <ctime>
 #include <cassert>
@@ -140,6 +144,9 @@ class MapViewer: public Platform::Sdl2Application {
         bool showMeshTransformBrowser = false;
         bool showMapBrowser = true;
         bool showDrawableGroupBrowser = false;
+        bool showRendererSettings = false;
+        bool showAdjustSun = false;
+        bool showPipelineTexBrowser = false;
 
         bool showGrid = false;
 
@@ -163,8 +170,8 @@ class MapViewer: public Platform::Sdl2Application {
 
         void loopIteration();
 
-        Scene3D _sceneRoot;
-        Object3D _manipulator, _cameraObject;
+        Object3D *_sceneRoot;
+        Object3D *_manipulator, *_cameraObject;
         SceneGraph::Camera3D* _camera;
         SceneGraph::DrawableGroup3D _drawables;
         Vector3 _previousPosition;
@@ -172,6 +179,8 @@ class MapViewer: public Platform::Sdl2Application {
         WorldSceneObjectGenerator worldSceneObjGen;
         WorldMeshGenerator worldSceneBuilder;
         ImGuiIntegration::Context _imgui{NoCreate};
+
+        MagnumSceneRenderer sceneRenderer;
 
         BZTextureBrowser tmBrowser;
         BZMaterialBrowser matBrowser;
@@ -222,27 +231,34 @@ MapViewer::MapViewer(const Arguments& arguments):
         .setGlobalHelp("BZFlag Map Viewer")
         .parse(arguments.argc, arguments.argv);
     
-    _cameraObject
-        .setParent(&_sceneRoot)
+    MagnumSceneManager::initScene();
+    sceneRenderer.init();
+
+    _sceneRoot = SOMGR.getObj("Scene");
+
+    _cameraObject = new Object3D{};
+    
+    (*_cameraObject)
+        .setParent(_sceneRoot)
         .translate(Vector3::zAxis(10.0f));
         
     
-    (*(_camera = new SceneGraph::Camera3D{_cameraObject}))
+    (*(_camera = new SceneGraph::Camera3D{*_cameraObject}))
         .setAspectRatioPolicy(SceneGraph::AspectRatioPolicy::Extend)
         .setProjectionMatrix(Matrix4::perspectiveProjection(35.0_degf, 1.0f, 1.0f, 1000.0f))
         .setViewport(GL::defaultFramebuffer.viewport().size());
-    
-    _manipulator.setParent(&_sceneRoot);
 
-    Object3D* scene = SOMGR.addObj("Scene");
-    scene->setParent(&_manipulator);
+    sceneRenderer.resizeViewport(GL::defaultFramebuffer.viewport().size().x(), GL::defaultFramebuffer.viewport().size().y());
 
-    scene->scale({0.05f, 0.05f, 0.05f});
+    _manipulator = SOMGR.getObj("World");
 
 
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
     GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
     GL::Renderer::enable(GL::Renderer::Feature::Blending);
+
+    // Important for proper rendering of skydome
+    GL::Renderer::setDepthFunction(GL::Renderer::DepthFunction::LessOrEqual);
 
     _imgui = ImGuiIntegration::Context(Vector2{windowSize()}/dpiScaling(), windowSize(), framebufferSize());
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
@@ -311,6 +327,11 @@ void MapViewer::showMainMenuBar() {
             showMenuView();
             ImGui::EndMenu();
         }
+        if (ImGui::BeginMenu("Scene")) {
+            if (ImGui::MenuItem("Renderer Settings", NULL, &showRendererSettings)) {}
+            if (ImGui::MenuItem("Adjust Sun", NULL, &showAdjustSun)) {}
+            ImGui::EndMenu();
+        }
         if (ImGui::BeginMenu("Debug")) {
             showMenuDebug();
             ImGui::EndMenu();
@@ -357,7 +378,8 @@ void MapViewer::showMenuDebug() {
     if (ImGui::MenuItem("Force Load Material Textures")) {
         MAGNUMMATERIALMGR.forceLoadTextures();
     }
-
+    ImGui::Separator();
+    if (ImGui::MenuItem("Pipeline Texture Browser", NULL, &showPipelineTexBrowser)) {}
 }
 
 void MapViewer::drawWindows() {
@@ -436,6 +458,26 @@ void MapViewer::drawWindows() {
     if (showDrawableGroupBrowser) {
         dgrpBrowser.draw("Drawable Group Browser", &showDrawableGroupBrowser);
     }
+
+    if (showPipelineTexBrowser) {
+        sceneRenderer.drawPipelineTexBrowser("Pipeline Texture Browser", &showPipelineTexBrowser);
+    }
+
+    if (showAdjustSun) {
+        ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
+        ImGui::Begin("Adjust Sun", &showAdjustSun);
+        auto pos = sceneRenderer.getSunPosition();
+        static float x = pos.x(), y = pos.y(), z = pos.z();
+        ImGui::DragFloat("Sun X", &x, 10.0f, -10000.0f, 10000.0f, "%.2f");
+        ImGui::DragFloat("Sun Y", &y, 10.0f, -10000.0f, 10000.0f, "%.2f");
+        ImGui::DragFloat("Sun Z", &z, 10.0f, 1000.0f, 10000.0f, "%.2f");
+        sceneRenderer.setSunPosition({x, y, z});
+        ImGui::End();
+    }
+
+    if (showRendererSettings) {
+        sceneRenderer.drawSettings("Renderer Settings", &showRendererSettings);
+    }
 }
 
 void MapViewer::drawEvent() {
@@ -453,19 +495,7 @@ void MapViewer::drawEvent() {
     else if(!ImGui::GetIO().WantTextInput && isTextInputActive())
         stopTextInput();
 
-    GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
-    GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
-    GL::Renderer::disable(GL::Renderer::Feature::ScissorTest);
-    GL::Renderer::disable(GL::Renderer::Feature::Blending);
-
-    if (showGrid)
-        if (auto* dg = DGRPMGR.getGroup("WorldDebugDrawables"))
-            _camera->draw(*dg);
-    if (auto* dg = DGRPMGR.getGroup("WorldDrawables"))
-        _camera->draw(*dg);
-    GL::Renderer::enable(GL::Renderer::Feature::Blending);
-    if (auto* dg = DGRPMGR.getGroup("WorldTransDrawables"))
-        _camera->draw(*dg);
+    sceneRenderer.renderScene(_camera);
 
     GL::Renderer::enable(GL::Renderer::Feature::Blending);
     GL::Renderer::enable(GL::Renderer::Feature::ScissorTest);
@@ -518,8 +548,8 @@ void MapViewer::mouseScrollEvent(MouseScrollEvent& e) {
     }
     e.setAccepted();
     if (!e.offset().y()) return;
-    const Float distance = _cameraObject.transformation().translation().z();
-    _cameraObject.translate(Vector3::zAxis(distance*(1.0f - (e.offset().y() > 0 ? 1/0.85f : 0.85f))));
+    const Float distance = _cameraObject->transformation().translation().z();
+    _cameraObject->translate(Vector3::zAxis(distance*(1.0f - (e.offset().y() > 0 ? 1/0.85f : 0.85f))));
     redraw();
 }
 
@@ -532,7 +562,7 @@ void MapViewer::mouseMoveEvent(MouseMoveEvent &e) {
 
     if (_previousPosition.length() < 0.001f || axis.length() < 0.001f) return;
 
-    _manipulator.rotate(Math::angle(_previousPosition, currentPosition), axis.normalized());
+    _manipulator->rotate(Math::angle(_previousPosition, currentPosition), axis.normalized());
     _previousPosition = currentPosition;
 
     redraw();

@@ -738,7 +738,7 @@ void BZFlagNew::drawEvent() {
         _camera->draw(*dg);*/
 
     
-    sceneRenderer.renderLightDepthMap();
+    //sceneRenderer.renderLightDepthMap();
     
     //sceneRenderer.renderLightDepthMapPreview();
     //sceneRenderer.renderClouds(_camera);
