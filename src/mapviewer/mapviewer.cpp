@@ -2,16 +2,22 @@
 #include <Corrade/Utility/Arguments.h>
 #include <Corrade/Utility/DebugStl.h>
 #include <Corrade/Utility/Resource.h>
+#include <Corrade/Containers/StridedArrayView.h>
 
 #include <Magnum/GL/Version.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/GL/Renderer.h>
+#include <Magnum/GL/PixelFormat.h>
 
 #include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/SceneGraph/Camera.h>
 #include <Magnum/SceneGraph/Scene.h>
 #include <Magnum/ImGuiIntegration/Context.hpp>
 #include <Magnum/Types.h>
+#include <Magnum/Math/Range.h>
+#include <Magnum/Math/FunctionsBatch.h>
+
+#include <Magnum/Image.h>
 
 #include <imgui.h>
 
@@ -107,6 +113,9 @@ class MapViewer: public Platform::Sdl2Application {
         void tickEvent() override;
 
         void drawEvent() override;
+
+        Float depthAt(const Vector2i& windowPosition);
+        Vector3 unproject(const Vector2i& windowPosition, Float depth) const;
 
         void viewportEvent(ViewportEvent& e) override;
         void mousePressEvent(MouseEvent& e) override;
@@ -511,6 +520,38 @@ void MapViewer::drawEvent() {
 void MapViewer::tickEvent() {
     loopIteration();
     redraw();
+}
+
+Float MapViewer::depthAt(const Vector2i& windowPosition) {
+    /* First scale the position from being relative to window size to being
+       relative to framebuffer size as those two can be different on HiDPI
+       systems */
+    const Vector2i position = windowPosition*Vector2{framebufferSize()}/Vector2{windowSize()};
+    const Vector2i fbPosition{position.x(), GL::defaultFramebuffer.viewport().sizeY() - position.y() - 1};
+
+    GL::defaultFramebuffer.mapForRead(GL::DefaultFramebuffer::ReadAttachment::Front);
+    Image2D data = GL::defaultFramebuffer.read(
+        Range2Di::fromSize(fbPosition, Vector2i{1}).padded(Vector2i{2}),
+        {GL::PixelFormat::DepthComponent, GL::PixelType::Float});
+
+    /* TODO: change to just Math::min<Float>(data.pixels<Float>() when the
+       batch functions in Math can handle 2D views */
+    return Math::min<Float>(data.pixels<Float>().asContiguous());
+}
+
+Vector3 MapViewer::unproject(const Vector2i& windowPosition, Float depth) const {
+    /* We have to take window size, not framebuffer size, since the position is
+       in window coordinates and the two can be different on HiDPI systems */
+    const Vector2i viewSize = windowSize();
+    const Vector2i viewPosition{windowPosition.x(), viewSize.y() - windowPosition.y() - 1};
+    const Vector3 in{2*Vector2{viewPosition}/Vector2{viewSize} - Vector2{1.0f}, depth*2.0f - 1.0f};
+
+    /*
+        Use the following to get global coordinates instead of camera-relative:
+
+        (_cameraObject->absoluteTransformationMatrix()*_camera->projectionMatrix().inverted()).transformPoint(in)
+    */
+    return _camera->projectionMatrix().inverted().transformPoint(in);
 }
 
 void MapViewer::viewportEvent(ViewportEvent& e) {
