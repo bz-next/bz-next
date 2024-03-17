@@ -33,7 +33,7 @@ class MagnumSceneRenderer {
     void init();
     void renderScene(Magnum::SceneGraph::Camera3D* camera);
     void renderLightDepthMap();
-    //void renderLightDepthMapPreview();
+    void renderLightDepthMapPreview();
     void renderClouds(Magnum::SceneGraph::Camera3D* camera);
     void renderSceneToHDR(Magnum::SceneGraph::Camera3D* camera);
 

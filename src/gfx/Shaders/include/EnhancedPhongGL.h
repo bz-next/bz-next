@@ -1267,8 +1267,6 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderPr
 
         EnhancedPhongGL& setLightSpaceMatrix(const Magnum::Matrix4& matrix);
 
-        EnhancedPhongGL& setModelMatrix(const Magnum::Matrix4& matrix);
-
         /**
          * @brief Set projection matrix
          * @return Reference to self (for method chaining)
@@ -1962,7 +1960,6 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderPr
         Magnum::Int _objectIdUniform{11};
         #endif
         Magnum::Int _lightSpaceMatrixUniform{12};
-        Magnum::Int _modelMatrixUniform{13};
         Magnum::Int _lightPositionsUniform{14},
             _lightColorsUniform, /* 14 + lightCount, set in the constructor */
             _lightSpecularColorsUniform, /* 14 + 2*lightCount */

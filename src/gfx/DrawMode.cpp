@@ -205,7 +205,7 @@ void BZMaterialShadowMappedDrawMode::draw(const Matrix4& transformationMatrix, S
                 })
                 .setTextureMatrix(texmat)
                 .setLightSpaceMatrix(lightSpaceMat)
-                .setModelMatrix(obj->transformationMatrix())
+                .bindShadowMapTexture(*_shadowMapTex)
                 .draw(mesh);
         } else {
             (*_shaderUntex)
@@ -220,7 +220,7 @@ void BZMaterialShadowMappedDrawMode::draw(const Matrix4& transformationMatrix, S
                     {abstranslation, 0.0f}
                 })
                 .setLightSpaceMatrix(lightSpaceMat)
-                .setModelMatrix(obj->transformationMatrix())
+                .bindShadowMapTexture(*_shadowMapTex)
                 .draw(mesh);
         }
     }

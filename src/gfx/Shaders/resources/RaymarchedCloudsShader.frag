@@ -1,4 +1,7 @@
 
+precision highp float;
+precision highp int;
+
 out vec4 FragColor;
   
 in vec2 interpolatedTextureCoordinates;

@@ -45,10 +45,15 @@ void MagnumSceneRenderer::init() {
     {
         GL::Texture2D *tex = new GL::Texture2D{};
         (*tex)
-            .setWrapping(GL::SamplerWrapping::ClampToBorder)
+            //.setWrapping(GL::SamplerWrapping::ClampToBorder)
+#ifndef TARGET_EMSCRIPTEN
             .setMagnificationFilter(GL::SamplerFilter::Linear)
             .setMinificationFilter(GL::SamplerFilter::Linear)
-            .setBorderColor(Math::Color4{1.0f, 1.0f, 1.0f, 1.0f})
+#else
+            .setMagnificationFilter(GL::SamplerFilter::Nearest)
+            .setMinificationFilter(GL::SamplerFilter::Nearest)
+#endif
+            //.setBorderColor(Math::Color4{1.0f, 1.0f, 1.0f, 1.0f})
             .setStorage(1, GL::TextureFormat::DepthComponent16, _depthMapSize);
             
         addPipelineTex("DepthMapTex", {tex, (unsigned)_depthMapSize[0], (unsigned)_depthMapSize[1], false});
@@ -59,7 +64,6 @@ void MagnumSceneRenderer::init() {
     /*{
         GL::Texture2D *tex = new GL::Texture2D{};
         (*tex)
-            .setWrapping(GL::SamplerWrapping::ClampToBorder)
             .setMagnificationFilter(GL::SamplerFilter::Linear)
             .setMinificationFilter(GL::SamplerFilter::Linear)
             .setStorage(1, GL::TextureFormat::RGBA8, _depthMapSize);
@@ -228,7 +232,8 @@ void MagnumSceneRenderer::renderScene(SceneGraph::Camera3D* camera) {
     renderClouds(camera);
     if (_enableShadowMapping) {
         renderLightDepthMap();
-        _bzmatShadowMode.bindShadowMap(*getPipelineTex("DepthMapTex").texture);
+        //renderLightDepthMapPreview();
+        _bzmatShadowMode.setShadowMap(getPipelineTex("DepthMapTex").texture);
         DRAWMODEMGR.setDrawMode(&_bzmatShadowMode);
     } else {
         DRAWMODEMGR.setDrawMode(&_bzmatMode);
@@ -247,7 +252,7 @@ void MagnumSceneRenderer::renderScene(SceneGraph::Camera3D* camera) {
 // Render scene from POV of camera using current drawmode and framebuffer
 void MagnumSceneRenderer::renderSceneToHDR(SceneGraph::Camera3D* camera) {
     if (_enableShadowMapping) {
-        _bzmatShadowMode.bindShadowMap(*getPipelineTex("DepthMapTex").texture);
+        _bzmatShadowMode.setShadowMap(getPipelineTex("DepthMapTex").texture);
         DRAWMODEMGR.setDrawMode(&_bzmatShadowMode);
     } else {
         DRAWMODEMGR.setDrawMode(&_bzmatMode);
@@ -312,7 +317,7 @@ void MagnumSceneRenderer::renderLightDepthMap() {
 
 // Render the 16-bit depth buffer to a regular rgba texture for presentation
 // Not really necessary, but a good demo on how to do something like this.
-/*void MagnumSceneRenderer::renderLightDepthMapPreview() {
+void MagnumSceneRenderer::renderLightDepthMapPreview() {
     TextureData depthTexData = getPipelineTex("DepthMapTex");
     TextureData depthPreviewTexData = getPipelineTex("DepthMapPreviewTex");
 
@@ -331,7 +336,7 @@ void MagnumSceneRenderer::renderLightDepthMap() {
         .draw(_quadMesh);
 
     GL::defaultFramebuffer.bind();
-}*/
+}
 
 void MagnumSceneRenderer::drawPipelineTexBrowser(const char *title, bool *p_open) {
     std::string names_cc;
@@ -367,10 +372,15 @@ void MagnumSceneRenderer::setShadowMapTexSize(unsigned int dim) {
     {
         GL::Texture2D *tex = new GL::Texture2D{};
         (*tex)
-            .setWrapping(GL::SamplerWrapping::ClampToBorder)
+            //.setWrapping(GL::SamplerWrapping::ClampToBorder)
+#ifndef TARGET_EMSCRIPTEN
             .setMagnificationFilter(GL::SamplerFilter::Linear)
             .setMinificationFilter(GL::SamplerFilter::Linear)
-            .setBorderColor(Math::Color4{1.0f, 1.0f, 1.0f, 1.0f})
+#else
+            .setMagnificationFilter(GL::SamplerFilter::Nearest)
+            .setMinificationFilter(GL::SamplerFilter::Nearest)
+#endif
+            //.setBorderColor(Math::Color4{1.0f, 1.0f, 1.0f, 1.0f})
             .setStorage(1, GL::TextureFormat::DepthComponent16, _depthMapSize);
             
         addPipelineTex("DepthMapTex", {tex, (unsigned)_depthMapSize[0], (unsigned)_depthMapSize[1], false});

@@ -456,7 +456,6 @@ EnhancedPhongGL::EnhancedPhongGL(CompileState&& state): EnhancedPhongGL{static_c
             #endif
             if (_flags & Flag::ShadowMap) {
                 _lightSpaceMatrixUniform = uniformLocation("lightSpaceMatrix");
-                _modelMatrixUniform = uniformLocation("modelMatrix");
             }
         }
     }
@@ -473,6 +472,7 @@ EnhancedPhongGL::EnhancedPhongGL(CompileState&& state): EnhancedPhongGL{static_c
             if(_flags & Flag::SpecularTexture) setUniform(uniformLocation("specularTexture"_s), SpecularTextureUnit);
             if(_flags & Flag::NormalTexture) setUniform(uniformLocation("normalTexture"_s), NormalTextureUnit);
         }
+        if(_flags & Flag::ShadowMap) setUniform(uniformLocation("shadowMap"_s), ShadowMapTextureUnit);
         #ifndef MAGNUM_TARGET_GLES2
         if(_flags >= Flag::ObjectIdTexture) setUniform(uniformLocation("objectIdTextureData"_s), ObjectIdTextureUnit);
         /* SSBOs have bindings defined in the source always */
@@ -495,10 +495,6 @@ EnhancedPhongGL::EnhancedPhongGL(CompileState&& state): EnhancedPhongGL{static_c
 
     /* Set defaults in OpenGL ES (for desktop they are set in shader code itself) */
     #ifdef MAGNUM_TARGET_GLES
-    #ifndef MAGNUM_TARGET_GLES2
-    if(_flags >= Flag::DynamicPerVertexJointCount)
-        setPerVertexJointCount(_perVertexJointCount, _secondaryPerVertexJointCount);
-    #endif
     #ifndef MAGNUM_TARGET_GLES2
     if(_flags >= Flag::UniformBuffers) {
         /* Draw offset is zero by default */
@@ -532,12 +528,6 @@ EnhancedPhongGL::EnhancedPhongGL(CompileState&& state): EnhancedPhongGL{static_c
         /* Texture layer is zero by default */
         if(_flags & Flag::AlphaMask) setAlphaMask(0.5f);
         /* Object ID is zero by default */
-        #ifndef MAGNUM_TARGET_GLES2
-        if(_jointCount) {
-            setJointMatrices(Containers::Array<Matrix4>{DirectInit, _jointCount, Math::IdentityInit});
-            /* Per-instance joint count is zero by default */
-        }
-        #endif
     }
     #endif
 }
@@ -657,15 +647,6 @@ EnhancedPhongGL& EnhancedPhongGL::setLightSpaceMatrix(const Matrix4& matrix) {
         "Shaders::EnhancedPhongGL::setLightSpaceMatrix(): the shader was created with uniform buffers enabled", *this);
     #endif
     setUniform(_lightSpaceMatrixUniform, matrix);
-    return *this;
-}
-
-EnhancedPhongGL& EnhancedPhongGL::setModelMatrix(const Matrix4& matrix) {
-    #ifndef MAGNUM_TARGET_GLES2
-    CORRADE_ASSERT(!(_flags >= Flag::UniformBuffers),
-        "Shaders::EnhancedPhongGL::setLightSpaceMatrix(): the shader was created with uniform buffers enabled", *this);
-    #endif
-    setUniform(_modelMatrixUniform, matrix);
     return *this;
 }
 
@@ -1204,6 +1185,7 @@ Debug& operator<<(Debug& debug, const EnhancedPhongGL::Flag value) {
         #ifndef MAGNUM_TARGET_GLES2
         _c(DynamicPerVertexJointCount)
         #endif
+        _c(ShadowMap)
         #undef _c
         /* LCOV_EXCL_STOP */
     }

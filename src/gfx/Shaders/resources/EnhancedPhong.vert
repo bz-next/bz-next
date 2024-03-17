@@ -23,6 +23,9 @@
     DEALINGS IN THE SOFTWARE.
 */
 
+precision highp float;
+precision highp int;
+
 #if defined(INSTANCED_OBJECT_ID) && !defined(GL_ES) && !defined(NEW_GLSL)
 #extension GL_EXT_gpu_shader4: require
 #endif
@@ -121,14 +124,6 @@ uniform highp uint textureLayer; /* defaults to zero */
 layout(location = 12)
 #endif
 uniform highp mat4 lightSpaceMatrix
-    #ifndef GL_ES
-    = mat4(1.0)
-    #endif
-    ;
-#ifdef EXPLICIT_UNIFORM_LOCATION
-layout(location = 13)
-#endif
-uniform highp mat4 modelMatrix
     #ifndef GL_ES
     = mat4(1.0)
     #endif

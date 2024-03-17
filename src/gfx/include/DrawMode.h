@@ -54,14 +54,14 @@ class BZMaterialShadowMappedDrawMode : public DrawMode {
         Object3D* obj) override;
     void setLightObj(Object3D* obj) { _lightObj = obj; }
     void setLightCamera(Magnum::SceneGraph::Camera3D* c) { _lightCamera = c; }
-    void bindShadowMap(Magnum::GL::Texture2D& tex) {
-        _shader->bindShadowMapTexture(tex);
-        _shaderUntex->bindShadowMapTexture(tex);
+    void setShadowMap(Magnum::GL::Texture2D* tex) {
+        _shadowMapTex = tex;
     }
     private:
     EnhancedPhongGL *_shader;
     EnhancedPhongGL *_shaderUntex;
     Object3D* _lightObj;
+    Magnum::GL::Texture2D *_shadowMapTex;
     Magnum::SceneGraph::Camera3D* _lightCamera;
 };
 

@@ -23,6 +23,9 @@
     DEALINGS IN THE SOFTWARE.
 */
 
+precision highp int;
+precision highp float;
+
 #if defined(OBJECT_ID) && !defined(GL_ES) && !defined(NEW_GLSL)
 #extension GL_EXT_gpu_shader4: require
 #endif
@@ -330,7 +333,7 @@ uniform lowp
 #ifdef EXPLICIT_BINDING
 layout(binding = 6)
 #endif
-uniform lowp sampler2D shadowMap;
+uniform highp sampler2D shadowMap;
 #endif
 
 /* Inputs */
@@ -408,7 +411,7 @@ float ShadowCalculation(vec4 fragPosLightSpace)
 
 
     float shadow = 0.0;
-    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
+    vec2 texelSize = 1.0 / vec2(textureSize(shadowMap, 0));
     for(int x = -1; x <= 1; ++x)
     {
         for(int y = -1; y <= 1; ++y)
@@ -420,7 +423,11 @@ float ShadowCalculation(vec4 fragPosLightSpace)
     shadow /= 9.0;
     //float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
 
+    // Replace these conditions with branchless logic
     if (projCoords.z > 1.0)
+        shadow = 0.0;
+    
+    if (projCoords.x > 1.0 || projCoords.x < 0.0 || projCoords.y > 1.0 || projCoords.y < 0.0)
         shadow = 0.0;
 
     return shadow;

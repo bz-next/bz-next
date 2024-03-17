@@ -1,5 +1,13 @@
-uniform vec3 color = vec3(1.0, 1.0, 1.0);
-uniform sampler2D textureData;
+precision highp float;
+precision highp int;
+
+uniform vec3 color
+    #ifndef GL_ES
+    = vec3(1.0, 1.0, 1.0)
+    #endif
+    ;
+
+uniform lowp sampler2D textureData;
 
 in vec2 interpolatedTextureCoordinates;
 
