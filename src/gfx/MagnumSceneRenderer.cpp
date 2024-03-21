@@ -68,7 +68,7 @@ void MagnumSceneRenderer::init() {
             .setMinificationFilter(GL::SamplerFilter::Linear)
             .setStorage(1, GL::TextureFormat::RGBA8, _depthMapSize);
         addPipelineTex("DepthMapPreviewTex", {tex, (unsigned)_depthMapSize[0], (unsigned)_depthMapSize[1], false});
-    }*/
+    }
 
     // Add HDR target texture
     /*{

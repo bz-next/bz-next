@@ -8,6 +8,8 @@
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/GL/Renderer.h>
 #include <Magnum/GL/PixelFormat.h>
+#include <Magnum/GL/RenderbufferFormat.h>
+#include <Magnum/PixelFormat.h>
 
 #include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/SceneGraph/Camera.h>
@@ -24,6 +26,7 @@
 #include "DrawableGroupBrowser.h"
 #include "GLInfo.h"
 
+#include "Magnum/ImGuiIntegration/Widgets.h"
 #include "MagnumBZMaterial.h"
 #include "MagnumDefs.h"
 #include "MagnumSceneManager.h"
@@ -51,6 +54,10 @@
 
 #include "MagnumSceneManager.h"
 #include "MagnumSceneRenderer.h"
+
+#ifdef TARGET_EMSCRIPTEN
+#include "DepthReinterpretShader.h"
+#endif
 
 #include <ctime>
 #include <cassert>
@@ -188,6 +195,17 @@ class MapViewer: public Platform::Sdl2Application {
         Vector2i _lastPosition{-1};
         Vector3 _rotationPoint, _translationPoint;
 
+#ifdef TARGET_EMSCRIPTEN
+        GL::Framebuffer _depthFramebuffer{NoCreate};
+        GL::Texture2D _depth{NoCreate};
+
+        GL::Framebuffer _reinterpretFramebuffer{NoCreate};
+        GL::Renderbuffer _reinterpretDepth{NoCreate};
+
+        GL::Mesh _fullscreenTriangle{NoCreate};
+        DepthReinterpretShader _reinterpretShader{NoCreate};
+#endif
+
         WorldSceneObjectGenerator worldSceneObjGen;
         WorldMeshGenerator worldSceneBuilder;
         ImGuiIntegration::Context _imgui{NoCreate};
@@ -226,6 +244,15 @@ MapViewer::MapViewer(const Arguments& arguments):
         // No multisampling for GLES, assume less capable machine
         .setVersion(GL::Version::GLES300)
 #endif
+#ifdef TARGET_EMSCRIPTEN
+        /* Needed to ensure the canvas depth buffer is always Depth24Stencil8,
+           stencil size is 0 by default, some browser enable stencil for that
+           (Chrome) and some don't (Firefox) and thus our texture format for
+           blitting might not always match.
+           WebGL is insane...*/
+        .setDepthBufferSize(24)
+        .setStencilBufferSize(8)
+#endif
         .setSampleCount(4)
         }
 {
@@ -242,6 +269,24 @@ MapViewer::MapViewer(const Arguments& arguments):
     args
         .setGlobalHelp("BZFlag Map Viewer")
         .parse(arguments.argc, arguments.argv);
+    
+    /* Try 8x MSAA, fall back to zero samples if not possible. Enable only 2x
+       MSAA if we have enough DPI. */
+    /*{
+        const Vector2 dpiScaling = this->dpiScaling({});
+        Configuration conf;
+        conf.setTitle("BZFlag Map Viewer")
+            .setWindowFlags(Configuration::WindowFlag::Resizable)
+            .setSize(conf.size(), dpiScaling);
+        GLConfiguration glConf;
+        glConf.setSampleCount(dpiScaling.max() < 2.0f ? 8 : 2);
+#ifdef TARGET_EMSCRIPTEN
+        glConf.setDepthBufferSize(24)
+            .setStencilBufferSize(8);
+#endif
+        if(!tryCreate(conf, glConf))
+            create(conf, glConf.setSampleCount(0));
+    }*/
     
     MagnumSceneManager::initScene();
     sceneRenderer.init();
@@ -292,6 +337,27 @@ MapViewer::MapViewer(const Arguments& arguments):
         GL::Renderer::BlendEquation::Add);
     GL::Renderer::setBlendFunction(GL::Renderer::BlendFunction::SourceAlpha,
         GL::Renderer::BlendFunction::OneMinusSourceAlpha);
+
+#ifdef TARGET_EMSCRIPTEN
+    _depth = GL::Texture2D{};
+    _depth.setMinificationFilter(GL::SamplerFilter::Nearest)
+        .setMagnificationFilter(GL::SamplerFilter::Nearest)
+        .setWrapping(GL::SamplerWrapping::ClampToEdge)
+        /* The format is set to combined depth/stencil in hope it will match
+           the browser depth/stencil format, requested in the GLConfiguration
+           above. If it won't, the blit() won't work properly. */
+        .setStorage(1, GL::TextureFormat::Depth24Stencil8, framebufferSize());
+    _depthFramebuffer = GL::Framebuffer{{{}, framebufferSize()}};
+    _depthFramebuffer.attachTexture(GL::Framebuffer::BufferAttachment::Depth, _depth, 0);
+
+    _reinterpretDepth = GL::Renderbuffer{};
+    _reinterpretDepth.setStorage(GL::RenderbufferFormat::RGBA8, framebufferSize());
+    _reinterpretFramebuffer = GL::Framebuffer{{{}, framebufferSize()}};
+    _reinterpretFramebuffer.attachRenderbuffer(GL::Framebuffer::ColorAttachment{0}, _reinterpretDepth);
+    _reinterpretShader = DepthReinterpretShader{};
+    _fullscreenTriangle = GL::Mesh{};
+    _fullscreenTriangle.setCount(3);
+#endif
 
     init();
 }
@@ -499,6 +565,9 @@ void MapViewer::drawWindows() {
 }
 
 void MapViewer::drawEvent() {
+#ifdef TARGET_EMSCRIPTEN /* Another FB could be bound from the depth read */
+    GL::defaultFramebuffer.bind();
+#endif
     GL::defaultFramebuffer.clear(GL::FramebufferClear::Color | GL::FramebufferClear::Depth);
 
     _imgui.newFrame();
@@ -522,6 +591,12 @@ void MapViewer::drawEvent() {
 
     _imgui.drawFrame();
 
+#ifdef TARGET_EMSCRIPTEN
+    /* The rendered depth buffer might get lost later, so resolve it to our
+       depth texture before swapping it to the canvas */
+    GL::Framebuffer::blit(GL::defaultFramebuffer, _depthFramebuffer, GL::defaultFramebuffer.viewport(), GL::FramebufferBlit::Depth);
+#endif
+
     swapBuffers();
 }
 
@@ -537,7 +612,9 @@ Float MapViewer::depthAt(const Vector2i& windowPosition) {
        systems */
     const Vector2i position = windowPosition*Vector2{framebufferSize()}/Vector2{windowSize()};
     const Vector2i fbPosition{position.x(), GL::defaultFramebuffer.viewport().sizeY() - position.y() - 1};
+    const Range2Di area = Range2Di::fromSize(fbPosition, Vector2i{1}).padded(Vector2i{2});
 
+#ifndef TARGET_EMSCRIPTEN
     GL::defaultFramebuffer.mapForRead(GL::DefaultFramebuffer::ReadAttachment::Front);
     Image2D data = GL::defaultFramebuffer.read(
         Range2Di::fromSize(fbPosition, Vector2i{1}).padded(Vector2i{2}),
@@ -546,6 +623,27 @@ Float MapViewer::depthAt(const Vector2i& windowPosition) {
     /* TODO: change to just Math::min<Float>(data.pixels<Float>() when the
        batch functions in Math can handle 2D views */
     return Math::min<Float>(data.pixels<Float>().asContiguous());
+#else
+    _reinterpretFramebuffer.clearColor(0, Vector4{})
+        .bind();
+    _reinterpretShader.bindDepthTexture(_depth);
+    GL::Renderer::enable(GL::Renderer::Feature::ScissorTest);
+    GL::Renderer::setScissor(area);
+    _reinterpretShader.draw(_fullscreenTriangle);
+    GL::Renderer::disable(GL::Renderer::Feature::ScissorTest);
+
+    Image2D image = _reinterpretFramebuffer.read({area}, {PixelFormat::RGBA8Unorm});
+
+    /* Unpack the values back. Can't just use UnsignedInt as the values are
+       packed as big-endian. */
+    Float depth[25];
+    /* TODO: remove the asContiguous() when bit unpack functions exist */
+    auto packed = image.pixels<const Math::Vector4<UnsignedByte>>().asContiguous();
+    for(std::size_t i = 0; i != packed.size(); ++i) {
+        depth[i] = Math::unpack<Float, UnsignedInt, 24>((packed[i].x() << 16) | (packed[i].y() << 8) | packed[i].z());
+    }
+    return Math::min<Float>(depth);
+#endif
 }
 
 Vector3 MapViewer::unproject(const Vector2i& windowPosition, Float depth) const {
@@ -568,6 +666,21 @@ void MapViewer::viewportEvent(ViewportEvent& e) {
     _imgui.relayout(Vector2{e.windowSize()}/e.dpiScaling(),
         e.windowSize(), e.framebufferSize());
     _camera->setViewport(e.windowSize());
+    /* Recreate textures and renderbuffers that depend on viewport size */
+#ifdef TARGET_EMSCRIPTEN
+    _depth = GL::Texture2D{};
+    _depth.setMinificationFilter(GL::SamplerFilter::Nearest)
+        .setMagnificationFilter(GL::SamplerFilter::Nearest)
+        .setWrapping(GL::SamplerWrapping::ClampToEdge)
+        .setStorage(1, GL::TextureFormat::Depth24Stencil8, e.framebufferSize());
+    _depthFramebuffer.attachTexture(GL::Framebuffer::BufferAttachment::Depth, _depth, 0);
+
+    _reinterpretDepth = GL::Renderbuffer{};
+    _reinterpretDepth.setStorage(GL::RenderbufferFormat::RGBA8, e.framebufferSize());
+    _reinterpretFramebuffer.attachRenderbuffer(GL::Framebuffer::ColorAttachment{0}, _reinterpretDepth);
+
+    _reinterpretFramebuffer.setViewport({{}, e.framebufferSize()});
+#endif
 }
 
 void MapViewer::keyPressEvent(KeyEvent& event) {

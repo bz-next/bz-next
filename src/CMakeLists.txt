@@ -20,16 +20,15 @@ if(CLIENT_INCLUDED OR ENABLE_MAPVIEWER)
     add_subdirectory(3D)
     
     add_subdirectory(mediafile)
-    
-    add_subdirectory(platform)
     add_subdirectory(scene)
     add_subdirectory(gfx)
     add_subdirectory(widgets)
 endif()
 
 if(CLIENT_INCLUDED)
-add_subdirectory(ogl)
-add_subdirectory(geometry)
+    add_subdirectory(ogl)
+    add_subdirectory(geometry)
+    add_subdirectory(platform)
     add_subdirectory(bzflag-next)
 endif()
 
