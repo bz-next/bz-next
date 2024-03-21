@@ -74,6 +74,7 @@
 #include "TextureMatrix.h"
 #include "DynamicColor.h"
 #include "Teleporter.h"
+#include "TimeKeeper.h"
 
 #include "Downloads.h"
 
@@ -729,6 +730,8 @@ void MapViewer::loopIteration()
 {
     // set this step game time
     GameTime::setStepTime();
+
+    TimeKeeper::setTick();
 
     // update the dynamic colors
     DYNCOLORMGR.update();
