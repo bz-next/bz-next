@@ -74,6 +74,11 @@
 #include <Magnum/DebugTools/Profiler.h>
 #include <Magnum/ImGuiIntegration/Context.hpp>
 #include <Magnum/Types.h>
+#include <Magnum/GL/PixelFormat.h>
+#include <Magnum/Math/Range.h>
+#include <Magnum/Math/FunctionsBatch.h>
+#include <Magnum/Trade/ImageData.h>
+#include <Magnum/Image.h>
 
 #include "GLInfo.h"
 
@@ -226,6 +231,11 @@ class BZFlagNew: public Platform::Sdl2Application {
 
         void drawEvent() override;
 
+        Float depthAt(const Vector2i& windowPosition);
+        Vector3 unproject(const Vector2i& windowPosition, Float depth) const;
+
+        void resetCamera();
+
         void viewportEvent(ViewportEvent& e) override;
         void mousePressEvent(MouseEvent& e) override;
         void mouseReleaseEvent(MouseEvent& e) override;
@@ -373,9 +383,12 @@ class BZFlagNew: public Platform::Sdl2Application {
         World *world = NULL;
 
         Object3D *_scene;
-        Object3D *_manipulator, *_cameraObject;
+        Object3D *_cameraObject;
         SceneGraph::Camera3D* _camera;
-        Vector3 _previousPosition;
+        
+        Float _lastDepth;
+        Vector2i _lastPosition{-1};
+        Vector3 _rotationPoint, _translationPoint;
 
         WorldSceneObjectGenerator worldSceneObjGen;
         WorldMeshGenerator worldMeshGen;
@@ -439,35 +452,22 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
 
     (*_cameraObject)
         .setParent(SOMGR.getObj("Scene"))
-        //.transform(Matrix4::lookAt({40.0f, 40.0f, 10.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}));
-        .translate(Vector3::zAxis(10.0f));
+        .translate(Vector3::zAxis(20.0f));
 
-        
-    
     (*(_camera = new SceneGraph::Camera3D{*_cameraObject}))
         .setAspectRatioPolicy(SceneGraph::AspectRatioPolicy::Extend)
         .setProjectionMatrix(Matrix4::perspectiveProjection(35.0_degf, 1.0f, 1.0f, 10000.0f))
         .setViewport(GL::defaultFramebuffer.viewport().size());
     
     sceneRenderer.resizeViewport(GL::defaultFramebuffer.viewport().size().x(), GL::defaultFramebuffer.viewport().size().y());
-    
-    _manipulator = SOMGR.getObj("World");
 
-    /*_lightCameraObject
-        .setParent(scene)
-        .transform(Matrix4::lookAt({500.0f, 500.0f, 500.0f}, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}));
-    (*(_lightCamera = new SceneGraph::Camera3D{_lightCameraObject}));*/
-
-    //sceneRenderer.setLightObj(&_lightCameraObject);
-    
+    _lastDepth = ((_camera->projectionMatrix()*_camera->cameraMatrix()).transformPoint({}).z() + 1.0f)*0.5f;
 
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
     GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
     GL::Renderer::enable(GL::Renderer::Feature::Blending);
 
     GL::Renderer::setDepthFunction(GL::Renderer::DepthFunction::LessOrEqual);
-
-    //worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
 
     _imgui = ImGuiIntegration::Context(Vector2{windowSize()}/dpiScaling(), windowSize(), framebufferSize());
 
@@ -487,6 +487,44 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
 
     setMinimalLoopPeriod(0);
     //setSwapInterval(0);
+}
+
+void BZFlagNew::resetCamera() {
+    (*_cameraObject)
+        .resetTransformation()
+        .translate(Vector3::zAxis(20.0f));
+}
+
+Float BZFlagNew::depthAt(const Vector2i& windowPosition) {
+    /* First scale the position from being relative to window size to being
+       relative to framebuffer size as those two can be different on HiDPI
+       systems */
+    const Vector2i position = windowPosition*Vector2{framebufferSize()}/Vector2{windowSize()};
+    const Vector2i fbPosition{position.x(), GL::defaultFramebuffer.viewport().sizeY() - position.y() - 1};
+
+    GL::defaultFramebuffer.mapForRead(GL::DefaultFramebuffer::ReadAttachment::Front);
+    Image2D data = GL::defaultFramebuffer.read(
+        Range2Di::fromSize(fbPosition, Vector2i{1}).padded(Vector2i{2}),
+        {GL::PixelFormat::DepthComponent, GL::PixelType::Float});
+
+    /* TODO: change to just Math::min<Float>(data.pixels<Float>() when the
+       batch functions in Math can handle 2D views */
+    return Math::min<Float>(data.pixels<Float>().asContiguous());
+}
+
+Vector3 BZFlagNew::unproject(const Vector2i& windowPosition, Float depth) const {
+    /* We have to take window size, not framebuffer size, since the position is
+       in window coordinates and the two can be different on HiDPI systems */
+    const Vector2i viewSize = windowSize();
+    const Vector2i viewPosition{windowPosition.x(), viewSize.y() - windowPosition.y() - 1};
+    const Vector3 in{2*Vector2{viewPosition}/Vector2{viewSize} - Vector2{1.0f}, depth*2.0f - 1.0f};
+
+    /*
+        Use the following to get global coordinates instead of camera-relative:
+
+        (_cameraObject->absoluteTransformationMatrix()*_camera->projectionMatrix().inverted()).transformPoint(in)
+    */
+    return _camera->projectionMatrix().inverted().transformPoint(in);
 }
 
 void BZFlagNew::showMainMenuBar() {
@@ -1431,6 +1469,11 @@ void BZFlagNew::viewportEvent(ViewportEvent& e) {
 
 void BZFlagNew::keyPressEvent(KeyEvent& event) {
     if(_imgui.handleKeyPressEvent(event)) return;
+    if(event.key() == KeyEvent::Key::NumZero) {
+        resetCamera();
+        redraw();
+        return;
+    }
 }
 
 void BZFlagNew::keyReleaseEvent(KeyEvent& event) {
@@ -1439,14 +1482,19 @@ void BZFlagNew::keyReleaseEvent(KeyEvent& event) {
 
 void BZFlagNew::mousePressEvent(MouseEvent& e) {
     if(_imgui.handleMousePressEvent(e)) return;
-    if (e.button() == MouseEvent::Button::Left)
-        _previousPosition = positionOnSphere(e.position());
+    const Float currentDepth = depthAt(e.position());
+    const Float depth = currentDepth == 1.0f ? _lastDepth : currentDepth;
+    _translationPoint = unproject(e.position(), depth);
+    /* Update the rotation point only if we're not zooming against infinite
+       depth or if the original rotation point is not yet initialized */
+    if(currentDepth != 1.0f || _rotationPoint.isZero()) {
+        _rotationPoint = _translationPoint;
+        _lastDepth = depth;
+    }
 }
 
 void BZFlagNew::mouseReleaseEvent(MouseEvent& e) {
     if(_imgui.handleMouseReleaseEvent(e)) return;
-    if (e.button() == MouseEvent::Button::Left)
-        _previousPosition = Vector3{};
 }
 
 void BZFlagNew::mouseScrollEvent(MouseScrollEvent& e) {
@@ -1455,23 +1503,46 @@ void BZFlagNew::mouseScrollEvent(MouseScrollEvent& e) {
         e.setAccepted();
         return;
     }
-    if (!e.offset().y()) return;
-    const Float distance = _cameraObject->transformation().translation().z();
-    _cameraObject->translate(Vector3::zAxis(distance*(1.0f - (e.offset().y() > 0 ? 1/0.85f : 0.85f))));
+    e.setAccepted();
+    const Float currentDepth = depthAt(e.position());
+    const Float depth = currentDepth == 1.0f ? _lastDepth : currentDepth;
+    const Vector3 p = unproject(e.position(), depth);
+    /* Update the rotation point only if we're not zooming against infinite
+       depth or if the original rotation point is not yet initialized */
+    if(currentDepth != 1.0f || _rotationPoint.isZero()) {
+        _rotationPoint = p;
+        _lastDepth = depth;
+    }
+
+    const Float direction = e.offset().y();
+    if(!direction) return;
+
+    /* Move towards/backwards the rotation point in cam coords */
+    _cameraObject->translateLocal(_rotationPoint*direction*0.1f);
     redraw();
 }
 
 void BZFlagNew::mouseMoveEvent(MouseMoveEvent &e) {
     if(_imgui.handleMouseMoveEvent(e)) return;
+
+    if(_lastPosition == Vector2i{-1}) _lastPosition = e.position();
+    const Vector2i delta = e.position() - _lastPosition;
+    _lastPosition = e.position();
+
     if (!(e.buttons() & MouseMoveEvent::Button::Left)) return;
 
-    const Vector3 currentPosition = positionOnSphere(e.position());
-    const Vector3 axis = Math::cross(_previousPosition, currentPosition);
+    /* Translate */
+    if(e.modifiers() & MouseMoveEvent::Modifier::Shift) {
+        const Vector3 p = unproject(e.position(), _lastDepth);
+        _cameraObject->translateLocal(_translationPoint - p); /* is Z always 0? */
+        _translationPoint = p;
 
-    if (_previousPosition.length() < 0.001f || axis.length() < 0.001f) return;
-
-    _manipulator->rotate(Math::angle(_previousPosition, currentPosition), axis.normalized());
-    _previousPosition = currentPosition;
+    /* Rotate around rotation point */
+    } else _cameraObject->transformLocal(
+        Matrix4::translation(_rotationPoint)*
+        Matrix4::rotationX(-0.005_radf*delta.y())*
+        Matrix4::rotationY(-0.005_radf*delta.x())*
+        Matrix4::translation(-_rotationPoint));
 
     redraw();
 }

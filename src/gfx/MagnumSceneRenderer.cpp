@@ -418,32 +418,15 @@ void MagnumSceneRenderer::drawSettings(const char *title, bool *p_open) {
 // Render the 16-bit depth buffer to a regular rgba texture for presentation
 // Not really necessary, but a good demo on how to do something like this.
 void MagnumSceneRenderer::renderClouds(SceneGraph::Camera3D* camera) {
-
-    /*GL::Renderbuffer depth;
-    depth.setStorage(GL::RenderbufferFormat::DepthComponent16, {(int)cloudTexData.width, (int)cloudTexData.height});
-    GL::Framebuffer framebuffer{ {{}, {(int)cloudTexData.width, (int)cloudTexData.height}} };
-    framebuffer.attachTexture(GL::Framebuffer::ColorAttachment{ 0 }, *cloudTexData.texture, 0);
-
-    framebuffer.attachRenderbuffer(
-    GL::Framebuffer::BufferAttachment::Depth, depth);
-
-    framebuffer.clear(GL::FramebufferClear::Color|GL::FramebufferClear::Depth).bind();*/
-
     Object3D* world = SOMGR.getObj("World");
-    // Dirty cast... why the hell does camera contain a transform-agnostic reference to the damn object?
-    // Why would you even care to get the object if you didn't care about its transform...
-    //auto mats = world->transformations({*(Object3D*)(&camera->object())});
-    //camera->object().transformationMatrix().translation();
-    //mats[0].transformVector({0.0f, 0.0f, 1.0f});
 
     auto correctionmat = world->transformationMatrix().inverted();
-    //correctionmat = Matrix4::rotationX(Math::Deg<float>(-90.0f))*correctionmat;
 
+    // Applies world scale
+    // Used to also apply world transformation when we used to transform the world instead of the camera
     auto camerapos = correctionmat.transformPoint(camera->object().transformationMatrix().translation());
-    auto cameraup = correctionmat.transformVector({0.0f, 1.0f, 0.0f});
-    //camerapos.x() *= 0.1f;
-    //camerapos.y() *= 0.1f;
-    //camerapos.z() *= 0.01f;
+    auto cameraup = camera->object().transformationMatrix().transformVector({0.0f, 1.0f, 0.0f});
+    auto cameralookat = camerapos + camera->object().transformationMatrix().transformVector({0.0f, 0.0f, -1.0f});
 
     Object3D* sun = SOMGR.getObj("Sun");
     auto sunpos = sun->transformationMatrix().translation();
@@ -451,15 +434,13 @@ void MagnumSceneRenderer::renderClouds(SceneGraph::Camera3D* camera) {
     _cloudShader
         .setRes(_viewportSize.x(), _viewportSize.y())
         .setTime(TimeKeeper::getTick().getSeconds()*0.1f)
-        .setLookAt({0.0f, 0.0f, 0.0f})
-        //.setEye({camerapos.x(), camerapos.z(), camerapos.y()})
+        .setLookAt(cameralookat)
         .setEye(camerapos)
         .setUp(cameraup.normalized())
         .setSunDir(sunpos.normalized())
         .bindNoise()
         .setEnableClouds(_enableClouds)
         .draw(_quadMesh);
-    //Warning{} << world->transformationMatrix().transformVector({0.0f, 10.0f, 0.0f});
 
     //GL::defaultFramebuffer.bind();
 }

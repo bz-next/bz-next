@@ -128,7 +128,7 @@ class MapViewer: public Platform::Sdl2Application {
         void keyPressEvent(KeyEvent& event) override;
         void keyReleaseEvent(KeyEvent& event) override;
 
-        void tryConnect(const std::string& callsign, const std::string& password, const std::string& server, const std::string& port);
+        void resetCamera();
 
         // IMGUI
         void showMainMenuBar();
@@ -163,7 +163,6 @@ class MapViewer: public Platform::Sdl2Application {
         void maybeShowFileBrowser();
 #endif
         
-        Vector3 positionOnSphere(const Vector2i& position) const;
 
         static void startupErrorCallback(const char* msg);
 
@@ -180,10 +179,13 @@ class MapViewer: public Platform::Sdl2Application {
         void loopIteration();
 
         Object3D *_sceneRoot;
-        Object3D *_manipulator, *_cameraObject;
+        Object3D *_cameraObject;
         SceneGraph::Camera3D* _camera;
         SceneGraph::DrawableGroup3D _drawables;
-        Vector3 _previousPosition;
+
+        Float _lastDepth;
+        Vector2i _lastPosition{-1};
+        Vector3 _rotationPoint, _translationPoint;
 
         WorldSceneObjectGenerator worldSceneObjGen;
         WorldMeshGenerator worldSceneBuilder;
@@ -249,7 +251,7 @@ MapViewer::MapViewer(const Arguments& arguments):
     
     (*_cameraObject)
         .setParent(_sceneRoot)
-        .translate(Vector3::zAxis(10.0f));
+        .translate(Vector3::zAxis(20.0f));
         
     
     (*(_camera = new SceneGraph::Camera3D{*_cameraObject}))
@@ -259,7 +261,7 @@ MapViewer::MapViewer(const Arguments& arguments):
 
     sceneRenderer.resizeViewport(GL::defaultFramebuffer.viewport().size().x(), GL::defaultFramebuffer.viewport().size().y());
 
-    _manipulator = SOMGR.getObj("World");
+    _lastDepth = ((_camera->projectionMatrix()*_camera->cameraMatrix()).transformPoint({}).z() + 1.0f)*0.5f;
 
 
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
@@ -291,6 +293,12 @@ MapViewer::MapViewer(const Arguments& arguments):
         GL::Renderer::BlendFunction::OneMinusSourceAlpha);
 
     init();
+}
+
+void MapViewer::resetCamera() {
+    (*_cameraObject)
+        .resetTransformation()
+        .translate(Vector3::zAxis(20.0f));
 }
 
 void MapViewer::handleSaveFromEditor(const std::string& filename, const std::string& data) {
@@ -563,6 +571,12 @@ void MapViewer::viewportEvent(ViewportEvent& e) {
 
 void MapViewer::keyPressEvent(KeyEvent& event) {
     if(_imgui.handleKeyPressEvent(event)) return;
+        /* Reset the transformation to the original view */
+    if(event.key() == KeyEvent::Key::NumZero) {
+        resetCamera();
+        redraw();
+        return;
+    }
 }
 
 void MapViewer::keyReleaseEvent(KeyEvent& event) {
@@ -571,14 +585,19 @@ void MapViewer::keyReleaseEvent(KeyEvent& event) {
 
 void MapViewer::mousePressEvent(MouseEvent& e) {
     if(_imgui.handleMousePressEvent(e)) return;
-    if (e.button() == MouseEvent::Button::Left)
-        _previousPosition = positionOnSphere(e.position());
+    const Float currentDepth = depthAt(e.position());
+    const Float depth = currentDepth == 1.0f ? _lastDepth : currentDepth;
+    _translationPoint = unproject(e.position(), depth);
+    /* Update the rotation point only if we're not zooming against infinite
+       depth or if the original rotation point is not yet initialized */
+    if(currentDepth != 1.0f || _rotationPoint.isZero()) {
+        _rotationPoint = _translationPoint;
+        _lastDepth = depth;
+    }
 }
 
 void MapViewer::mouseReleaseEvent(MouseEvent& e) {
     if(_imgui.handleMouseReleaseEvent(e)) return;
-    if (e.button() == MouseEvent::Button::Left)
-        _previousPosition = Vector3{};
 }
 
 void MapViewer::mouseScrollEvent(MouseScrollEvent& e) {
@@ -588,36 +607,51 @@ void MapViewer::mouseScrollEvent(MouseScrollEvent& e) {
         return;
     }
     e.setAccepted();
-    if (!e.offset().y()) return;
-    const Float distance = _cameraObject->transformation().translation().z();
-    _cameraObject->translate(Vector3::zAxis(distance*(1.0f - (e.offset().y() > 0 ? 1/0.85f : 0.85f))));
+    const Float currentDepth = depthAt(e.position());
+    const Float depth = currentDepth == 1.0f ? _lastDepth : currentDepth;
+    const Vector3 p = unproject(e.position(), depth);
+    /* Update the rotation point only if we're not zooming against infinite
+       depth or if the original rotation point is not yet initialized */
+    if(currentDepth != 1.0f || _rotationPoint.isZero()) {
+        _rotationPoint = p;
+        _lastDepth = depth;
+    }
+
+    const Float direction = e.offset().y();
+    if(!direction) return;
+
+    /* Move towards/backwards the rotation point in cam coords */
+    _cameraObject->translateLocal(_rotationPoint*direction*0.1f);
     redraw();
 }
 
 void MapViewer::mouseMoveEvent(MouseMoveEvent &e) {
     if(_imgui.handleMouseMoveEvent(e)) return;
+
+    if(_lastPosition == Vector2i{-1}) _lastPosition = e.position();
+    const Vector2i delta = e.position() - _lastPosition;
+    _lastPosition = e.position();
+
     if (!(e.buttons() & MouseMoveEvent::Button::Left)) return;
 
-    const Vector3 currentPosition = positionOnSphere(e.position());
-    const Vector3 axis = Math::cross(_previousPosition, currentPosition);
+    /* Translate */
+    if(e.modifiers() & MouseMoveEvent::Modifier::Shift) {
+        const Vector3 p = unproject(e.position(), _lastDepth);
+        _cameraObject->translateLocal(_translationPoint - p); /* is Z always 0? */
+        _translationPoint = p;
 
-    if (_previousPosition.length() < 0.001f || axis.length() < 0.001f) return;
-
-    _manipulator->rotate(Math::angle(_previousPosition, currentPosition), axis.normalized());
-    _previousPosition = currentPosition;
+    /* Rotate around rotation point */
+    } else _cameraObject->transformLocal(
+        Matrix4::translation(_rotationPoint)*
+        Matrix4::rotationX(-0.005_radf*delta.y())*
+        Matrix4::rotationY(-0.005_radf*delta.x())*
+        Matrix4::translation(-_rotationPoint));
 
     redraw();
 }
 
 void MapViewer::textInputEvent(TextInputEvent& e) {
     if(_imgui.handleTextInputEvent(e)) return;
-}
-
-Vector3 MapViewer::positionOnSphere(const Vector2i& position) const {
-    const Vector2 positionNormalized = Vector2{position}/Vector2{_camera->viewport()} - Vector2{0.5f};
-    const Float length = positionNormalized.length();
-    const Vector3 result(length > 1.0f ? Vector3(positionNormalized, 0.0f) : Vector3(positionNormalized, 1.0f - length));
-    return (result * Vector3::yScale(-1.0f)).normalized();
 }
 
 void MapViewer::resetBZDB() {
