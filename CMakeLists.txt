@@ -64,6 +64,7 @@ set(ENABLE_SERVER FALSE CACHE BOOL "Enable the server")
 set(ENABLE_PLUGINS FALSE CACHE BOOL "Enable plugins in the server")
 set(ENABLE_BZADMIN FALSE CACHE BOOL "Enable the text client")
 set(ENABLE_MAPVIEWER FALSE CACHE BOOL "Enable the map viewer")
+set(ENABLE_DOCUMENTATION FALSE CACHE BOOL "Enable doxygen output")
 
 # TODO: Just use ENABLE_PLUGINS in the code? Or just always enable them?
 if (ENABLE_PLUGINS)

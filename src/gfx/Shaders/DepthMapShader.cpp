@@ -8,13 +8,26 @@
 
 using namespace Magnum;
 
+static void importShaderResources() {
+    CORRADE_RESOURCE_INITIALIZE(SHADER_RESOURCES)
+}
+
 DepthMapShader::DepthMapShader() {
-    MAGNUM_ASSERT_GL_VERSION_SUPPORTED(GL::Version::GL330);
+    Magnum::GL::Version shaderVersion;
+    #ifdef TARGET_EMSCRIPTEN
+    shaderVersion = GL::Version::GLES300;
+    #else
+    shaderVersion = GL::Version::GL330;
+    #endif
+    MAGNUM_ASSERT_GL_VERSION_SUPPORTED(shaderVersion);
 
-    const Utility::Resource rs{"DepthMapShader-data"};
+    if(!Utility::Resource::hasGroup("Shader-data"))
+        importShaderResources();
 
-    GL::Shader vert{GL::Version::GL330, GL::Shader::Type::Vertex};
-    GL::Shader frag{GL::Version::GL330, GL::Shader::Type::Fragment};
+    const Utility::Resource rs{"Shader-data"};
+
+    GL::Shader vert{shaderVersion, GL::Shader::Type::Vertex};
+    GL::Shader frag{shaderVersion, GL::Shader::Type::Fragment};
 
     vert.addSource(rs.getString("DepthMapShader.vert"));
     frag.addSource(rs.getString("DepthMapShader.frag"));

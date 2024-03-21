@@ -1,4 +1,4 @@
-#include "BasicTexturedShader.h"
+#include "DepthReinterpretShader.h"
 
 #include <Magnum/GL/Version.h>
 #include <Magnum/GL/Context.h>
@@ -12,7 +12,7 @@ static void importShaderResources() {
     CORRADE_RESOURCE_INITIALIZE(SHADER_RESOURCES)
 }
 
-BasicTexturedShader::BasicTexturedShader() {
+DepthReinterpretShader::DepthReinterpretShader() {
     Magnum::GL::Version shaderVersion;
     #ifdef TARGET_EMSCRIPTEN
     shaderVersion = GL::Version::GLES300;
@@ -21,23 +21,20 @@ BasicTexturedShader::BasicTexturedShader() {
     #endif
     MAGNUM_ASSERT_GL_VERSION_SUPPORTED(shaderVersion);
 
-    if(!Utility::Resource::hasGroup("Shader-data"))
+    if (!Utility::Resource::hasGroup("Shader-data"))
         importShaderResources();
-
-    const Utility::Resource rs{"Shader-data"};
 
     GL::Shader vert{shaderVersion, GL::Shader::Type::Vertex};
     GL::Shader frag{shaderVersion, GL::Shader::Type::Fragment};
 
-    vert.addSource(rs.getString("BasicTexturedShader.vert"));
-    frag.addSource(rs.getString("BasicTexturedShader.frag"));
+    Utility::Resource rs{"Shader-data"};
+    vert.addSource(rs.getString("DepthReinterpretShader.vert"));
+    frag.addSource(rs.getString("DepthReinterpretShader.frag"));
 
     CORRADE_INTERNAL_ASSERT_OUTPUT(vert.compile() && frag.compile());
 
     attachShaders({vert, frag});
-
     CORRADE_INTERNAL_ASSERT_OUTPUT(link());
 
-    _colorUniform = uniformLocation("color");
-    setUniform(uniformLocation("textureData"), TextureUnit);
+    setUniform(uniformLocation("depthTexture"), TextureUnit);
 }

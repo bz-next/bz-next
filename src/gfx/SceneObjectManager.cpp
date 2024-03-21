@@ -8,6 +8,10 @@ using namespace Magnum;
 
 SceneObjectManager SOMGR;
 
+SceneObjectManager::SceneObjectManager() {
+    _objs.insert(std::make_pair("Scene", (Object3D*)&scene));
+}
+
 Object3D* SceneObjectManager::getObj(const std::string& name) {
     auto it = _objs.find(name);
     if (it != _objs.end()) {

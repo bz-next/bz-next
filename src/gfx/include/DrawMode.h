@@ -9,6 +9,11 @@
 #include <Magnum/Shaders/PhongGL.h>
 
 #include "BasicTexturedShader.h"
+#include "DepthMapShader.h"
+
+#include "MagnumDefs.h"
+
+#include "EnhancedPhongGL.h"
 
 class DrawMode {
     public:
@@ -16,7 +21,8 @@ class DrawMode {
         const Magnum::Matrix4& transformationMatrix,
         Magnum::SceneGraph::Camera3D& camera,
         const MagnumBZMaterial* mat,
-        Magnum::GL::Mesh& mesh) = 0;
+        Magnum::GL::Mesh& mesh,
+        Object3D* obj) = 0;
 };
 
 class BZMaterialDrawMode : public DrawMode {
@@ -26,10 +32,37 @@ class BZMaterialDrawMode : public DrawMode {
         const Magnum::Matrix4& transformationMatrix,
         Magnum::SceneGraph::Camera3D& camera,
         const MagnumBZMaterial* mat,
-        Magnum::GL::Mesh& mesh) override;
+        Magnum::GL::Mesh& mesh,
+        Object3D* obj) override;
+    void setLightObj(Object3D* obj) { _lightObj = obj; }
+    void setLightCamera(Magnum::SceneGraph::Camera3D* c) { _lightCamera = c; }
     private:
-    Magnum::Shaders::PhongGL *_shader;
-    Magnum::Shaders::PhongGL *_shaderUntex;
+    EnhancedPhongGL *_shader;
+    EnhancedPhongGL *_shaderUntex;
+    Object3D* _lightObj;
+    Magnum::SceneGraph::Camera3D* _lightCamera;
+};
+
+class BZMaterialShadowMappedDrawMode : public DrawMode {
+    public:
+    BZMaterialShadowMappedDrawMode();
+    void draw(
+        const Magnum::Matrix4& transformationMatrix,
+        Magnum::SceneGraph::Camera3D& camera,
+        const MagnumBZMaterial* mat,
+        Magnum::GL::Mesh& mesh,
+        Object3D* obj) override;
+    void setLightObj(Object3D* obj) { _lightObj = obj; }
+    void setLightCamera(Magnum::SceneGraph::Camera3D* c) { _lightCamera = c; }
+    void setShadowMap(Magnum::GL::Texture2D* tex) {
+        _shadowMapTex = tex;
+    }
+    private:
+    EnhancedPhongGL *_shader;
+    EnhancedPhongGL *_shaderUntex;
+    Object3D* _lightObj;
+    Magnum::GL::Texture2D *_shadowMapTex;
+    Magnum::SceneGraph::Camera3D* _lightCamera;
 };
 
 class BasicTexturedShaderDrawMode : public DrawMode {
@@ -39,9 +72,23 @@ class BasicTexturedShaderDrawMode : public DrawMode {
         const Magnum::Matrix4& transformationMatrix,
         Magnum::SceneGraph::Camera3D& camera,
         const MagnumBZMaterial* mat,
-        Magnum::GL::Mesh& mesh) override;
+        Magnum::GL::Mesh& mesh,
+        Object3D* obj) override;
     private:
     BasicTexturedShader *_shader;
+};
+
+class DepthMapDrawMode : public DrawMode {
+    public:
+    DepthMapDrawMode();
+    void draw(
+        const Magnum::Matrix4& transformationMatrix,
+        Magnum::SceneGraph::Camera3D& camera,
+        const MagnumBZMaterial* mat,
+        Magnum::GL::Mesh& mesh,
+        Object3D* obj) override;
+    private:
+    DepthMapShader *_shader;
 };
 
 #endif

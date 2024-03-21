@@ -74,6 +74,11 @@
 #include <Magnum/DebugTools/Profiler.h>
 #include <Magnum/ImGuiIntegration/Context.hpp>
 #include <Magnum/Types.h>
+#include <Magnum/GL/PixelFormat.h>
+#include <Magnum/Math/Range.h>
+#include <Magnum/Math/FunctionsBatch.h>
+#include <Magnum/Trade/ImageData.h>
+#include <Magnum/Image.h>
 
 #include "GLInfo.h"
 
@@ -112,9 +117,16 @@
 #include "DrawableGroupBrowser.h"
 #include "SceneObjectBrowser.h"
 
+#include "MagnumSceneRenderer.h"
+
+#include "MagnumSceneManager.h"
+
+#include "EnhancedPhongGL.h"
+
 #include <ctime>
 #include <cassert>
 #include <imgui.h>
+#include <Magnum/ImGuiIntegration/Widgets.h>
 #include <sstream>
 #include <cstring>
 #include <functional>
@@ -219,6 +231,11 @@ class BZFlagNew: public Platform::Sdl2Application {
 
         void drawEvent() override;
 
+        Float depthAt(const Vector2i& windowPosition);
+        Vector3 unproject(const Vector2i& windowPosition, Float depth) const;
+
+        void resetCamera();
+
         void viewportEvent(ViewportEvent& e) override;
         void mousePressEvent(MouseEvent& e) override;
         void mouseReleaseEvent(MouseEvent& e) override;
@@ -242,7 +259,7 @@ class BZFlagNew: public Platform::Sdl2Application {
 
         bool showConsole = false;
         bool showProfiler = false;
-        bool showConnect = true;
+        bool showConnect = false;
         bool showScoreboard = false;
         bool showTMBrowser = false;
         bool showMATBrowser = false;
@@ -258,6 +275,9 @@ class BZFlagNew: public Platform::Sdl2Application {
         bool showMeshTransformBrowser = false;
         bool showDrawableGroupBrowser = false;
         bool showSceneObjectBrowser = false;
+        bool showPipelineTexBrowser = false;
+        bool showAdjustSun = false;
+        bool showRendererSettings = false;
         
         Vector3 positionOnSphere(const Vector2i& position) const;
 
@@ -362,16 +382,13 @@ class BZFlagNew: public Platform::Sdl2Application {
 
         World *world = NULL;
 
-        Shaders::PhongGL _coloredShader;
-        Shaders::PhongGL _texturedShader{Shaders::PhongGL::Configuration().setFlags(Shaders::PhongGL::Flag::DiffuseTexture)};
-        Containers::Array<Containers::Optional<GL::Mesh>> _meshes;
-        Containers::Array<Containers::Optional<GL::Texture2D>> _textures;
-
-        Scene3D _scene;
-        Object3D _manipulator, _cameraObject;
+        Object3D *_scene;
+        Object3D *_cameraObject;
         SceneGraph::Camera3D* _camera;
-        SceneGraph::DrawableGroup3D _drawables;
-        Vector3 _previousPosition;
+        
+        Float _lastDepth;
+        Vector2i _lastPosition{-1};
+        Vector3 _rotationPoint, _translationPoint;
 
         WorldSceneObjectGenerator worldSceneObjGen;
         WorldMeshGenerator worldMeshGen;
@@ -392,6 +409,8 @@ class BZFlagNew: public Platform::Sdl2Application {
         PhyDrvBrowser phyDrvBrowser;
         DrawableGroupBrowser dgrpBrowser;
         SceneObjectBrowser soBrowser;
+
+        MagnumSceneRenderer sceneRenderer;
 
         std::map<int, Object3D*> remoteTanks;
 
@@ -424,50 +443,31 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
         .setGlobalHelp("Displays a 3D scene file provided on command line.")
         .parse(arguments.argc, arguments.argv);
     
-    _cameraObject
-        .setParent(&_scene)
-        .translate(Vector3::zAxis(10.0f));
-        
-    
-    (*(_camera = new SceneGraph::Camera3D{_cameraObject}))
+    MagnumSceneManager::initScene();
+    sceneRenderer.init();
+
+    _scene = SOMGR.getObj("Scene");
+
+    _cameraObject = new Object3D{};
+
+    (*_cameraObject)
+        .setParent(SOMGR.getObj("Scene"))
+        .translate(Vector3::zAxis(20.0f));
+
+    (*(_camera = new SceneGraph::Camera3D{*_cameraObject}))
         .setAspectRatioPolicy(SceneGraph::AspectRatioPolicy::Extend)
-        .setProjectionMatrix(Matrix4::perspectiveProjection(35.0_degf, 1.0f, 1.0f, 1000.0f))
+        .setProjectionMatrix(Matrix4::perspectiveProjection(35.0_degf, 1.0f, 1.0f, 10000.0f))
         .setViewport(GL::defaultFramebuffer.viewport().size());
     
-    _manipulator.setParent(&_scene);
+    sceneRenderer.resizeViewport(GL::defaultFramebuffer.viewport().size().x(), GL::defaultFramebuffer.viewport().size().y());
 
-    Object3D* scene = SOMGR.addObj("Scene");
-    scene->setParent(&_manipulator);
-
-    scene->scale({0.05f, 0.05f, 0.05f});
-
-    SOMGR.addObj("TanksParent")->setParent(scene);
-
-    DGRPMGR.addGroup("TankDrawables");
+    _lastDepth = ((_camera->projectionMatrix()*_camera->cameraMatrix()).transformPoint({}).z() + 1.0f)*0.5f;
 
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
     GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
     GL::Renderer::enable(GL::Renderer::Feature::Blending);
 
-    _coloredShader
-        .setAmbientColor(0x111111_rgbf)
-        .setSpecularColor(0xffffff_rgbf)
-        .setShininess(80.0f);
-    _texturedShader
-        .setAmbientColor(0x111111_rgbf)
-        .setSpecularColor(0x111111_rgbf)
-        .setShininess(80.0f);
-
-    PluginManager::Manager<Trade::AbstractImporter> manager;
-    Containers::Pointer<Trade::AbstractImporter> importer = manager.loadAndInstantiate(args.value("importer"));
-
-    _textures = Containers::Array<Containers::Optional<GL::Texture2D>>{};
-
-    Containers::Array<Containers::Optional<Trade::PhongMaterialData>> materials{};
-
-    _meshes = Containers::Array<Containers::Optional<GL::Mesh>>{1};
-
-    //worldSceneObjGen.getWorldObject()->setParent(&_manipulator);
+    GL::Renderer::setDepthFunction(GL::Renderer::DepthFunction::LessOrEqual);
 
     _imgui = ImGuiIntegration::Context(Vector2{windowSize()}/dpiScaling(), windowSize(), framebufferSize());
 
@@ -489,12 +489,55 @@ BZFlagNew::BZFlagNew(const Arguments& arguments):
     //setSwapInterval(0);
 }
 
+void BZFlagNew::resetCamera() {
+    (*_cameraObject)
+        .resetTransformation()
+        .translate(Vector3::zAxis(20.0f));
+}
+
+Float BZFlagNew::depthAt(const Vector2i& windowPosition) {
+    /* First scale the position from being relative to window size to being
+       relative to framebuffer size as those two can be different on HiDPI
+       systems */
+    const Vector2i position = windowPosition*Vector2{framebufferSize()}/Vector2{windowSize()};
+    const Vector2i fbPosition{position.x(), GL::defaultFramebuffer.viewport().sizeY() - position.y() - 1};
+
+    GL::defaultFramebuffer.mapForRead(GL::DefaultFramebuffer::ReadAttachment::Front);
+    Image2D data = GL::defaultFramebuffer.read(
+        Range2Di::fromSize(fbPosition, Vector2i{1}).padded(Vector2i{2}),
+        {GL::PixelFormat::DepthComponent, GL::PixelType::Float});
+
+    /* TODO: change to just Math::min<Float>(data.pixels<Float>() when the
+       batch functions in Math can handle 2D views */
+    return Math::min<Float>(data.pixels<Float>().asContiguous());
+}
+
+Vector3 BZFlagNew::unproject(const Vector2i& windowPosition, Float depth) const {
+    /* We have to take window size, not framebuffer size, since the position is
+       in window coordinates and the two can be different on HiDPI systems */
+    const Vector2i viewSize = windowSize();
+    const Vector2i viewPosition{windowPosition.x(), viewSize.y() - windowPosition.y() - 1};
+    const Vector3 in{2*Vector2{viewPosition}/Vector2{viewSize} - Vector2{1.0f}, depth*2.0f - 1.0f};
+
+    /*
+        Use the following to get global coordinates instead of camera-relative:
+
+        (_cameraObject->absoluteTransformationMatrix()*_camera->projectionMatrix().inverted()).transformPoint(in)
+    */
+    return _camera->projectionMatrix().inverted().transformPoint(in);
+}
+
 void BZFlagNew::showMainMenuBar() {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::MenuItem("Connect", NULL, &showConnect)) {
         }
         if (ImGui::BeginMenu("View")) {
             showMenuView();
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Scene")) {
+            if (ImGui::MenuItem("Renderer Settings", NULL, &showRendererSettings)) {}
+            if (ImGui::MenuItem("Adjust Sun", NULL, &showAdjustSun)) {}
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Debug")) {
@@ -543,6 +586,8 @@ void BZFlagNew::showMenuDebug() {
     if (ImGui::MenuItem("Force Load Material Textures")) {
         MAGNUMMATERIALMGR.forceLoadTextures();
     }
+    ImGui::Separator();
+    if (ImGui::MenuItem("Pipeline Texture Browser", NULL, &showPipelineTexBrowser)) {}
 }
 
 void BZFlagNew::drawWindows() {
@@ -634,6 +679,26 @@ void BZFlagNew::drawWindows() {
     if (showSceneObjectBrowser) {
         soBrowser.draw("Scene Object Browser", &showSceneObjectBrowser);
     }
+
+    if (showPipelineTexBrowser) {
+        sceneRenderer.drawPipelineTexBrowser("Pipeline Texture Browser", &showPipelineTexBrowser);
+    }
+
+    if (showAdjustSun) {
+        ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
+        ImGui::Begin("Adjust Sun", &showAdjustSun);
+        auto pos = sceneRenderer.getSunPosition();
+        static float x = pos.x(), y = pos.y(), z = pos.z();
+        ImGui::DragFloat("Sun X", &x, 10.0f, -10000.0f, 10000.0f, "%.2f");
+        ImGui::DragFloat("Sun Y", &y, 10.0f, -10000.0f, 10000.0f, "%.2f");
+        ImGui::DragFloat("Sun Z", &z, 10.0f, 1000.0f, 10000.0f, "%.2f");
+        sceneRenderer.setSunPosition({x, y, z});
+        ImGui::End();
+    }
+
+    if (showRendererSettings) {
+        sceneRenderer.drawSettings("Renderer Settings", &showRendererSettings);
+    }
 }
 
 void BZFlagNew::onConsoleText(const char* msg) {
@@ -699,7 +764,7 @@ void BZFlagNew::drawEvent() {
         tank->translate({pos[0], pos[1], pos[2]});
     }
 
-    if (showGrid)
+    /*if (showGrid)
         if (auto* dg = DGRPMGR.getGroup("WorldDebugDrawables"))
             _camera->draw(*dg);
     if (auto* dg = DGRPMGR.getGroup("WorldDrawables"))
@@ -708,7 +773,17 @@ void BZFlagNew::drawEvent() {
     if (auto* dg = DGRPMGR.getGroup("TankDrawables"))
         _camera->draw(*dg);
     if (auto* dg = DGRPMGR.getGroup("WorldTransDrawables"))
-        _camera->draw(*dg);
+        _camera->draw(*dg);*/
+
+    
+    //sceneRenderer.renderLightDepthMap();
+    
+    //sceneRenderer.renderLightDepthMapPreview();
+    //sceneRenderer.renderClouds(_camera);
+    sceneRenderer.renderScene(_camera);
+    //sceneRenderer.renderSceneToHDR(_camera);
+    
+    //sceneRenderer.renderClouds();
 
         /* Set appropriate states. If you only draw ImGui, it is sufficient to
        just enable blending and scissor test in the constructor. */
@@ -971,6 +1046,7 @@ void BZFlagNew::loadCachedWorld() {
     const bool updateDownloads =  BZDB.isTrue("updateDownloads");
     Downloads::startDownloads(doDownloads, updateDownloads, false);
     downloadingInitialTexture  = true;
+    MagnumTextureManager::instance().enableAutomaticLoading();
 }
 
 void BZFlagNew::addMessage(const Player *_player, const std::string& msg, int mode, bool highlight, const char* oldColor) {
@@ -1388,10 +1464,16 @@ void BZFlagNew::viewportEvent(ViewportEvent& e) {
     _imgui.relayout(Vector2{e.windowSize()}/e.dpiScaling(),
         e.windowSize(), e.framebufferSize());
     _camera->setViewport(e.windowSize());
+    sceneRenderer.resizeViewport(e.windowSize().x(), e.windowSize().y());
 }
 
 void BZFlagNew::keyPressEvent(KeyEvent& event) {
     if(_imgui.handleKeyPressEvent(event)) return;
+    if(event.key() == KeyEvent::Key::NumZero) {
+        resetCamera();
+        redraw();
+        return;
+    }
 }
 
 void BZFlagNew::keyReleaseEvent(KeyEvent& event) {
@@ -1400,14 +1482,19 @@ void BZFlagNew::keyReleaseEvent(KeyEvent& event) {
 
 void BZFlagNew::mousePressEvent(MouseEvent& e) {
     if(_imgui.handleMousePressEvent(e)) return;
-    if (e.button() == MouseEvent::Button::Left)
-        _previousPosition = positionOnSphere(e.position());
+    const Float currentDepth = depthAt(e.position());
+    const Float depth = currentDepth == 1.0f ? _lastDepth : currentDepth;
+    _translationPoint = unproject(e.position(), depth);
+    /* Update the rotation point only if we're not zooming against infinite
+       depth or if the original rotation point is not yet initialized */
+    if(currentDepth != 1.0f || _rotationPoint.isZero()) {
+        _rotationPoint = _translationPoint;
+        _lastDepth = depth;
+    }
 }
 
 void BZFlagNew::mouseReleaseEvent(MouseEvent& e) {
     if(_imgui.handleMouseReleaseEvent(e)) return;
-    if (e.button() == MouseEvent::Button::Left)
-        _previousPosition = Vector3{};
 }
 
 void BZFlagNew::mouseScrollEvent(MouseScrollEvent& e) {
@@ -1416,23 +1503,46 @@ void BZFlagNew::mouseScrollEvent(MouseScrollEvent& e) {
         e.setAccepted();
         return;
     }
-    if (!e.offset().y()) return;
-    const Float distance = _cameraObject.transformation().translation().z();
-    _cameraObject.translate(Vector3::zAxis(distance*(1.0f - (e.offset().y() > 0 ? 1/0.85f : 0.85f))));
+    e.setAccepted();
+    const Float currentDepth = depthAt(e.position());
+    const Float depth = currentDepth == 1.0f ? _lastDepth : currentDepth;
+    const Vector3 p = unproject(e.position(), depth);
+    /* Update the rotation point only if we're not zooming against infinite
+       depth or if the original rotation point is not yet initialized */
+    if(currentDepth != 1.0f || _rotationPoint.isZero()) {
+        _rotationPoint = p;
+        _lastDepth = depth;
+    }
+
+    const Float direction = e.offset().y();
+    if(!direction) return;
+
+    /* Move towards/backwards the rotation point in cam coords */
+    _cameraObject->translateLocal(_rotationPoint*direction*0.1f);
     redraw();
 }
 
 void BZFlagNew::mouseMoveEvent(MouseMoveEvent &e) {
     if(_imgui.handleMouseMoveEvent(e)) return;
+
+    if(_lastPosition == Vector2i{-1}) _lastPosition = e.position();
+    const Vector2i delta = e.position() - _lastPosition;
+    _lastPosition = e.position();
+
     if (!(e.buttons() & MouseMoveEvent::Button::Left)) return;
 
-    const Vector3 currentPosition = positionOnSphere(e.position());
-    const Vector3 axis = Math::cross(_previousPosition, currentPosition);
+    /* Translate */
+    if(e.modifiers() & MouseMoveEvent::Modifier::Shift) {
+        const Vector3 p = unproject(e.position(), _lastDepth);
+        _cameraObject->translateLocal(_translationPoint - p); /* is Z always 0? */
+        _translationPoint = p;
 
-    if (_previousPosition.length() < 0.001f || axis.length() < 0.001f) return;
-
-    _manipulator.rotate(Math::angle(_previousPosition, currentPosition), axis.normalized());
-    _previousPosition = currentPosition;
+    /* Rotate around rotation point */
+    } else _cameraObject->transformLocal(
+        Matrix4::translation(_rotationPoint)*
+        Matrix4::rotationX(-0.005_radf*delta.y())*
+        Matrix4::rotationY(-0.005_radf*delta.x())*
+        Matrix4::translation(-_rotationPoint));
 
     redraw();
 }

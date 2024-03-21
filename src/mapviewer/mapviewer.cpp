@@ -2,24 +2,34 @@
 #include <Corrade/Utility/Arguments.h>
 #include <Corrade/Utility/DebugStl.h>
 #include <Corrade/Utility/Resource.h>
+#include <Corrade/Containers/StridedArrayView.h>
 
 #include <Magnum/GL/Version.h>
 #include <Magnum/GL/DefaultFramebuffer.h>
 #include <Magnum/GL/Renderer.h>
+#include <Magnum/GL/PixelFormat.h>
+#include <Magnum/GL/RenderbufferFormat.h>
+#include <Magnum/PixelFormat.h>
 
 #include <Magnum/Platform/Sdl2Application.h>
 #include <Magnum/SceneGraph/Camera.h>
 #include <Magnum/SceneGraph/Scene.h>
 #include <Magnum/ImGuiIntegration/Context.hpp>
 #include <Magnum/Types.h>
+#include <Magnum/Math/Range.h>
+#include <Magnum/Math/FunctionsBatch.h>
+
+#include <Magnum/Image.h>
 
 #include <imgui.h>
 
 #include "DrawableGroupBrowser.h"
 #include "GLInfo.h"
 
+#include "Magnum/ImGuiIntegration/Widgets.h"
 #include "MagnumBZMaterial.h"
 #include "MagnumDefs.h"
+#include "MagnumSceneManager.h"
 #include "MagnumTextureManager.h"
 #include "WorldSceneObjectGenerator.h"
 
@@ -41,6 +51,13 @@
 
 #include "SceneObjectManager.h"
 #include "DrawableGroupManager.h"
+
+#include "MagnumSceneManager.h"
+#include "MagnumSceneRenderer.h"
+
+#ifdef TARGET_EMSCRIPTEN
+#include "DepthReinterpretShader.h"
+#endif
 
 #include <ctime>
 #include <cassert>
@@ -64,6 +81,7 @@
 #include "TextureMatrix.h"
 #include "DynamicColor.h"
 #include "Teleporter.h"
+#include "TimeKeeper.h"
 
 #include "Downloads.h"
 
@@ -104,6 +122,9 @@ class MapViewer: public Platform::Sdl2Application {
 
         void drawEvent() override;
 
+        Float depthAt(const Vector2i& windowPosition);
+        Vector3 unproject(const Vector2i& windowPosition, Float depth) const;
+
         void viewportEvent(ViewportEvent& e) override;
         void mousePressEvent(MouseEvent& e) override;
         void mouseReleaseEvent(MouseEvent& e) override;
@@ -115,7 +136,7 @@ class MapViewer: public Platform::Sdl2Application {
         void keyPressEvent(KeyEvent& event) override;
         void keyReleaseEvent(KeyEvent& event) override;
 
-        void tryConnect(const std::string& callsign, const std::string& password, const std::string& server, const std::string& port);
+        void resetCamera();
 
         // IMGUI
         void showMainMenuBar();
@@ -140,6 +161,9 @@ class MapViewer: public Platform::Sdl2Application {
         bool showMeshTransformBrowser = false;
         bool showMapBrowser = true;
         bool showDrawableGroupBrowser = false;
+        bool showRendererSettings = false;
+        bool showAdjustSun = false;
+        bool showPipelineTexBrowser = false;
 
         bool showGrid = false;
 
@@ -147,7 +171,6 @@ class MapViewer: public Platform::Sdl2Application {
         void maybeShowFileBrowser();
 #endif
         
-        Vector3 positionOnSphere(const Vector2i& position) const;
 
         static void startupErrorCallback(const char* msg);
 
@@ -163,15 +186,31 @@ class MapViewer: public Platform::Sdl2Application {
 
         void loopIteration();
 
-        Scene3D _sceneRoot;
-        Object3D _manipulator, _cameraObject;
+        Object3D *_sceneRoot;
+        Object3D *_cameraObject;
         SceneGraph::Camera3D* _camera;
         SceneGraph::DrawableGroup3D _drawables;
-        Vector3 _previousPosition;
+
+        Float _lastDepth;
+        Vector2i _lastPosition{-1};
+        Vector3 _rotationPoint, _translationPoint;
+
+#ifdef TARGET_EMSCRIPTEN
+        GL::Framebuffer _depthFramebuffer{NoCreate};
+        GL::Texture2D _depth{NoCreate};
+
+        GL::Framebuffer _reinterpretFramebuffer{NoCreate};
+        GL::Renderbuffer _reinterpretDepth{NoCreate};
+
+        GL::Mesh _fullscreenTriangle{NoCreate};
+        DepthReinterpretShader _reinterpretShader{NoCreate};
+#endif
 
         WorldSceneObjectGenerator worldSceneObjGen;
         WorldMeshGenerator worldSceneBuilder;
         ImGuiIntegration::Context _imgui{NoCreate};
+
+        MagnumSceneRenderer sceneRenderer;
 
         BZTextureBrowser tmBrowser;
         BZMaterialBrowser matBrowser;
@@ -205,6 +244,15 @@ MapViewer::MapViewer(const Arguments& arguments):
         // No multisampling for GLES, assume less capable machine
         .setVersion(GL::Version::GLES300)
 #endif
+#ifdef TARGET_EMSCRIPTEN
+        /* Needed to ensure the canvas depth buffer is always Depth24Stencil8,
+           stencil size is 0 by default, some browser enable stencil for that
+           (Chrome) and some don't (Firefox) and thus our texture format for
+           blitting might not always match.
+           WebGL is insane...*/
+        .setDepthBufferSize(24)
+        .setStencilBufferSize(8)
+#endif
         .setSampleCount(4)
         }
 {
@@ -222,27 +270,52 @@ MapViewer::MapViewer(const Arguments& arguments):
         .setGlobalHelp("BZFlag Map Viewer")
         .parse(arguments.argc, arguments.argv);
     
-    _cameraObject
-        .setParent(&_sceneRoot)
-        .translate(Vector3::zAxis(10.0f));
+    /* Try 8x MSAA, fall back to zero samples if not possible. Enable only 2x
+       MSAA if we have enough DPI. */
+    /*{
+        const Vector2 dpiScaling = this->dpiScaling({});
+        Configuration conf;
+        conf.setTitle("BZFlag Map Viewer")
+            .setWindowFlags(Configuration::WindowFlag::Resizable)
+            .setSize(conf.size(), dpiScaling);
+        GLConfiguration glConf;
+        glConf.setSampleCount(dpiScaling.max() < 2.0f ? 8 : 2);
+#ifdef TARGET_EMSCRIPTEN
+        glConf.setDepthBufferSize(24)
+            .setStencilBufferSize(8);
+#endif
+        if(!tryCreate(conf, glConf))
+            create(conf, glConf.setSampleCount(0));
+    }*/
+    
+    MagnumSceneManager::initScene();
+    sceneRenderer.init();
+
+    _sceneRoot = SOMGR.getObj("Scene");
+
+    _cameraObject = new Object3D{};
+    
+    (*_cameraObject)
+        .setParent(_sceneRoot)
+        .translate(Vector3::zAxis(20.0f));
         
     
-    (*(_camera = new SceneGraph::Camera3D{_cameraObject}))
+    (*(_camera = new SceneGraph::Camera3D{*_cameraObject}))
         .setAspectRatioPolicy(SceneGraph::AspectRatioPolicy::Extend)
         .setProjectionMatrix(Matrix4::perspectiveProjection(35.0_degf, 1.0f, 1.0f, 1000.0f))
         .setViewport(GL::defaultFramebuffer.viewport().size());
-    
-    _manipulator.setParent(&_sceneRoot);
 
-    Object3D* scene = SOMGR.addObj("Scene");
-    scene->setParent(&_manipulator);
+    sceneRenderer.resizeViewport(GL::defaultFramebuffer.viewport().size().x(), GL::defaultFramebuffer.viewport().size().y());
 
-    scene->scale({0.05f, 0.05f, 0.05f});
+    _lastDepth = ((_camera->projectionMatrix()*_camera->cameraMatrix()).transformPoint({}).z() + 1.0f)*0.5f;
 
 
     GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
     GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
     GL::Renderer::enable(GL::Renderer::Feature::Blending);
+
+    // Important for proper rendering of skydome
+    GL::Renderer::setDepthFunction(GL::Renderer::DepthFunction::LessOrEqual);
 
     _imgui = ImGuiIntegration::Context(Vector2{windowSize()}/dpiScaling(), windowSize(), framebufferSize());
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
@@ -265,7 +338,34 @@ MapViewer::MapViewer(const Arguments& arguments):
     GL::Renderer::setBlendFunction(GL::Renderer::BlendFunction::SourceAlpha,
         GL::Renderer::BlendFunction::OneMinusSourceAlpha);
 
+#ifdef TARGET_EMSCRIPTEN
+    _depth = GL::Texture2D{};
+    _depth.setMinificationFilter(GL::SamplerFilter::Nearest)
+        .setMagnificationFilter(GL::SamplerFilter::Nearest)
+        .setWrapping(GL::SamplerWrapping::ClampToEdge)
+        /* The format is set to combined depth/stencil in hope it will match
+           the browser depth/stencil format, requested in the GLConfiguration
+           above. If it won't, the blit() won't work properly. */
+        .setStorage(1, GL::TextureFormat::Depth24Stencil8, framebufferSize());
+    _depthFramebuffer = GL::Framebuffer{{{}, framebufferSize()}};
+    _depthFramebuffer.attachTexture(GL::Framebuffer::BufferAttachment::Depth, _depth, 0);
+
+    _reinterpretDepth = GL::Renderbuffer{};
+    _reinterpretDepth.setStorage(GL::RenderbufferFormat::RGBA8, framebufferSize());
+    _reinterpretFramebuffer = GL::Framebuffer{{{}, framebufferSize()}};
+    _reinterpretFramebuffer.attachRenderbuffer(GL::Framebuffer::ColorAttachment{0}, _reinterpretDepth);
+    _reinterpretShader = DepthReinterpretShader{};
+    _fullscreenTriangle = GL::Mesh{};
+    _fullscreenTriangle.setCount(3);
+#endif
+
     init();
+}
+
+void MapViewer::resetCamera() {
+    (*_cameraObject)
+        .resetTransformation()
+        .translate(Vector3::zAxis(20.0f));
 }
 
 void MapViewer::handleSaveFromEditor(const std::string& filename, const std::string& data) {
@@ -309,6 +409,11 @@ void MapViewer::showMainMenuBar() {
         }
         if (ImGui::BeginMenu("View")) {
             showMenuView();
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Scene")) {
+            if (ImGui::MenuItem("Renderer Settings", NULL, &showRendererSettings)) {}
+            if (ImGui::MenuItem("Adjust Sun", NULL, &showAdjustSun)) {}
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Debug")) {
@@ -357,7 +462,8 @@ void MapViewer::showMenuDebug() {
     if (ImGui::MenuItem("Force Load Material Textures")) {
         MAGNUMMATERIALMGR.forceLoadTextures();
     }
-
+    ImGui::Separator();
+    if (ImGui::MenuItem("Pipeline Texture Browser", NULL, &showPipelineTexBrowser)) {}
 }
 
 void MapViewer::drawWindows() {
@@ -436,9 +542,32 @@ void MapViewer::drawWindows() {
     if (showDrawableGroupBrowser) {
         dgrpBrowser.draw("Drawable Group Browser", &showDrawableGroupBrowser);
     }
+
+    if (showPipelineTexBrowser) {
+        sceneRenderer.drawPipelineTexBrowser("Pipeline Texture Browser", &showPipelineTexBrowser);
+    }
+
+    if (showAdjustSun) {
+        ImGui::SetNextWindowSize(ImVec2(500, 300), ImGuiCond_FirstUseEver);
+        ImGui::Begin("Adjust Sun", &showAdjustSun);
+        auto pos = sceneRenderer.getSunPosition();
+        static float x = pos.x(), y = pos.y(), z = pos.z();
+        ImGui::DragFloat("Sun X", &x, 10.0f, -10000.0f, 10000.0f, "%.2f");
+        ImGui::DragFloat("Sun Y", &y, 10.0f, -10000.0f, 10000.0f, "%.2f");
+        ImGui::DragFloat("Sun Z", &z, 10.0f, 1000.0f, 10000.0f, "%.2f");
+        sceneRenderer.setSunPosition({x, y, z});
+        ImGui::End();
+    }
+
+    if (showRendererSettings) {
+        sceneRenderer.drawSettings("Renderer Settings", &showRendererSettings);
+    }
 }
 
 void MapViewer::drawEvent() {
+#ifdef TARGET_EMSCRIPTEN /* Another FB could be bound from the depth read */
+    GL::defaultFramebuffer.bind();
+#endif
     GL::defaultFramebuffer.clear(GL::FramebufferClear::Color | GL::FramebufferClear::Depth);
 
     _imgui.newFrame();
@@ -453,19 +582,7 @@ void MapViewer::drawEvent() {
     else if(!ImGui::GetIO().WantTextInput && isTextInputActive())
         stopTextInput();
 
-    GL::Renderer::enable(GL::Renderer::Feature::DepthTest);
-    GL::Renderer::enable(GL::Renderer::Feature::FaceCulling);
-    GL::Renderer::disable(GL::Renderer::Feature::ScissorTest);
-    GL::Renderer::disable(GL::Renderer::Feature::Blending);
-
-    if (showGrid)
-        if (auto* dg = DGRPMGR.getGroup("WorldDebugDrawables"))
-            _camera->draw(*dg);
-    if (auto* dg = DGRPMGR.getGroup("WorldDrawables"))
-        _camera->draw(*dg);
-    GL::Renderer::enable(GL::Renderer::Feature::Blending);
-    if (auto* dg = DGRPMGR.getGroup("WorldTransDrawables"))
-        _camera->draw(*dg);
+    sceneRenderer.renderScene(_camera);
 
     GL::Renderer::enable(GL::Renderer::Feature::Blending);
     GL::Renderer::enable(GL::Renderer::Feature::ScissorTest);
@@ -473,6 +590,12 @@ void MapViewer::drawEvent() {
     GL::Renderer::disable(GL::Renderer::Feature::DepthTest);
 
     _imgui.drawFrame();
+
+#ifdef TARGET_EMSCRIPTEN
+    /* The rendered depth buffer might get lost later, so resolve it to our
+       depth texture before swapping it to the canvas */
+    GL::Framebuffer::blit(GL::defaultFramebuffer, _depthFramebuffer, GL::defaultFramebuffer.viewport(), GL::FramebufferBlit::Depth);
+#endif
 
     swapBuffers();
 }
@@ -483,15 +606,91 @@ void MapViewer::tickEvent() {
     redraw();
 }
 
+Float MapViewer::depthAt(const Vector2i& windowPosition) {
+    /* First scale the position from being relative to window size to being
+       relative to framebuffer size as those two can be different on HiDPI
+       systems */
+    const Vector2i position = windowPosition*Vector2{framebufferSize()}/Vector2{windowSize()};
+    const Vector2i fbPosition{position.x(), GL::defaultFramebuffer.viewport().sizeY() - position.y() - 1};
+    const Range2Di area = Range2Di::fromSize(fbPosition, Vector2i{1}).padded(Vector2i{2});
+
+#ifndef TARGET_EMSCRIPTEN
+    GL::defaultFramebuffer.mapForRead(GL::DefaultFramebuffer::ReadAttachment::Front);
+    Image2D data = GL::defaultFramebuffer.read(
+        Range2Di::fromSize(fbPosition, Vector2i{1}).padded(Vector2i{2}),
+        {GL::PixelFormat::DepthComponent, GL::PixelType::Float});
+
+    /* TODO: change to just Math::min<Float>(data.pixels<Float>() when the
+       batch functions in Math can handle 2D views */
+    return Math::min<Float>(data.pixels<Float>().asContiguous());
+#else
+    _reinterpretFramebuffer.clearColor(0, Vector4{})
+        .bind();
+    _reinterpretShader.bindDepthTexture(_depth);
+    GL::Renderer::enable(GL::Renderer::Feature::ScissorTest);
+    GL::Renderer::setScissor(area);
+    _reinterpretShader.draw(_fullscreenTriangle);
+    GL::Renderer::disable(GL::Renderer::Feature::ScissorTest);
+
+    Image2D image = _reinterpretFramebuffer.read({area}, {PixelFormat::RGBA8Unorm});
+
+    /* Unpack the values back. Can't just use UnsignedInt as the values are
+       packed as big-endian. */
+    Float depth[25];
+    /* TODO: remove the asContiguous() when bit unpack functions exist */
+    auto packed = image.pixels<const Math::Vector4<UnsignedByte>>().asContiguous();
+    for(std::size_t i = 0; i != packed.size(); ++i) {
+        depth[i] = Math::unpack<Float, UnsignedInt, 24>((packed[i].x() << 16) | (packed[i].y() << 8) | packed[i].z());
+    }
+    return Math::min<Float>(depth);
+#endif
+}
+
+Vector3 MapViewer::unproject(const Vector2i& windowPosition, Float depth) const {
+    /* We have to take window size, not framebuffer size, since the position is
+       in window coordinates and the two can be different on HiDPI systems */
+    const Vector2i viewSize = windowSize();
+    const Vector2i viewPosition{windowPosition.x(), viewSize.y() - windowPosition.y() - 1};
+    const Vector3 in{2*Vector2{viewPosition}/Vector2{viewSize} - Vector2{1.0f}, depth*2.0f - 1.0f};
+
+    /*
+        Use the following to get global coordinates instead of camera-relative:
+
+        (_cameraObject->absoluteTransformationMatrix()*_camera->projectionMatrix().inverted()).transformPoint(in)
+    */
+    return _camera->projectionMatrix().inverted().transformPoint(in);
+}
+
 void MapViewer::viewportEvent(ViewportEvent& e) {
     GL::defaultFramebuffer.setViewport({{}, e.framebufferSize()});
     _imgui.relayout(Vector2{e.windowSize()}/e.dpiScaling(),
         e.windowSize(), e.framebufferSize());
     _camera->setViewport(e.windowSize());
+    /* Recreate textures and renderbuffers that depend on viewport size */
+#ifdef TARGET_EMSCRIPTEN
+    _depth = GL::Texture2D{};
+    _depth.setMinificationFilter(GL::SamplerFilter::Nearest)
+        .setMagnificationFilter(GL::SamplerFilter::Nearest)
+        .setWrapping(GL::SamplerWrapping::ClampToEdge)
+        .setStorage(1, GL::TextureFormat::Depth24Stencil8, e.framebufferSize());
+    _depthFramebuffer.attachTexture(GL::Framebuffer::BufferAttachment::Depth, _depth, 0);
+
+    _reinterpretDepth = GL::Renderbuffer{};
+    _reinterpretDepth.setStorage(GL::RenderbufferFormat::RGBA8, e.framebufferSize());
+    _reinterpretFramebuffer.attachRenderbuffer(GL::Framebuffer::ColorAttachment{0}, _reinterpretDepth);
+
+    _reinterpretFramebuffer.setViewport({{}, e.framebufferSize()});
+#endif
 }
 
 void MapViewer::keyPressEvent(KeyEvent& event) {
     if(_imgui.handleKeyPressEvent(event)) return;
+        /* Reset the transformation to the original view */
+    if(event.key() == KeyEvent::Key::NumZero) {
+        resetCamera();
+        redraw();
+        return;
+    }
 }
 
 void MapViewer::keyReleaseEvent(KeyEvent& event) {
@@ -500,14 +699,19 @@ void MapViewer::keyReleaseEvent(KeyEvent& event) {
 
 void MapViewer::mousePressEvent(MouseEvent& e) {
     if(_imgui.handleMousePressEvent(e)) return;
-    if (e.button() == MouseEvent::Button::Left)
-        _previousPosition = positionOnSphere(e.position());
+    const Float currentDepth = depthAt(e.position());
+    const Float depth = currentDepth == 1.0f ? _lastDepth : currentDepth;
+    _translationPoint = unproject(e.position(), depth);
+    /* Update the rotation point only if we're not zooming against infinite
+       depth or if the original rotation point is not yet initialized */
+    if(currentDepth != 1.0f || _rotationPoint.isZero()) {
+        _rotationPoint = _translationPoint;
+        _lastDepth = depth;
+    }
 }
 
 void MapViewer::mouseReleaseEvent(MouseEvent& e) {
     if(_imgui.handleMouseReleaseEvent(e)) return;
-    if (e.button() == MouseEvent::Button::Left)
-        _previousPosition = Vector3{};
 }
 
 void MapViewer::mouseScrollEvent(MouseScrollEvent& e) {
@@ -517,36 +721,51 @@ void MapViewer::mouseScrollEvent(MouseScrollEvent& e) {
         return;
     }
     e.setAccepted();
-    if (!e.offset().y()) return;
-    const Float distance = _cameraObject.transformation().translation().z();
-    _cameraObject.translate(Vector3::zAxis(distance*(1.0f - (e.offset().y() > 0 ? 1/0.85f : 0.85f))));
+    const Float currentDepth = depthAt(e.position());
+    const Float depth = currentDepth == 1.0f ? _lastDepth : currentDepth;
+    const Vector3 p = unproject(e.position(), depth);
+    /* Update the rotation point only if we're not zooming against infinite
+       depth or if the original rotation point is not yet initialized */
+    if(currentDepth != 1.0f || _rotationPoint.isZero()) {
+        _rotationPoint = p;
+        _lastDepth = depth;
+    }
+
+    const Float direction = e.offset().y();
+    if(!direction) return;
+
+    /* Move towards/backwards the rotation point in cam coords */
+    _cameraObject->translateLocal(_rotationPoint*direction*0.1f);
     redraw();
 }
 
 void MapViewer::mouseMoveEvent(MouseMoveEvent &e) {
     if(_imgui.handleMouseMoveEvent(e)) return;
+
+    if(_lastPosition == Vector2i{-1}) _lastPosition = e.position();
+    const Vector2i delta = e.position() - _lastPosition;
+    _lastPosition = e.position();
+
     if (!(e.buttons() & MouseMoveEvent::Button::Left)) return;
 
-    const Vector3 currentPosition = positionOnSphere(e.position());
-    const Vector3 axis = Math::cross(_previousPosition, currentPosition);
+    /* Translate */
+    if(e.modifiers() & MouseMoveEvent::Modifier::Shift) {
+        const Vector3 p = unproject(e.position(), _lastDepth);
+        _cameraObject->translateLocal(_translationPoint - p); /* is Z always 0? */
+        _translationPoint = p;
 
-    if (_previousPosition.length() < 0.001f || axis.length() < 0.001f) return;
-
-    _manipulator.rotate(Math::angle(_previousPosition, currentPosition), axis.normalized());
-    _previousPosition = currentPosition;
+    /* Rotate around rotation point */
+    } else _cameraObject->transformLocal(
+        Matrix4::translation(_rotationPoint)*
+        Matrix4::rotationX(-0.005_radf*delta.y())*
+        Matrix4::rotationY(-0.005_radf*delta.x())*
+        Matrix4::translation(-_rotationPoint));
 
     redraw();
 }
 
 void MapViewer::textInputEvent(TextInputEvent& e) {
     if(_imgui.handleTextInputEvent(e)) return;
-}
-
-Vector3 MapViewer::positionOnSphere(const Vector2i& position) const {
-    const Vector2 positionNormalized = Vector2{position}/Vector2{_camera->viewport()} - Vector2{0.5f};
-    const Float length = positionNormalized.length();
-    const Vector3 result(length > 1.0f ? Vector3(positionNormalized, 0.0f) : Vector3(positionNormalized, 1.0f - length));
-    return (result * Vector3::yScale(-1.0f)).normalized();
 }
 
 void MapViewer::resetBZDB() {
@@ -624,6 +843,8 @@ void MapViewer::loopIteration()
 {
     // set this step game time
     GameTime::setStepTime();
+
+    TimeKeeper::setTick();
 
     // update the dynamic colors
     DYNCOLORMGR.update();

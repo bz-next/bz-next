@@ -1,4 +1,4 @@
-#include "BasicTexturedShader.h"
+#include "DepthMapVisualizerShader.h"
 
 #include <Magnum/GL/Version.h>
 #include <Magnum/GL/Context.h>
@@ -12,7 +12,7 @@ static void importShaderResources() {
     CORRADE_RESOURCE_INITIALIZE(SHADER_RESOURCES)
 }
 
-BasicTexturedShader::BasicTexturedShader() {
+DepthMapVisualizerShader::DepthMapVisualizerShader() {
     Magnum::GL::Version shaderVersion;
     #ifdef TARGET_EMSCRIPTEN
     shaderVersion = GL::Version::GLES300;
@@ -29,8 +29,8 @@ BasicTexturedShader::BasicTexturedShader() {
     GL::Shader vert{shaderVersion, GL::Shader::Type::Vertex};
     GL::Shader frag{shaderVersion, GL::Shader::Type::Fragment};
 
-    vert.addSource(rs.getString("BasicTexturedShader.vert"));
-    frag.addSource(rs.getString("BasicTexturedShader.frag"));
+    vert.addSource(rs.getString("DepthMapVisualizerShader.vert"));
+    frag.addSource(rs.getString("DepthMapVisualizerShader.frag"));
 
     CORRADE_INTERNAL_ASSERT_OUTPUT(vert.compile() && frag.compile());
 
@@ -38,6 +38,5 @@ BasicTexturedShader::BasicTexturedShader() {
 
     CORRADE_INTERNAL_ASSERT_OUTPUT(link());
 
-    _colorUniform = uniformLocation("color");
-    setUniform(uniformLocation("textureData"), TextureUnit);
+    setUniform(uniformLocation("depthMap"), TextureUnit);
 }

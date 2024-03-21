@@ -31,7 +31,6 @@ target_link_libraries(mapviewer PRIVATE
     bzcommon
     bz3D
     bznet
-    bzplatform
     bzobstacle
     bzscene
     bzmediafile
