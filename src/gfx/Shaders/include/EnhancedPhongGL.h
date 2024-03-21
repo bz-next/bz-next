@@ -376,10 +376,10 @@ doesn't need to vary per draw.
 
 @see @ref shaders
 */
-class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderProgram {
+class  EnhancedPhongGL: public Magnum::GL::AbstractShaderProgram {
     public:
         /* MSVC needs dllexport here as well */
-        class MAGNUM_SHADERS_EXPORT Configuration;
+        class  Configuration;
         class CompileState;
 
         /**
@@ -1977,7 +1977,7 @@ class MAGNUM_SHADERS_EXPORT EnhancedPhongGL: public Magnum::GL::AbstractShaderPr
 
 @see @ref PhongGL(const Configuration&), @ref compile(const Configuration&)
 */
-class MAGNUM_SHADERS_EXPORT EnhancedPhongGL::Configuration {
+class  EnhancedPhongGL::Configuration {
     public:
         explicit Configuration() = default;
 
@@ -2159,10 +2159,10 @@ class EnhancedPhongGL::CompileState: public EnhancedPhongGL {
 };
 
 /** @debugoperatorclassenum{PhongGL,PhongGL::Flag} */
-MAGNUM_SHADERS_EXPORT Magnum::Debug& operator<<(Magnum::Debug& debug, EnhancedPhongGL::Flag value);
+ Magnum::Debug& operator<<(Magnum::Debug& debug, EnhancedPhongGL::Flag value);
 
 /** @debugoperatorclassenum{PhongGL,PhongGL::Flags} */
-MAGNUM_SHADERS_EXPORT Magnum::Debug& operator<<(Magnum::Debug& debug, EnhancedPhongGL::Flags value);
+ Magnum::Debug& operator<<(Magnum::Debug& debug, EnhancedPhongGL::Flags value);
 
 CORRADE_ENUMSET_OPERATORS(EnhancedPhongGL::Flags)
 
