@@ -31,6 +31,22 @@ class BZMaterialDrawable : public Magnum::SceneGraph::Drawable3D {
         Magnum::GL::Mesh& _mesh;
         const MagnumBZMaterial *_matPtr;
 };
+
+class BZMaterialBillboardDrawable : public Magnum::SceneGraph::Drawable3D {
+    public:
+        explicit BZMaterialBillboardDrawable(Object3D& object, Magnum::GL::Mesh& mesh, const MagnumBZMaterial* mptr, Magnum::SceneGraph::DrawableGroup3D& group) :
+            Magnum::SceneGraph::Drawable3D{object, &group},
+            _mesh(mesh),
+            _matPtr(mptr)
+        {}
+
+    private:
+        void draw(const Magnum::Matrix4& transformationMatrix, Magnum::SceneGraph::Camera3D& camera) override;
+
+        //static BZMaterialDrawMode* _mode;
+        Magnum::GL::Mesh& _mesh;
+        const MagnumBZMaterial *_matPtr;
+};
 #ifndef MAGNUM_TARGET_GLES2
 class DebugLineDrawable : public Magnum::SceneGraph::Drawable3D {
     public:
